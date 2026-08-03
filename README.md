@@ -15,7 +15,7 @@ TODO: Write setup here
 
 ## Developing
 
-Tools needed:
+### Required Tools
 
 - [precommit](https://github.com/pre-commit/pre-commit) or
   [prek](https://github.com/j178/prek) (better)
@@ -40,4 +40,12 @@ Tools needed:
   cargo install emmylua_ls          # Language server
   cargo install emmylua_formatter   # Code formatter
   cargo install emmylua_check       # Static analyzer / linter
+  ```
+
+- [busted](https://github.com/lunarmodules/busted)
+
+  Can be installed with luarocks:
+
+  ```bash
+  luarocks install busted
   ```

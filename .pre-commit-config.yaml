@@ -36,3 +36,9 @@ repos:
         entry: cog verify --file
         language: system
         stages: [commit-msg]
+      - id: busted
+        name: busted
+        entry: busted
+        language: system
+        types: [lua]
+        pass_filenames: false
