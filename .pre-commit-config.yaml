@@ -1,0 +1,38 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+      - id: check-yaml
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.5.6
+    hooks:
+      - id: insert-license
+        files: \.lua$
+        args:
+          - --license-filepath
+          - LICENSE_HEADER.txt
+          - --comment-style=--
+      - id: remove-crlf
+      - id: remove-tabs
+  - repo: local
+    hooks:
+      - id: emmylua-fmt
+        name: EmmyLua Format
+        entry: luafmt --write
+        language: system
+        types: [lua]
+      - id: emmylua-check
+        name: EmmyLua Analyzer Check
+        entry: emmylua_check .
+        language: system
+        types: [lua]
+      - id: cog-check
+        name: Cocogitto Commit Check
+        entry: cog verify --file
+        language: system
+        stages: [commit-msg]
