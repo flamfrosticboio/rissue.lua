@@ -14,12 +14,32 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local rissue = {}
+M = {}
 
-local config = require("config")
+---@diagnostic disable: undefined-global
 
-function rissue.setup(opts)
-    config.setup(opts)
+---@param ... table
+---@return table
+function M.force_extend(...)
+    if vim then
+        return vim.tbl_extend("force", ...)
+    end
+
+    ---@type table | nil
+    local current = nil
+    --- fallback implementation
+    for _, tbl in ipairs({ ... }) do
+        if current == nil then
+            current = tbl
+        else
+            for k, v in pairs(tbl) do
+                current[k] = v
+            end
+        end
+    end
+
+    assert(current ~= nil)
+    return current
 end
 
-return rissue
+return M

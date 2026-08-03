@@ -14,6 +14,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local config = {}
+local config = { options = {} }
+
+local table_op = require("utils.table_op")
+
+local defaults = {}
+
+function config.setup(opts)
+    config.options = table_op.force_extend(defaults, opts or {})
+end
 
 return config
