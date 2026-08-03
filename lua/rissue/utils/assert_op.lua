@@ -24,7 +24,7 @@ local M = {}
 ---@param t     T
 ---@param level integer Default: 2
 ---@return TypeGuard<T>
-function M.is_type_named(name, obj, t, level)
+function M.is_type_named_unsafe(name, obj, t, level)
     if type(obj) ~= t then
         error(
             ("Expecting %s to be '%s', got: '%s'"):format(name, t, type(obj)),
