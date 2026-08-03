@@ -14,32 +14,53 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@diagnostic disable: undefined-global
+
 M = {}
 
----@diagnostic disable: undefined-global
+---@param t any
+---@return boolean is_list
+function M.is_list(t)
+    if type(t) ~= "table" then return false end
+    local i = 0
+    for k in pairs(t) do
+        i = i + 1
+        if k ~= i then return false end
+    end
+    return true
+end
 
 ---@param ... table
 ---@return table
-function M.force_extend(...)
-    if vim then
-        return vim.tbl_extend("force", ...)
-    end
+function M.force_deep_extend(...)
+    local tables = { ... }
+    local result = {}
 
-    ---@type table | nil
-    local current = nil
-    --- fallback implementation
-    for _, tbl in ipairs({ ... }) do
-        if current == nil then
-            current = tbl
-        else
-            for k, v in pairs(tbl) do
-                current[k] = v
+    local function merge(dst, src)
+        for k, v in pairs(src) do
+            if type(v) == "table" and type(dst[k]) == "table" and not M.is_list(v) then
+                merge(dst[k], v)
+            else
+                if type(v) == "table" then
+                    if M.is_list(v) then
+                        dst[k] = v
+                    else
+                        local copy = {}
+                        merge(copy, v)
+                        dst[k] = copy
+                    end
+                else
+                    dst[k] = v
+                end
             end
         end
     end
 
-    assert(current ~= nil)
-    return current
+    for _, t in ipairs(tables) do
+        merge(result, t)
+    end
+
+    return result
 end
 
 return M
