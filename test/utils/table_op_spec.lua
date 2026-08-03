@@ -14,7 +14,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local table_op = require("utils.table_op")
+local table_op = require("rissue.utils.table_op")
 
 describe("`force_extend()`", function ()
     it("extends", function ()

@@ -16,7 +16,7 @@
 
 local config = { options = {} }
 
-local table_op = require("utils.table_op")
+local table_op = require("rissue.utils.table_op")
 
 local defaults = {}
 

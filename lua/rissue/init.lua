@@ -16,7 +16,7 @@
 
 local rissue = {}
 
-local config = require("config")
+local config = require("rissue.config")
 
 function rissue.setup(opts)
     config.setup(opts)

@@ -7,6 +7,6 @@
     },
     "workspace": {
         "library": ["{workspaceFolder}/types"],
-        "workspaceRoots": ["./lua/rissue/", "./test"]
+        "workspaceRoots": ["./lua/", "./test"]
     }
 }

@@ -1,6 +1,6 @@
 return {
     _all = {
-        lpath = "./lua/rissue/?.lua;./lua/rissue/?/init.lua",
+        lpath = "./lua/?.lua;./lua/?/init.lua",
     },
     default = {
         verbose = true,
