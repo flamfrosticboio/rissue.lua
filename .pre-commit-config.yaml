@@ -42,6 +42,7 @@ repos:
         entry: emmylua_check .
         language: system
         types: [lua]
+        pass_filenames: false
       - id: busted
         name: busted
         entry: busted test/
