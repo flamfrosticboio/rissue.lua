@@ -21,7 +21,7 @@ local table_op = require("utils.table_op")
 local defaults = {}
 
 function config.setup(opts)
-    config.options = table_op.force_extend(defaults, opts or {})
+    config.options = table_op.force_deep_extend(defaults, opts or {})
 end
 
 return config
