@@ -41,7 +41,7 @@ local function is_provider_spec(obj)
 end
 
 --- Returns an error as string if it errors
----@param opts table
+---@param opts table?
 ---@return string?
 function config.setup(opts)
     config.options = table_op.force_deep_extend(config.options, opts or {})

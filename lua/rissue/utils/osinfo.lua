@@ -14,16 +14,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local rissue = {}
+local M = {}
 
-local config = require("rissue.config")
-local env = require("rissue.env")
+M.separator = package.config.sub(1, 1)
 
----@param opts table?
----@param cwd  string?
-function rissue.setup(opts, cwd)
-    config.setup(opts)
-    env.setup(opts and opts.env_file or ".env", cwd)
-end
+-- determines if you are in windows or unix system
+M.is_windows = M.separator == "\\"
 
-return rissue
+return M
