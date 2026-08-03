@@ -1,0 +1,35 @@
+-- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- Copyright (C) 2026  flamfrosticboio
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+---@class (exact) rissue.item.base
+---@field title      string
+---@field body       string?
+---@field web_url    rissue.url       A web version to the url
+---@field url        rissue.url
+---@field id         integer          The id of the issue
+---@field author     rissue.user
+---@field created_at rissue.timestamp
+---@field labels     rissue.label[]
+
+---@class (exact) rissue.label
+---@field name        string
+---@field color       string?
+---@field description string?
+
+---@class (exact) rissue.user
+---@field username     string
+---@field display_name string?
+---@field web_url      rissue.url
