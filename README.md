@@ -24,11 +24,9 @@ TODO: Write setup here
   ```bash
   # If using precommit
   precommit install
-  precommit install --hook-type commit-msg
 
   # If using prek
   prek install
-  prek install --hook-type commit-msg
   ```
 
 - [emmylua_analyzer_rust](https://github.com/EmmyLuaLs/emmylua-analyzer-rust)
