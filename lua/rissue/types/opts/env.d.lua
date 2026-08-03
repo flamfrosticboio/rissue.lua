@@ -17,4 +17,9 @@
 ---@meta
 
 ---@class rissue.config.Env
----@field name string
+--- A provider token env name prefix. All provider names are capitalized
+---
+--- Example: `GIT_TK_GITHUB` for provider `github`
+---
+--- - Default: "GIT_TK_"
+---@field provider_prefix string

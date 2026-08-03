@@ -20,7 +20,13 @@ local assert_op = require("rissue.utils.assert_op")
 local config = {}
 
 ---@type rissue.Config
-config.options = { additional_providers = {} }
+config.options = {
+    additional_providers = {},
+    env_file = ".env",
+    env = {
+        provider_prefix = "GIT_TK_",
+    },
+}
 
 ---@type rissue.provider[]
 config.providers = {}

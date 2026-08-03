@@ -15,7 +15,8 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---@class rissue.Config
----@field additional_providers string[] List of lua filenames to import
----@field env_file             string   The name of the env file
+---@field additional_providers string[]          List of lua filenames to import
+---@field env_file             string            The name of the env file
+---@field env                  rissue.config.Env
 
 ---@class (partial) rissue.Opts: rissue.Config
