@@ -44,7 +44,7 @@ repos:
         types: [lua]
       - id: busted
         name: busted
-        entry: busted
+        entry: busted test/
         language: system
         types: [lua]
         pass_filenames: false
