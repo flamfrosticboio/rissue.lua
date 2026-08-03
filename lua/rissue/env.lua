@@ -42,11 +42,11 @@ local function load_env(path)
     return env
 end
 
---- Default: env_file_name=.env, cwd='.'
----@param env_filename string?
+--- Default: cwd='.'
+---@param env_filename string
 ---@param cwd          string?
 function M.setup(env_filename, cwd)
-    local env_path = (cwd or ".") .. osinfo.separator .. (env_filename or ".env")
+    local env_path = (cwd or ".") .. osinfo.separator .. env_filename
     M.env = load_env(env_path)
 end
 

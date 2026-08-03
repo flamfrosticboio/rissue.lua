@@ -19,11 +19,17 @@ local rissue = {}
 local config = require("rissue.config")
 local env = require("rissue.env")
 
----@param opts table?
+--- Throws an error as string when it failed to setup
+---@param opts rissue.Config?
 ---@param cwd  string?
+---@return string?
 function rissue.setup(opts, cwd)
-    config.setup(opts)
-    env.setup(opts and opts.env_file or ".env", cwd)
+    local err = config.setup(opts)
+    if err then
+        return err
+    end
+
+    env.setup(config.options.env_file, cwd)
 end
 
 return rissue
