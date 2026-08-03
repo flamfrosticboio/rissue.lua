@@ -15,6 +15,7 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local osinfo = require("rissue.utils.osinfo")
+local config = require("rissue.config")
 local M = {}
 
 M.env = {}
@@ -54,6 +55,11 @@ end
 ---@return string?
 function M.get(name)
     return M.env[name] or os.getenv(name)
+end
+
+---@param provider rissue.provider
+function M.get_token(provider)
+    return M.get(config.options.env.provider_prefix .. provider:upper())
 end
 
 return M
