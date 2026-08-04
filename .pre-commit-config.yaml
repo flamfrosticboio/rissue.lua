@@ -44,7 +44,7 @@ repos:
         stages: [pre-commit]
       - id: emmylua-check
         name: EmmyLua Analyzer Check
-        entry: emmylua_check
+        entry: emmylua_check -c $(git rev-parse --show-toplevel)/.emmyrc.json
         language: system
         types: [lua]
         pass_filenames: true
