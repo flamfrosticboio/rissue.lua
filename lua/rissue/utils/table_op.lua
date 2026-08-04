@@ -16,7 +16,7 @@
 
 ---@diagnostic disable: undefined-global
 
-M = {}
+local M = {}
 
 ---@param t any
 ---@return boolean is_list
