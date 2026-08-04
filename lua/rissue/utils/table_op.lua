@@ -63,4 +63,15 @@ function M.force_deep_extend(...)
     return result
 end
 
+--- Returns the number of items of the table
+---@param tbl table
+---@return integer
+function M.count(tbl)
+    local n = 0
+    for _ in pairs(tbl) do
+        n = n + 1
+    end
+    return n
+end
+
 return M

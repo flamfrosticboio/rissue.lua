@@ -39,10 +39,10 @@ repos:
         types: [lua]
       - id: emmylua-check
         name: EmmyLua Analyzer Check
-        entry: emmylua_check .
+        entry: emmylua_check
         language: system
         types: [lua]
-        pass_filenames: false
+        pass_filenames: true
       - id: busted
         name: busted
         entry: busted test/
