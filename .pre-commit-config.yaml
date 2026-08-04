@@ -44,10 +44,10 @@ repos:
         stages: [pre-commit]
       - id: emmylua-check
         name: EmmyLua Analyzer Check
-        entry: emmylua_check -c "$(git rev-parse --show-toplevel)/.emmyrc.json"
+        entry: emmylua_check .
         language: system
         types: [lua]
-        pass_filenames: true
+        pass_filenames: false
         stages: [pre-commit]
       - id: busted
         name: busted
