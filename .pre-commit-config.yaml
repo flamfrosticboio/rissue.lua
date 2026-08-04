@@ -10,8 +10,11 @@ repos:
       - id: end-of-file-fixer
       - id: check-added-large-files
       - id: check-merge-conflict
+        stages: [pre-commit]
       - id: mixed-line-ending
+        stages: [pre-commit]
       - id: check-yaml
+        stages: [pre-commit]
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.6
     hooks:
@@ -21,6 +24,7 @@ repos:
           - --license-filepath
           - LICENSE_HEADER.txt
           - --comment-style=--
+        stages: [pre-commit]
       - id: remove-crlf
       - id: remove-tabs
   - repo: https://github.com/compilerla/conventional-pre-commit
@@ -37,15 +41,18 @@ repos:
         entry: luafmt --write
         language: system
         types: [lua]
+        stages: [pre-commit]
       - id: emmylua-check
         name: EmmyLua Analyzer Check
         entry: emmylua_check
         language: system
         types: [lua]
         pass_filenames: true
+        stages: [pre-commit]
       - id: busted
         name: busted
         entry: busted test/
         language: system
         types: [lua]
         pass_filenames: false
+        stages: [pre-commit]
