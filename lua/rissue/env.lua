@@ -16,6 +16,7 @@
 
 local osinfo = require("rissue.utils.osinfo")
 local config = require("rissue.config")
+
 local M = {}
 
 M.env = {}

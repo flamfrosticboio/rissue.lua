@@ -36,14 +36,18 @@ local builtin_providers = {
 }
 
 ---@param obj any
----@return TypeGuard<rissue.provider_spec>
+---@return rissue.provider_spec
 local function is_provider_spec(obj)
-    assert_op.is_type_named_unsafe("module", obj, "table", 4)
-    ---@cast obj rissue.provider_spec
-    assert_op.is_type_named_unsafe("provider_name", obj.provider_name, "string", 4)
-    assert_op.is_type_named_unsafe("map_into_issue", obj.map_into_issue, "function", 4)
-    assert_op.is_type_named_unsafe("map_into_pr", obj.map_into_pr, "function", 4)
-    return true
+    local ok, err = assert_op.check_structure("rissue.provider_spec", obj, {
+        provider_name = "string",
+        map_into_issue = "function",
+        map_into_pr = "function",
+    }, "module"
+    )
+    if not ok then
+        error(err, 2)
+    end
+    return obj
 end
 
 --- Returns an error as string if it errors
