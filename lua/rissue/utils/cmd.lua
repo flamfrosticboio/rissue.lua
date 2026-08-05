@@ -121,7 +121,7 @@ function M.spawn(cmd, args)
     return true, result
 end
 
----@alias rissue.utils.HttpMethod "get" | "post" | "put" | "delete" | "patch"
+---@alias rissue.utils.HttpMethod "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
 
 ---@alias rissue.utils.CurlFn fun(url: string, method: rissue.utils.HttpMethod, headers: string[]): boolean, string
 
