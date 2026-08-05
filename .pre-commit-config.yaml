@@ -25,6 +25,7 @@ repos:
           - LICENSE_HEADER.txt
           - --comment-style=--
         stages: [pre-commit]
+        exclude: ^types/
       - id: remove-crlf
       - id: remove-tabs
   - repo: https://github.com/compilerla/conventional-pre-commit
