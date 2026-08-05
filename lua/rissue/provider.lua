@@ -1,0 +1,80 @@
+-- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- Copyright (C) 2026  flamfrosticboio
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+-- local config = require("rissue.config")
+--
+-- local M = {}
+--
+-- ---@param remote_url string
+-- function M.generate_provider(remote_url)
+--     -- trim all whitespaces
+--     remote_url = remote_url:gsub("%s+$", "")
+--
+--     -- get owner, repo in https version
+--     ---@type string?, string?
+--     local owner, repo = remote_url:match("https?://[^/]+/([^/]+)/([^/]+)$")
+--     if not owner then
+--         -- fallback to git
+--         owner, repo = remote_url:match("git@[^:]+:([^/]+)/([^/]+)$")
+--     end
+--
+--     if not owner or not repo then
+--         error("owner or repo not in url")
+--     end
+--
+--     -- IMPORTANT: strip the .git at the end
+--     repo = repo:gsub("%.git$", "")
+--     local fmt_settings = { owner = owner, repo = repo }
+--
+--     -- known hosted providers — no API call needed
+--     for _, spec in ipairs(M.known_public_providers) do
+--         if remote_url:match(spec.pattern) then
+--             return {
+--                 type = spec.type,
+--                 endpoint = fmt(spec.endpoint, fmt_settings),
+--                 owner = owner,
+--                 repo = repo,
+--             }
+--         end
+--     end
+--
+--     -- unknown domain — probe the version endpoint
+--     ---@type string?
+--     local base_url = remote_url:match("^(https?://[^/]+)")
+--         or (remote_url:match("^git@([^:]+)") or ""):gsub(":", "/")
+--     if not base_url then
+--         error("url method is not https or git")
+--     end
+--
+--     for _, spec in ipairs(M.self_host_detection_spec) do
+--         local result = curl_json(
+--             base_url .. spec.base_endpoint .. "/" .. spec.fetch_endpoint
+--         )
+--
+--         if spec.is_correct(result) then
+--             return {
+--                 type = spec.type,
+--                 endpoint = base_url .. spec.base_endpoint,
+--                 owner = owner,
+--                 repo = repo,
+--             }
+--         end
+--     end
+--
+--     error("No identifiable git providers")
+-- end
+--
+-- return M

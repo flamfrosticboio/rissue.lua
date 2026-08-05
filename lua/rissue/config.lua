@@ -28,12 +28,8 @@ config.options = {
     },
 }
 
----@type rissue.provider[]
-config.providers = {}
-
-local builtin_providers = {
-    { name = "github", mod = require("rissue.providers.github") },
-}
+---@type table<rissue.provider, rissue.provider_spec>
+config.providers = { github = require("rissue.providers.github") }
 
 ---@param obj any
 ---@return rissue.provider_spec
@@ -56,7 +52,6 @@ end
 function config.setup(opts)
     config.options = table_op.force_deep_extend(config.options, opts or {})
 
-    local _idx = #builtin_providers
     local errors = {}
     local _err_idx = 0
     for _, filepath in ipairs(config.options.additional_providers) do
@@ -68,8 +63,8 @@ function config.setup(opts)
                     if not is_provider_spec(mod) then
                         return
                     end
-                    _idx = _idx + 1
-                    builtin_providers[_idx] = { name = mod.provider_name, mod = mod }
+                    ---@cast mod rissue.provider_spec
+                    config.providers[mod.provider_name] = mod
                 end)
 
                 if not load_ok then
