@@ -19,8 +19,6 @@ local uv = require("rissue.utils.cmd")
 
 local M = {}
 
----@alias rissue.Fetcher.curl fun(url: string): string
-
 ---@async
 ---@param cmd  string
 ---@param args string[]
@@ -123,9 +121,13 @@ function M.spawn(cmd, args)
     return true, result
 end
 
+---@alias rissue.utils.HttpMethod "get" | "post" | "put" | "delete" | "patch"
+
+---@alias rissue.utils.CurlFn fun(url: string, method: rissue.utils.HttpMethod, headers: string[]): boolean, string
+
 ---@async
 ---@param url     string
----@param method  "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
+---@param method  rissue.utils.HttpMethod
 ---@param headers string[]
 ---@return boolean success
 ---@return string result_or_error
