@@ -16,8 +16,6 @@
 
 local assert_op = require("rissue.utils.assert_op")
 
----@class rissue._tests.stub
-
 describe("`check_structure()`", function ()
     it("simple", function ()
         local test_a = { a = "hello", b = 20, c = true }
@@ -26,6 +24,7 @@ describe("`check_structure()`", function ()
         local res = assert_op.check_structure(
             "rissue._tests.stub", test_a, structure_a, "simple"
         )
+
         assert.is_true(res)
 
         ---@type rissue.utils.check_structure.Structure

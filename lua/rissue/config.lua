@@ -27,7 +27,12 @@ config.options = {
         provider_prefix = "GIT_TK_",
     },
     endpoints = {},
-    endpoint_shortcuts = {},
+    endpoint_shortcuts = {
+        github = {
+            domain = "api.github.com",
+            patterns = { "github%.com" },
+        },
+    },
 }
 
 ---@type table<rissue.provider, rissue.provider_spec>

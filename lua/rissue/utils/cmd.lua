@@ -58,18 +58,13 @@ function M.spawn(cmd, args)
         end
     end
 
-    local handle, _, process_error = uv.spawn(
-        cmd,
-        {
-            args = args,
-            stdio = { nil, stdout, stderr },
-        },
-        function (code)
-            exited = true
-            exit_code = code
-            maybe_resume()
-        end
-    )
+    local options = { args = args, stdio = { nil, stdout, stderr } }
+
+    local handle, _, process_error = uv.spawn(cmd, options, function (code)
+        exited = true
+        exit_code = code
+        maybe_resume()
+    end)
 
     if not handle then
         stdout:close()
@@ -78,6 +73,7 @@ function M.spawn(cmd, args)
     end
 
     stdout:read_start(function (err, data)
+        ---@cast err string?
         if err then
             read_error_stdout = err
             stdout:read_stop()
@@ -96,6 +92,7 @@ function M.spawn(cmd, args)
     end)
 
     stderr:read_start(function (err, data)
+        ---@cast err string?
         if err then
             read_error_stderr = err
             stderr:read_stop()

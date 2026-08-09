@@ -14,24 +14,21 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@meta
+local provider = require("rissue.provider")
 
----@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
+---@type uv
+local uv = require("luv")
 
----@class (exact) rissue.provider_spec
----@field map_into_issue fun(fetch_result: any): rissue.issue[]
----@field map_into_pr    fun(fetch_result: any): rissue.pr[]
----@field provider_name  string
----@field supports       fun(domain: string, curl: rissue.utils.CurlFn): boolean
----@field extract        fun(url: string): rissue.provider_spec.extract
+require("rissue").setup()
 
----@class rissue.provider_spec.extract
----@field owner string
----@field repo  string
+describe("provider", function ()
+    it("github self-hosted", function ()
+        async()
+        local ok, info = provider.get_provider_info(
+            "git:github.mycompany.com:owner/repo.git"
+        )
+        assert(ok == true, (info --[[@as string]]))
 
----@class rissue.ProviderInfo
----@field domain   string
----@field name     string
----@field owner    string
----@field repo     string
----@field protocol "http" | "https"
+        assert.is_false(uv.run())
+    end)
+end)
