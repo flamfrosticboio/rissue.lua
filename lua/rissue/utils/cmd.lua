@@ -15,7 +15,7 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---@type uv
-local uv = require("rissue.utils.cmd")
+local uv = require("luv")
 
 local M = {}
 
