@@ -14,6 +14,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+local curl_headers = {
+    "Authorization: Bearer {token}", "X-GitHub-Api-Version: 2022-11-28",
+    "Accept: application/vnd.github.raw+json",
+}
+
 ---@type rissue.provider_spec
 local M = {
     provider_name = "github",
@@ -22,6 +27,10 @@ local M = {
     end,
     map_into_pr = function (_fetch_result)
         return {}
+    end,
+    supports = function (domain, fetcher)
+        fetcher(domain, "GET", curl_headers)
+        return false
     end,
 }
 

@@ -26,6 +26,8 @@ config.options = {
     env = {
         provider_prefix = "GIT_TK_",
     },
+    endpoints = {},
+    endpoint_shortcuts = {},
 }
 
 ---@type table<rissue.provider, rissue.provider_spec>

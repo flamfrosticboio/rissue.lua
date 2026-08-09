@@ -14,18 +14,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@meta
+---@alias rissue.fetch_type "issue" | "pr"
 
----@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
-
----@class (exact) rissue.provider_spec
----@field map_into_issue fun(fetch_result: any): rissue.issue[]
----@field map_into_pr    fun(fetch_result: any): rissue.pr[]
----@field provider_name  string
----@field supports       fun(domain: string, curl: rissue.utils.CurlFn): boolean
-
----@class rissue.ProviderInfo
----@field domain string
----@field name   string
----@field owner  string
----@field repo   string
+---@class (exact) rissue.fetch_type.Map<T>
+---@field issue T
+---@field pr    T

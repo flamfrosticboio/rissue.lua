@@ -15,8 +15,25 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---@class rissue.Config
----@field additional_providers string[]          List of lua filenames to import
----@field env_file             string            The name of the env file
+---@field additional_providers string[]                                                    List of lua filenames to import
+---@field env_file             string                                                      The name of the env file
 ---@field env                  rissue.config.Env
+--- A list of api endpoints to fetch. Uses template strings to substitute various details.
+---
+--- Supported template strings:
+--- - {domain} - domain (e.g. `api.github.com`, `gitlab.com`, `<custom_domain>` from git remote url)
+--- - {owner} - owner of the repository
+--- - {repo} - repository name
+---
+--- Example: issues="https://{provider}/search/issues?q=repo:{owner}/{repo}+type:issue+is:open"
+---@field endpoints            table<rissue.provider, rissue.fetch_type.Map<rissue.url[]>>
+---@field endpoint_shortcuts   table<rissue.provider, rissue.EndpointShortcut>
+
+---@class rissue.EndpointShortcut
+--- List of patterns that can be used on `string:match()`
+---@field patterns string[]
+---@field domain   rissue.url
+
+-- todo: add method: get provider endpoints
 
 ---@class (partial) rissue.Opts: rissue.Config

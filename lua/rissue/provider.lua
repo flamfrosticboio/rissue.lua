@@ -14,67 +14,73 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
--- local config = require("rissue.config")
---
--- local M = {}
---
--- ---@param remote_url string
--- function M.generate_provider(remote_url)
---     -- trim all whitespaces
---     remote_url = remote_url:gsub("%s+$", "")
---
---     -- get owner, repo in https version
---     ---@type string?, string?
---     local owner, repo = remote_url:match("https?://[^/]+/([^/]+)/([^/]+)$")
---     if not owner then
---         -- fallback to git
---         owner, repo = remote_url:match("git@[^:]+:([^/]+)/([^/]+)$")
---     end
---
---     if not owner or not repo then
---         error("owner or repo not in url")
---     end
---
---     -- IMPORTANT: strip the .git at the end
---     repo = repo:gsub("%.git$", "")
---     local fmt_settings = { owner = owner, repo = repo }
---
---     -- known hosted providers — no API call needed
---     for _, spec in ipairs(M.known_public_providers) do
---         if remote_url:match(spec.pattern) then
---             return {
---                 type = spec.type,
---                 endpoint = fmt(spec.endpoint, fmt_settings),
---                 owner = owner,
---                 repo = repo,
---             }
---         end
---     end
---
---     -- unknown domain — probe the version endpoint
---     ---@type string?
---     local base_url = remote_url:match("^(https?://[^/]+)")
---         or (remote_url:match("^git@([^:]+)") or ""):gsub(":", "/")
---     if not base_url then
---         error("url method is not https or git")
---     end
---
---     for _, spec in ipairs(M.self_host_detection_spec) do
---         local result = curl_json(
---             base_url .. spec.base_endpoint .. "/" .. spec.fetch_endpoint
---         )
---
---         if spec.is_correct(result) then
---             return {
---                 type = spec.type,
---                 endpoint = base_url .. spec.base_endpoint,
---                 owner = owner,
---                 repo = repo,
---             }
---         end
---     end
---
---     error("No identifiable git providers")
--- end
---
--- return M
+local config = require("rissue.config")
+local fetcher = require("rissue.utils.cmd")
+local env = require("rissue.env")
+
+local M = {}
+
+--- Gets the provider info based on the remote url.
+--- May trigger api requests to the url.
+---@async
+---@param remote_url string
+---@return boolean success
+---@return rissue.ProviderInfo | string
+function M.get_provider_info(remote_url)
+    -- trim all whitespaces
+    remote_url = remote_url:gsub("%s+$", "")
+
+    -- get owner, repo in https version
+    ---@type string?, string?
+    local owner, repo = remote_url:match("https?://[^/]+/([^/]+)/([^/]+)$")
+    if not owner then
+        -- fallback to git
+        owner, repo = remote_url:match("git@[^:]+:([^/]+)/([^/]+)$")
+    end
+
+    if not owner or not repo then
+        return false, "owner or repo not in url"
+    end
+
+    -- IMPORTANT: strip the .git at the end
+    repo = repo:gsub("%.git$", "")
+
+    -- known hosted providers — no API call needed
+    for provider_name, spec in pairs(config.options.endpoint_shortcuts) do
+        for _, pattern in ipairs(spec.patterns) do
+            if remote_url:match(pattern) then
+                return true, {
+                        name = provider_name,
+                        domain = spec.domain,
+                        owner = owner,
+                        repo = repo
+                    }
+            end
+        end
+    end
+
+    -- unknown domain — probe the version endpoint
+    ---@type string?
+    local base_url = remote_url:match("^(https?://[^/]+)")
+        or (remote_url:match("^git@([^:]+)") or ""):gsub(":", "/")
+    if not base_url then
+        return false, "url method is not https or git"
+    end
+
+    for provider_name, provider in pairs(config.providers) do
+        if provider.supports(remote_url, function (url, method)
+            return fetcher.curl(url, method, provider.curl_headers)
+        end) then
+            return true, {
+                    name = provider_name,
+                    domain = base_url,
+                    owner = owner,
+                    repo = repo
+                }
+        end
+    end
+
+    return false, "No identifiable git provider"
+end
+
+return M
