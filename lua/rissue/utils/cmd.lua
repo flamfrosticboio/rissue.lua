@@ -21,11 +21,10 @@ local uv = require("luv")
 local M = {}
 
 ---@async
----@param cmd  string
----@param args string[]
+---@param cmd  string[]
 ---@return boolean success
 ---@return string error
-function M.spawn(cmd, args)
+function M.spawn(cmd)
   local co = coroutine.running()
   if not co then
     return false, "runtimeerror: not inside a coroutine"
@@ -59,9 +58,18 @@ function M.spawn(cmd, args)
     end
   end
 
+  local exe = cmd[1]
+  if not exe then
+    error("no binary provided")
+  end
+  local args = {}
+  for i = 2, #cmd do
+    args[#args + 1] = cmd[i]
+  end
+
   local options = { args = args, stdio = { nil, stdout, stderr } }
 
-  local handle, _, process_error = uv.spawn(cmd, options, function(code)
+  local handle, _, process_error = uv.spawn(exe, options, function(code)
     exited = true
     exit_code = code
     maybe_resume()
@@ -127,14 +135,14 @@ end
 ---@return boolean success
 ---@return string result_or_error
 function M.curl(url, method, headers)
-  local args = { "-sS", "-f", url, "-X", method }
-  local i = #args
+  local cmd = { "curl", "-sS", "-f", url, "-X", method }
+  local i = #cmd
   for _, header in ipairs(headers) do
     i = i + 2
-    args[i - 1] = "-H"
-    args[i] = header
+    cmd[i - 1] = "-H"
+    cmd[i] = header
   end
-  return M.spawn("curl", args)
+  return M.spawn(cmd)
 end
 
 return M
