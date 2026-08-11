@@ -1,2 +1,5 @@
 std = "lua51"
 exclude = [".types/**", "test/**"]
+
+[rules]
+mixed_table = "allow"
