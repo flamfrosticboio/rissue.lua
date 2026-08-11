@@ -126,6 +126,54 @@ function M.spawn(cmd)
   return true, result
 end
 
+--- Runs multiple commands in parallel. If there is a return code that is not 0, then it fails
+---
+--- Note: This does not capture the output of any of the cmd
+--- Note: Handles `uv.run()` automatically
+---@param cmds string[][]
+---@return boolean success
+function M.run_multiple(cmds)
+  local remaining = #cmds
+  local result_codes = {}
+
+  for i, cmd in ipairs(cmds) do
+    local exe = cmd[1]
+    if not exe then
+      error("no binary provided")
+    end
+    local args = {}
+    for j = 2, #cmd do
+      args[#args + 1] = cmd[j]
+    end
+
+    local handle
+    handle = uv.spawn(
+      exe,
+      ---@diagnostic disable-next-line: missing-fields
+      { args = args, stdio = { nil, nil, nil } },
+      function(code)
+        result_codes[i] = code
+        remaining = remaining - 1
+        handle:close()
+      end
+    )
+
+    if not handle then
+      error("Failed to spawn: " .. exe)
+    end
+  end
+
+  uv.run()
+
+  for _, code in ipairs(result_codes) do
+    if code ~= 0 then
+      return false
+    end
+  end
+
+  return true
+end
+
 ---@alias rissue.utils.HttpMethod "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
 
 ---@async
