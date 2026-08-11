@@ -69,5 +69,6 @@ repos:
         entry: busted test/
         language: system
         types: [lua]
+        exclude: ^lua/rissue/types/
         pass_filenames: false
         stages: [pre-commit, pre-push]
