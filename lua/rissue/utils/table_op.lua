@@ -21,57 +21,61 @@ local M = {}
 ---@param t any
 ---@return boolean is_list
 function M.is_list(t)
-    if type(t) ~= "table" then return false end
-    local i = 0
-    for k in pairs(t) do
-        i = i + 1
-        if k ~= i then return false end
+  if type(t) ~= "table" then
+    return false
+  end
+  local i = 0
+  for k in pairs(t) do
+    i = i + 1
+    if k ~= i then
+      return false
     end
-    return true
+  end
+  return true
 end
 
 ---@param ... table
 ---@return table
 function M.force_deep_extend(...)
-    local tables = { ... }
-    local result = {}
+  local tables = { ... }
+  local result = {}
 
-    local function merge(dst, src)
-        for k, v in pairs(src) do
-            if type(v) == "table" and type(dst[k]) == "table" and not M.is_list(v) then
-                merge(dst[k], v)
-            else
-                if type(v) == "table" then
-                    if M.is_list(v) then
-                        dst[k] = v
-                    else
-                        local copy = {}
-                        merge(copy, v)
-                        dst[k] = copy
-                    end
-                else
-                    dst[k] = v
-                end
-            end
+  local function merge(dst, src)
+    for k, v in pairs(src) do
+      if type(v) == "table" and type(dst[k]) == "table" and not M.is_list(v) then
+        merge(dst[k], v)
+      else
+        if type(v) == "table" then
+          if M.is_list(v) then
+            dst[k] = v
+          else
+            local copy = {}
+            merge(copy, v)
+            dst[k] = copy
+          end
+        else
+          dst[k] = v
         end
+      end
     end
+  end
 
-    for _, t in ipairs(tables) do
-        merge(result, t)
-    end
+  for _, t in ipairs(tables) do
+    merge(result, t)
+  end
 
-    return result
+  return result
 end
 
 --- Returns the number of items of the table
 ---@param tbl table
 ---@return integer
 function M.count(tbl)
-    local n = 0
-    for _ in pairs(tbl) do
-        n = n + 1
-    end
-    return n
+  local n = 0
+  for _ in pairs(tbl) do
+    n = n + 1
+  end
+  return n
 end
 
 return M

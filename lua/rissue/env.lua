@@ -14,8 +14,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local osinfo = require("rissue.utils.osinfo")
 local config = require("rissue.config")
+local osinfo = require("rissue.utils.osinfo")
 
 local M = {}
 
@@ -23,44 +23,46 @@ M.env = {}
 
 ---@param path string
 local function load_env(path)
-    local env = {}
-    local file = io.open(path, "r")
-    if not file then return env end
-
-    for line in file:lines() do
-        if type(line) == "string" then
-            -- skip blank lines and comments
-            if line:match("%S") and not line:match("^%s*#") then
-                local key, value = line:match("^%s*([%w_]+)%s*=%s*(.-)%s*$")
-                if key and value then
-                    -- strip surrounding quotes if present
-                    value = value:gsub('^"(.*)"$', "%1"):gsub("^'(.*)'$", "%1")
-                    env[key] = value
-                end
-            end
-        end
-    end
-    file:close()
+  local env = {}
+  local file = io.open(path, "r")
+  if not file then
     return env
+  end
+
+  for line in file:lines() do
+    if type(line) == "string" then
+      -- skip blank lines and comments
+      if line:match("%S") and not line:match("^%s*#") then
+        local key, value = line:match("^%s*([%w_]+)%s*=%s*(.-)%s*$")
+        if key and value then
+          -- strip surrounding quotes if present
+          value = value:gsub('^"(.*)"$', "%1"):gsub("^'(.*)'$", "%1")
+          env[key] = value
+        end
+      end
+    end
+  end
+  file:close()
+  return env
 end
 
 --- Default: cwd='.'
 ---@param env_filename string
 ---@param cwd          string?
 function M.setup(env_filename, cwd)
-    local env_path = (cwd or ".") .. osinfo.separator .. env_filename
-    M.env = load_env(env_path)
+  local env_path = (cwd or ".") .. osinfo.separator .. env_filename
+  M.env = load_env(env_path)
 end
 
 ---@param name string
 ---@return string?
 function M.get(name)
-    return M.env[name] or os.getenv(name)
+  return M.env[name] or os.getenv(name)
 end
 
 ---@param provider rissue.provider
 function M.get_token(provider)
-    return M.get(config.options.env.provider_prefix .. provider:upper())
+  return M.get(config.options.env.provider_prefix .. provider:upper())
 end
 
 return M
