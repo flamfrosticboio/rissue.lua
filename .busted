@@ -2,6 +2,7 @@ return {
   _all = {
     lpath = "./lua/?.lua;./lua/?/init.lua",
     ROOT = { "test" },
+    ["exclude-tags"] = "api",
   },
   default = {
     verbose = true,
