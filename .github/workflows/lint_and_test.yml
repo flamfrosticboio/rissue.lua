@@ -45,4 +45,4 @@ jobs:
           key: ${{ runner.os }}-luarocks-${{ hashFiles('.rockspec/rissue-dev-1.rockspec') }}
 
       - name: Run Tests
-        run: luarocks test .rockspec/rissue-dev-1.rockspec
+        run: luarocks test --local .rockspec/rissue-dev-1.rockspec
