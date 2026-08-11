@@ -17,6 +17,7 @@
 ---@type uv
 local uv = require("luv")
 
+---@class rissue.utils.FetcherModule
 local M = {}
 
 ---@async
@@ -25,102 +26,99 @@ local M = {}
 ---@return boolean success
 ---@return string error
 function M.spawn(cmd, args)
-    local co = coroutine.running()
-    if not co then
-        return false, "runtimeerror: not inside a coroutine"
+  local co = coroutine.running()
+  if not co then
+    return false, "runtimeerror: not inside a coroutine"
+  end
+
+  local stdout, stdout_pipe_err = uv.new_pipe()
+  if not stdout then
+    return false, stdout_pipe_err or "cannot create stdout pipe"
+  end
+
+  local stderr, stderr_pipe_err = uv.new_pipe()
+  if not stderr then
+    stdout:close()
+    return false, stderr_pipe_err or "cannot create stderr pipe"
+  end
+
+  local result = ""
+  local stderr_output = nil
+  local read_error_stdout = nil
+  local read_error_stderr = nil
+
+  -- track completion state
+  local exited = false
+  local exit_code = nil
+  local stdout_done = false
+  local stderr_done = false
+
+  local function maybe_resume()
+    if exited and stdout_done and stderr_done then
+      coroutine.resume(co, exit_code)
     end
+  end
 
-    local stdout, stdout_pipe_err = uv.new_pipe()
-    if not stdout then
-        return false, stdout_pipe_err or "cannot create stdout pipe"
+  local options = { args = args, stdio = { nil, stdout, stderr } }
+
+  local handle, _, process_error = uv.spawn(cmd, options, function(code)
+    exited = true
+    exit_code = code
+    maybe_resume()
+  end)
+
+  if not handle then
+    stdout:close()
+    stderr:close()
+    return false, ("cannot spawn process '%s': %s"):format(cmd, process_error)
+  end
+
+  stdout:read_start(function(err, data)
+    ---@cast err string?
+    if err then
+      read_error_stdout = err
+      stdout:read_stop()
+      stdout:close()
+      stdout_done = true
+      maybe_resume()
+    elseif data then
+      result = result .. data
+    else
+      -- EOF
+      stdout:read_stop()
+      stdout:close()
+      stdout_done = true
+      maybe_resume()
     end
+  end)
 
-    local stderr, stderr_pipe_err = uv.new_pipe()
-    if not stderr then
-        stdout:close()
-        return false, stderr_pipe_err or "cannot create stderr pipe"
+  stderr:read_start(function(err, data)
+    ---@cast err string?
+    if err then
+      read_error_stderr = err
+      stderr:read_stop()
+      stderr:close()
+      stderr_done = true
+      maybe_resume()
+    elseif data then
+      stderr_output = (stderr_output or "") .. data
+    else
+      -- EOF
+      stderr:read_stop()
+      stderr:close()
+      stderr_done = true
+      maybe_resume()
     end
+  end)
 
-    local result = ""
-    local stderr_output = nil
-    local read_error_stdout = nil
-    local read_error_stderr = nil
-
-    -- track completion state
-    local exited = false
-    local exit_code = nil
-    local stdout_done = false
-    local stderr_done = false
-
-    local function maybe_resume()
-        if exited and stdout_done and stderr_done then
-            coroutine.resume(co, exit_code)
-        end
-    end
-
-    local options = { args = args, stdio = { nil, stdout, stderr } }
-
-    local handle, _, process_error = uv.spawn(cmd, options, function (code)
-        exited = true
-        exit_code = code
-        maybe_resume()
-    end)
-
-    if not handle then
-        stdout:close()
-        stderr:close()
-        return false, ("cannot spawn process '%s': %s"):format(cmd, process_error)
-    end
-
-    stdout:read_start(function (err, data)
-        ---@cast err string?
-        if err then
-            read_error_stdout = err
-            stdout:read_stop()
-            stdout:close()
-            stdout_done = true
-            maybe_resume()
-        elseif data then
-            result = result .. data
-        else
-            -- EOF
-            stdout:read_stop()
-            stdout:close()
-            stdout_done = true
-            maybe_resume()
-        end
-    end)
-
-    stderr:read_start(function (err, data)
-        ---@cast err string?
-        if err then
-            read_error_stderr = err
-            stderr:read_stop()
-            stderr:close()
-            stderr_done = true
-            maybe_resume()
-        elseif data then
-            stderr_output = (stderr_output or "") .. data
-        else
-            -- EOF
-            stderr:read_stop()
-            stderr:close()
-            stderr_done = true
-            maybe_resume()
-        end
-    end)
-
-    local code = coroutine.yield()
-    if code ~= 0 then
-        return false, stderr_output or read_error_stdout
-                or read_error_stderr or "unknown"
-    end
-    return true, result
+  local code = coroutine.yield()
+  if code ~= 0 then
+    return false, stderr_output or read_error_stdout or read_error_stderr or "unknown"
+  end
+  return true, result
 end
 
 ---@alias rissue.utils.HttpMethod "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
-
----@alias rissue.utils.CurlFn fun(url: string, method: rissue.utils.HttpMethod, headers: string[]): boolean, string
 
 ---@async
 ---@param url     string
@@ -129,14 +127,14 @@ end
 ---@return boolean success
 ---@return string result_or_error
 function M.curl(url, method, headers)
-    local args = { "-sS", "-f", url, "-X", method }
-    local i = #args
-    for _, header in ipairs(headers) do
-        i = i + 2
-        args[i - 1] = "-H"
-        args[i] = header
-    end
-    return M.spawn("curl", args)
+  local args = { "-sS", "-f", url, "-X", method }
+  local i = #args
+  for _, header in ipairs(headers) do
+    i = i + 2
+    args[i - 1] = "-H"
+    args[i] = header
+  end
+  return M.spawn("curl", args)
 end
 
 return M
