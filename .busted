@@ -11,5 +11,6 @@ return {
     tags = "api",
     ROOT = { "test/api" },
     verbose = true,
+    ["exclude-tags"] = "",
   },
 }
