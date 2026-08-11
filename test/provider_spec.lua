@@ -14,21 +14,92 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local provider = require("rissue.provider")
+local function reset()
+  for name in pairs(package.loaded) do
+    if name:match("^rissue") then
+      package.loaded[name] = nil
+    end
+  end
+end
 
----@type uv
-local uv = require("luv")
+describe("remote_info", function()
+  reset()
+  require("rissue").setup()
+  local provider = require("rissue.provider")
 
-require("rissue").setup()
+  it("matches https", function()
+    local url = "https://github.com/flamfrosticboio/rissue.git"
+    local info = provider.remote_info(url)
+    assert.same({
+      curl_protocol = "https",
+      domain = "github.com",
+      owner = "flamfrosticboio",
+      repo = "rissue",
+      full_url = url,
+    } --[[@as rissue.RemoteInfo]], info)
+  end)
 
-describe("provider", function ()
-    it("github self-hosted", function ()
-        async()
-        local ok, info = provider.get_provider_info(
-            "git:github.mycompany.com:owner/repo.git"
-        )
-        assert(ok == true, (info --[[@as string]]))
+  it("matches git", function()
+    local url = "git@github.com:flamfrosticboio/rissue.git"
+    local info = provider.remote_info(url)
+    assert.same({
+      curl_protocol = "https", -- since https on all protocols by default
+      domain = "github.com",
+      owner = "flamfrosticboio",
+      repo = "rissue",
+      full_url = url,
+    } --[[@as rissue.RemoteInfo]], info)
+  end)
 
-        assert.is_false(uv.run())
-    end)
+  it("matches http", function()
+    local url = "http://github.com/flamfrosticboio/rissue.git"
+    local info = provider.remote_info(url)
+    assert.same({
+      curl_protocol = "http",
+      domain = "github.com",
+      owner = "flamfrosticboio",
+      repo = "rissue",
+      full_url = url,
+    } --[[@as rissue.RemoteInfo]], info)
+  end)
+end)
+
+describe("provider_info", function()
+  reset()
+  require("rissue").setup({
+    endpoint_shortcuts = {
+      custom = {
+        domain = "api.custom.com",
+        patterns = { "custom%.com" },
+      },
+    },
+  })
+
+  local provider = require("rissue.provider")
+
+  it("matches custom", function()
+    local url = "https://custom.com/flamfrosticboio/rissue.git"
+    local ok, info = provider.get_provider_info(url)
+    assert.is_true(ok)
+    assert.same({
+      domain = "api.custom.com",
+      name = "custom",
+      owner = "flamfrosticboio",
+      repo = "rissue",
+      protocol = "https",
+    }, info)
+  end)
+
+  it("matches builtin github", function()
+    local url = "https://github.com/flamfrosticboio/rissue.git"
+    local ok, info = provider.get_provider_info(url)
+    assert.is_true(ok)
+    assert.same({
+      domain = "api.github.com",
+      name = "github",
+      owner = "flamfrosticboio",
+      repo = "rissue",
+      protocol = "https",
+    }, info)
+  end)
 end)

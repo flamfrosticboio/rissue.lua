@@ -15,23 +15,24 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local curl_headers = {
-    "Authorization: Bearer {token}", "X-GitHub-Api-Version: 2022-11-28",
-    "Accept: application/vnd.github.raw+json",
+  "Authorization: Bearer {token}",
+  "X-GitHub-Api-Version: 2022-11-28",
+  "Accept: application/vnd.github.raw+json",
 }
 
 ---@type rissue.provider_spec
 local M = {
-    provider_name = "github",
-    map_into_issue = function (_fetch_result)
-        return {}
-    end,
-    map_into_pr = function (_fetch_result)
-        return {}
-    end,
-    supports = function (domain, fetcher)
-        fetcher(domain, "GET", curl_headers)
-        return false
-    end,
+  provider_name = "github",
+  map_into_issue = function(_fetch_result)
+    return {}
+  end,
+  map_into_pr = function(_fetch_result)
+    return {}
+  end,
+  supports = function(domain, fetcher)
+    fetcher.curl(domain, "GET", curl_headers)
+    return false
+  end,
 }
 
 return M

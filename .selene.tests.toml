@@ -1,4 +1,4 @@
-std = "lua51+busted+.selene/luassert"
+std = "lua51+.selene/busted"
 exclude = [".types/**", "lua/**"]
 
 [rules]
