@@ -23,3 +23,5 @@
 ---
 --- - Default: "GIT_TK_"
 ---@field provider_prefix string
+
+---@class (partial) rissue.opts.Env: rissue.config.Env
