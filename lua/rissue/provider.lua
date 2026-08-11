@@ -16,9 +16,91 @@
 
 local config = require("rissue.config")
 local fetcher = require("rissue.utils.cmd")
-local env = require("rissue.env")
+
+---@type uv
+local uv = require("luv")
 
 local M = {}
+
+--- Extracts the remote url to `rissue.RemoteInfo`
+---@param remote_url string
+---@return rissue.RemoteInfo?
+function M.remote_info(remote_url)
+  remote_url = remote_url:gsub("%s+$", "")
+  -- all protocols must go to https except then the url is on http mode
+  local protocol = remote_url:match("^http://") and "http" or "https"
+  local domain = remote_url:match("^https?://([^/]+)")
+    or remote_url:match("^git@([^:]+):")
+    or remote_url:match("^ssh://git@([^/]+)")
+
+  local path = remote_url:match("^https?://[^/]+/(.+)$")
+    or remote_url:match("^git@[^:]+:(.+)$")
+    or remote_url:match("^ssh://git@[^/]+/(.+)$")
+
+  local owner, repo
+  if path then
+    path = path:gsub("%.git$", "")
+    repo = path:match("([^/]+)$")
+    owner = path:match("^(.+)/[^/]+$")
+
+    ---@type rissue.RemoteInfo
+    return {
+      curl_protocol = protocol,
+      domain = domain,
+      repo = repo,
+      owner = owner,
+      full_url = remote_url,
+    }
+  end
+end
+
+---@async
+---@param remote_url string
+---@param level integer
+---@return rissue.ProviderInfo
+local function get_provider_info_unsafe(remote_url, level)
+  level = level or 0
+  local remote_info = M.remote_info(remote_url)
+  if not remote_info then
+    error("Could not parse remote url", 2 + level)
+  end
+  remote_url = remote_info.full_url
+
+  -- known public hosting providers - no API call needed
+  for provider_name, spec in pairs(config.options.endpoint_shortcuts) do
+    for _, pattern in ipairs(spec.patterns) do
+      if remote_url:match(pattern) then
+        ---@type rissue.ProviderInfo
+        return {
+          domain = spec.domain,
+          name = provider_name,
+          owner = remote_info.owner,
+          repo = remote_info.repo,
+          protocol = remote_info.curl_protocol,
+        }
+      end
+    end
+  end
+
+  for provider_name, provider in pairs(config.providers) do
+    -- async calling pattern
+    local thread = coroutine.create(provider.supports)
+    coroutine.resume(thread)
+    uv.run()
+
+    if provider.supports(remote_url, fetcher) then
+      return {
+        name = provider_name,
+        domain = remote_info.domain,
+        owner = remote_info.owner,
+        repo = remote_info.repo,
+        protocol = remote_info.curl_protocol,
+      }
+    end
+  end
+
+  error("No identifiable git provider", 0)
+end
 
 --- Gets the provider info based on the remote url.
 --- May trigger api requests to the url.
@@ -27,60 +109,8 @@ local M = {}
 ---@return boolean success
 ---@return rissue.ProviderInfo | string
 function M.get_provider_info(remote_url)
-    -- trim all whitespaces
-    remote_url = remote_url:gsub("%s+$", "")
-
-    -- get owner, repo in https version
-    ---@type string?, string?
-    local owner, repo = remote_url:match("https?://[^/]+/([^/]+)/([^/]+)$")
-    if not owner then
-        -- fallback to git
-        owner, repo = remote_url:match("git@[^:]+:([^/]+)/([^/]+)$")
-    end
-
-    if not owner or not repo then
-        return false, "owner or repo not in url"
-    end
-
-    -- IMPORTANT: strip the .git at the end
-    repo = repo:gsub("%.git$", "")
-
-    -- known hosted providers — no API call needed
-    for provider_name, spec in pairs(config.options.endpoint_shortcuts) do
-        for _, pattern in ipairs(spec.patterns) do
-            if remote_url:match(pattern) then
-                return true, {
-                        name = provider_name,
-                        domain = spec.domain,
-                        owner = owner,
-                        repo = repo
-                    }
-            end
-        end
-    end
-
-    -- unknown domain — probe the version endpoint
-    ---@type string?
-    local base_url = remote_url:match("^(https?://[^/]+)")
-        or (remote_url:match("^git@([^:]+)") or ""):gsub(":", "/")
-    if not base_url then
-        return false, "url method is not https or git"
-    end
-
-    for provider_name, provider in pairs(config.providers) do
-        if provider.supports(remote_url, function (url, method)
-            return fetcher.curl(url, method, provider.curl_headers)
-        end) then
-            return true, {
-                    name = provider_name,
-                    domain = base_url,
-                    owner = owner,
-                    repo = repo
-                }
-        end
-    end
-
-    return false, "No identifiable git provider"
+  local ok, info = pcall(get_provider_info_unsafe, remote_url)
+  return ok, info
 end
 
 return M

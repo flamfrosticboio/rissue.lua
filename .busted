@@ -1,8 +1,16 @@
 return {
-    _all = {
-        lpath = "./lua/?.lua;./lua/?/init.lua",
-    },
-    default = {
-        verbose = true,
-    },
+  _all = {
+    lpath = "./lua/?.lua;./lua/?/init.lua;./?.lua;/?/init.lua",
+    ROOT = { "test" },
+    ["exclude-tags"] = "api",
+  },
+  default = {
+    verbose = true,
+  },
+  apiSpec = {
+    tags = "api",
+    ROOT = { "test/api" },
+    verbose = true,
+    ["exclude-tags"] = "",
+  },
 }

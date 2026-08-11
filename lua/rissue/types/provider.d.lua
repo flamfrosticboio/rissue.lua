@@ -22,10 +22,22 @@
 ---@field map_into_issue fun(fetch_result: any): rissue.issue[]
 ---@field map_into_pr    fun(fetch_result: any): rissue.pr[]
 ---@field provider_name  string
----@field supports       fun(domain: string, curl: rissue.utils.CurlFn): boolean
+---@field supports       fun(domain: string, curl: rissue.utils.FetcherModule): boolean Async function
+
+---@class rissue.provider_spec.extract
+---@field owner string
+---@field repo  string
 
 ---@class rissue.ProviderInfo
+---@field domain   string
+---@field name     string
+---@field owner    string
+---@field repo     string
+---@field protocol "http" | "https"
+
+---@class (exact) rissue.RemoteInfo
+---@field curl_protocol "http" | "https"
+---@field repo string
+---@field owner string
 ---@field domain string
----@field name   string
----@field owner  string
----@field repo   string
+---@field full_url string A whitespace stripped version of url

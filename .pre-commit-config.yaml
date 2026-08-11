@@ -41,23 +41,34 @@ repos:
           - --verbose
   - repo: local
     hooks:
-      - id: emmylua-fmt
-        name: EmmyLua Format
-        entry: luafmt --write
+      - id: format
+        name: Format lua files
+        entry: stylua
         language: system
         types: [lua]
         stages: [pre-commit]
-      - id: emmylua-check
-        name: EmmyLua Analyzer Check
-        entry: emmylua_check .
+        pass_filenames: true
+      - id: lint
+        name: Lint lua files
+        entry: selene --config .selene.toml
         language: system
         types: [lua]
-        pass_filenames: false
+        exclude: ^test/
+        pass_filenames: true
+        stages: [pre-commit]
+      - id: lint-tests
+        name: Lint lua test files
+        entry: selene --config .selene.tests.toml
+        language: system
+        types: [lua]
+        files: ^test/
+        pass_filenames: true
         stages: [pre-commit]
       - id: busted
         name: busted
         entry: busted test/
         language: system
         types: [lua]
+        exclude: ^lua/rissue/types/
         pass_filenames: false
-        stages: [pre-push]
+        stages: [pre-commit, pre-push]

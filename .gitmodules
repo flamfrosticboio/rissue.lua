@@ -1,0 +1,9 @@
+[submodule ".types/addons/luv"]
+	path = .types/addons/luv
+	url = https://github.com/LuaCATS/luv
+[submodule ".types/addons/busted"]
+	path = .types/addons/busted
+	url = https://github.com/LuaCATS/busted
+[submodule ".types/addons/luassert"]
+	path = .types/addons/luassert
+	url = https://github.com/LuaCATS/luassert
