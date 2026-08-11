@@ -7,7 +7,7 @@ A nvim plugin that abstracts issues and pull requests from git providers such as
 - gitea
 - forgejo (codeberg)
 
-This plugin provides integrations for multiple plugins such as Snacks.
+This plugin can be extended for integrations for multiple plugins such as Snacks.
 
 ## Setup
 
