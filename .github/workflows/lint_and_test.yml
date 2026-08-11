@@ -1,0 +1,48 @@
+name: Tests
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Format check
+        uses: JohnnyMorganz/stylua-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "2.0.2"
+          args: --check .
+
+      - name: Lint
+        uses: NTBBloodbath/selene-action@v1.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "0.31.1"
+          args: lua/ --config .selene.toml
+
+      - name: Lint Tests
+        uses: NTBBloodbath/selene-action@v1.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "0.31.1"
+          args: test/ --config .selene.tests.toml
+
+      - name: Set up Lua
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks
+
+      - name: Cache Luarocks
+        uses: actions/cache@v4
+        with:
+          path: ~/.luarocks
+          key: ${{ runner.os }}-luarocks-${{ hashFiles('.rockspec/rissue-dev-1.rockspec') }}
+
+      - name: Run Tests
+        run: luarocks test .rockspec/rissue-dev-1.rockspec
