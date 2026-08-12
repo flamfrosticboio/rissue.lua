@@ -228,8 +228,6 @@ function M.run_multiple(cmds)
   return true, results
 end
 
----@alias rissue.utils.HttpMethod "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
-
 ---@async
 ---@param url     string
 ---@param method  rissue.utils.HttpMethod
