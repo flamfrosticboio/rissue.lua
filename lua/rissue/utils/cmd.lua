@@ -210,6 +210,8 @@ function M.run_multiple(cmds)
     )
 
     if not handle then
+      stdout:close()
+      stderr:close()
       error("Failed to spawn process: " .. exe)
     end
   end
