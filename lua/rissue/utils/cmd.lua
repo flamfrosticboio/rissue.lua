@@ -20,6 +20,8 @@ local uv = require("luv")
 ---@class rissue.utils.FetcherModule
 local M = {}
 
+--- Creates the process without running `uv.run()`.
+--- Use `cmd.run()` to run in one-shot instead
 ---@async
 ---@param cmd  string[]
 ---@return boolean success
