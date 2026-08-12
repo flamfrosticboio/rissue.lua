@@ -17,7 +17,7 @@
 ---@type uv
 local uv = require("luv")
 
----@class rissue.utils.FetcherModule
+---@class rissue.utils.CmdModule
 local M = {}
 
 --- Creates the process without running `uv.run()`.
