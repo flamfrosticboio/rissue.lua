@@ -150,6 +150,7 @@ end
 --- Note: Blocking operation
 --- Note: This does not capture the output of any of the cmd
 --- Note: Handles `uv.run()` automatically
+--- Note: Returns an `Error` (recommended to put in a pcall)
 ---@param cmds string[][]
 ---@return boolean success, rissue.utils.RunMultipleResults results
 function M.run_multiple(cmds)

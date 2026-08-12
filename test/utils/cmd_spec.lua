@@ -25,11 +25,21 @@ describe("cmd", function()
         return
       end
 
-      cmd.spawn({})
       assert.is_true(cmd.run_multiple({
         { "sh", "-c", "echo Hello > .tmp" },
         { "sh", "-c", "echo World > .tmp" },
         -- { "sh", "-c", "notify-send $(realpath tmp)" },
+      }))
+    end)
+
+    it("at least one correctly fails (linux)", function()
+      if is_windows then
+        return
+      end
+      assert.is_false(cmd.run_multiple({
+        { "echo", "True" },
+        { "sh", "-c", "exit -1" }, -- failing point condition
+        { "echo", "should fail" },
       }))
     end)
   end)
