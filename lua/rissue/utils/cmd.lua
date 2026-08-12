@@ -155,16 +155,13 @@ function M.spawn(cmd)
   return true, result
 end
 
---- Runs multiple commands in parallel.
+--- Runs multiple commands in parallel and waits for all processes to exit.
+--- Returns `true` if all processes exited with return code 0.
 ---
---- Returns `true` if all processes exited with return code 0
----
---- Note: Blocking operation
---- Note: This does not capture the output of any of the cmd
---- Note: Handles `uv.run()` automatically
---- Note: Returns an `Error` (recommended to put in a pcall)
+--- Warning: May raise an error
 ---@param cmds string[][]
----@return boolean success, rissue.utils.RunMultipleResults results
+---@return boolean success
+---@return rissue.utils.RunMultipleResults results
 function M.run_multiple(cmds)
   ---@type rissue.utils.RunMultipleResults
   local results = {}
