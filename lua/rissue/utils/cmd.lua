@@ -41,6 +41,20 @@ local function handle_read_pipe(pipe, buffer, on_complete)
   end)
 end
 
+--- A wrapper that raises an error when the pipe failed to create
+--- @return uv.uv_pipe_t
+local function create_pipe_with_error()
+  local pipe, err, err_name = uv.new_pipe()
+  if not pipe then
+    error(
+      "Failed to create pipe: "
+        .. (err or "unknown error")
+        .. (err_name and " [" .. err_name .. "]")
+    )
+  end
+  return pipe
+end
+
 --- Creates the process without running `uv.run()`.
 --- Use `cmd.run()` to run in one-shot instead
 ---@async
@@ -53,16 +67,8 @@ function M.spawn(cmd)
     return false, "not inside a coroutine"
   end
 
-  local stdout, stdout_pipe_err = uv.new_pipe()
-  if not stdout then
-    return false, stdout_pipe_err or "cannot create stdout pipe"
-  end
-
-  local stderr, stderr_pipe_err = uv.new_pipe()
-  if not stderr then
-    stdout:close()
-    return false, stderr_pipe_err or "cannot create stderr pipe"
-  end
+  local stdout = create_pipe_with_error()
+  local stderr = create_pipe_with_error()
 
   local result = ""
   local stderr_output = nil
@@ -182,42 +188,32 @@ function M.run_multiple(cmds)
 
     results[cmd] = result
 
-    local pipes = {
-      stdout = uv.new_pipe(),
-      stderr = uv.new_pipe(),
-    }
+    local stdout = create_pipe_with_error()
+    local stderr = create_pipe_with_error()
 
-    if not pipes.stdout then
-      error("cannot create stdout pipe")
-    end
-
-    if not pipes.stderr then
-      error("cannot create stderr pipe")
-    end
-
-    handle_read_pipe(pipes.stdout, result.stdout)
-    handle_read_pipe(pipes.stderr, result.stderr)
+    handle_read_pipe(stdout, result.stdout)
+    handle_read_pipe(stderr, result.stderr)
 
     local handle
     handle = uv.spawn(
       exe,
       ---@diagnostic disable-next-line: missing-fields
-      { args = args, stdio = { nil, pipes.stdout, pipes.stderr } },
+      { args = args, stdio = { nil, stdout, stderr } },
       function(code)
         result.return_code = code
         handle:close()
 
-        if not pipes.stdout:is_closing() then
-          pipes.stdout:close()
+        if not stdout:is_closing() then
+          stdout:close()
         end
-        if not pipes.stderr:is_closing() then
-          pipes.stderr:close()
+        if not stderr:is_closing() then
+          stderr:close()
         end
       end
     )
 
     if not handle then
-      error("Failed to spawn: " .. exe)
+      error("Failed to spawn process: " .. exe)
     end
   end
 
