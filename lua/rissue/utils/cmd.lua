@@ -216,7 +216,7 @@ function M.run_multiple(cmds)
 
   uv.run()
 
-  for _, res in ipairs(results) do
+  for _, res in pairs(results) do
     if res.return_code ~= 0 then
       return false, results
     end
