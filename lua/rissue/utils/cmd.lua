@@ -20,6 +20,27 @@ local uv = require("luv")
 ---@class rissue.utils.CmdModule
 local M = {}
 
+---@param buffer rissue.utils.ReadResult
+---@param pipe uv.uv_pipe_t
+---@param on_complete? fun()
+local function handle_read_pipe(pipe, buffer, on_complete)
+  pipe:read_start(function(err, data)
+    if err then
+      buffer.failed = true
+    end
+
+    if data then
+      buffer.contents = buffer.contents + data
+    else
+      pipe:read_stop()
+      pipe:close()
+      if on_complete then
+        on_complete()
+      end
+    end
+  end)
+end
+
 --- Creates the process without running `uv.run()`.
 --- Use `cmd.run()` to run in one-shot instead
 ---@async
@@ -126,23 +147,6 @@ function M.spawn(cmd)
     return false, stderr_output or read_error_stdout or read_error_stderr or "unknown"
   end
   return true, result
-end
-
----@param buffer rissue.utils.ReadResult
----@param pipe uv.uv_pipe_t
-local function handle_read_pipe(pipe, buffer)
-  pipe:read_start(function(err, data)
-    if err then
-      buffer.failed = true
-    end
-
-    if data then
-      buffer.contents = buffer.contents + data
-    else
-      pipe:read_stop()
-      pipe:close()
-    end
-  end)
 end
 
 --- Runs multiple commands in parallel.
