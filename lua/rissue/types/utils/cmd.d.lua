@@ -14,23 +14,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-describe("cmd", function()
-  local cmd = require("rissue.utils.cmd")
-  local is_windows = package.config:sub(1, 1) == "\\"
+---@class rissue.utils.ReadResult
+---@field failed boolean?
+---@field contents string
 
-  describe("run_multiple", function()
-    it("working (linux)", function()
-      -- Hard return since the commands below are not applicable for windows
-      if is_windows then
-        return
-      end
+---@class rissue.utils.CmdResult
+---@field return_code integer
+---@field stdout rissue.utils.ReadResult
+---@field stderr rissue.utils.ReadResult
 
-      cmd.spawn({})
-      assert.is_true(cmd.run_multiple({
-        { "sh", "-c", "echo Hello > .tmp" },
-        { "sh", "-c", "echo World > .tmp" },
-        -- { "sh", "-c", "notify-send $(realpath tmp)" },
-      }))
-    end)
-  end)
-end)
+---@alias rissue.cmd string[] Command line
+
+---@alias rissue.utils.RunMultipleResults table<rissue.cmd, rissue.utils.CmdResult>

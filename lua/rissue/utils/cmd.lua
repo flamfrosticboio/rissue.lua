@@ -23,11 +23,11 @@ local M = {}
 ---@async
 ---@param cmd  string[]
 ---@return boolean success
----@return string error
+---@return string stdout_or_error
 function M.spawn(cmd)
   local co = coroutine.running()
   if not co then
-    return false, "runtimeerror: not inside a coroutine"
+    return false, "not inside a coroutine"
   end
 
   local stdout, stdout_pipe_err = uv.new_pipe()
@@ -125,19 +125,6 @@ function M.spawn(cmd)
   end
   return true, result
 end
-
----@class rissue.utils.ReadResult
----@field failed boolean?
----@field contents string
-
----@class rissue.utils.CmdResult
----@field return_code integer
----@field stdout rissue.utils.ReadResult
----@field stderr rissue.utils.ReadResult
-
----@alias rissue.cmd string[] Command line
-
----@alias rissue.utils.RunMultipleResults table<rissue.cmd, rissue.utils.CmdResult>
 
 ---@param buffer rissue.utils.ReadResult
 ---@param pipe uv.uv_pipe_t

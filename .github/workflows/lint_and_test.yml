@@ -33,10 +33,11 @@ jobs:
           version: "0.31.0"
           args: test/ --config .selene.tests.toml
 
-      - name: Set up Lua
+      - name: Setup Dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential
+          npm install
 
       - name: Cache Luarocks
         uses: actions/cache@v6
@@ -46,3 +47,6 @@ jobs:
 
       - name: Run Tests
         run: luarocks test --local .rockspec/rissue-dev-1.rockspec
+
+      - name: Run Tests (Api)
+        run: luarocks test --local .rockspec/rissue-dev-1.rockspec -- --run=apiSpec
