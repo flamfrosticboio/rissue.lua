@@ -126,17 +126,50 @@ function M.spawn(cmd)
   return true, result
 end
 
---- Runs multiple commands in parallel. If there is a return code that is not 0, then it fails
+---@class rissue.utils.ReadResult
+---@field failed boolean?
+---@field contents string
+
+---@class rissue.utils.CmdResult
+---@field return_code integer
+---@field stdout rissue.utils.ReadResult
+---@field stderr rissue.utils.ReadResult
+
+---@alias rissue.cmd string[] Command line
+
+---@alias rissue.utils.RunMultipleResults table<rissue.cmd, rissue.utils.CmdResult>
+
+---@param buffer rissue.utils.ReadResult
+---@param pipe uv.uv_pipe_t
+local function handle_read_pipe(pipe, buffer)
+  pipe:read_start(function(err, data)
+    if err then
+      buffer.failed = true
+    end
+
+    if data then
+      buffer.contents = buffer.contents + data
+    else
+      pipe:read_stop()
+      pipe:close()
+    end
+  end)
+end
+
+--- Runs multiple commands in parallel.
 ---
+--- Returns `true` if all processes exited with return code 0
+---
+--- Note: Blocking operation
 --- Note: This does not capture the output of any of the cmd
 --- Note: Handles `uv.run()` automatically
 ---@param cmds string[][]
----@return boolean success
+---@return boolean success, rissue.utils.RunMultipleResults results
 function M.run_multiple(cmds)
-  local remaining = #cmds
-  local result_codes = {}
+  ---@type rissue.utils.RunMultipleResults
+  local results = {}
 
-  for i, cmd in ipairs(cmds) do
+  for _, cmd in ipairs(cmds) do
     local exe = cmd[1]
     if not exe then
       error("no binary provided")
@@ -146,15 +179,46 @@ function M.run_multiple(cmds)
       args[#args + 1] = cmd[j]
     end
 
+    ---@type rissue.utils.CmdResult
+    local result = {
+      return_code = -1,
+      stdout = { contents = "" },
+      stderr = { contents = "" },
+    }
+
+    results[cmd] = result
+
+    local pipes = {
+      stdout = uv.new_pipe(),
+      stderr = uv.new_pipe(),
+    }
+
+    if not pipes.stdout then
+      error("cannot create stdout pipe")
+    end
+
+    if not pipes.stderr then
+      error("cannot create stderr pipe")
+    end
+
+    handle_read_pipe(pipes.stdout, result.stdout)
+    handle_read_pipe(pipes.stderr, result.stderr)
+
     local handle
     handle = uv.spawn(
       exe,
       ---@diagnostic disable-next-line: missing-fields
-      { args = args, stdio = { nil, nil, nil } },
+      { args = args, stdio = { nil, pipes.stdout, pipes.stderr } },
       function(code)
-        result_codes[i] = code
-        remaining = remaining - 1
+        result.return_code = code
         handle:close()
+
+        if not pipes.stdout:is_closing() then
+          pipes.stdout:close()
+        end
+        if not pipes.stderr:is_closing() then
+          pipes.stderr:close()
+        end
       end
     )
 
@@ -165,13 +229,13 @@ function M.run_multiple(cmds)
 
   uv.run()
 
-  for _, code in ipairs(result_codes) do
-    if code ~= 0 then
-      return false
+  for _, res in ipairs(results) do
+    if res.return_code ~= 0 then
+      return false, results
     end
   end
 
-  return true
+  return true, results
 end
 
 ---@alias rissue.utils.HttpMethod "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
