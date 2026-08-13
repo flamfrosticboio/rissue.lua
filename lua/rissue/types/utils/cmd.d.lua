@@ -20,6 +20,10 @@
 ---@field failed boolean?
 ---@field contents string
 
+---@class rissue.utils.ReadResult.raw
+---@field failed boolean?
+---@field contents string[]
+
 ---@class rissue.utils.CmdResult
 ---@field return_code integer
 ---@field stdout rissue.utils.ReadResult

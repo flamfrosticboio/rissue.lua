@@ -25,22 +25,91 @@ describe("cmd", function()
         return
       end
 
-      assert.is_true(cmd.run_multiple({
+      local results = cmd.run_multiple({
         { "sh", "-c", "echo Hello > .tmp" },
         { "sh", "-c", "echo World > .tmp" },
         -- { "sh", "-c", "notify-send $(realpath tmp)" },
-      }))
+      })
+      for current_cmd, result in pairs(results) do
+        assert(
+          result.return_code == 0,
+          current_cmd[1] .. " failed with return code " .. tostring(result.return_code)
+        )
+      end
     end)
 
-    it("at least one correctly fails (linux)", function()
+    it("at least one fails correctly (linux)", function()
       if is_windows then
         return
       end
-      assert.is_false(cmd.run_multiple({
+
+      local results = cmd.run_multiple({
         { "echo", "True" },
-        { "sh", "-c", "exit -1" }, -- failing point condition
+        { "sh", "-c", "exit -1" },
         { "echo", "should fail" },
-      }))
+      })
+
+      local function check()
+        for _, result in pairs(results) do
+          if result.return_code ~= 0 then
+            return
+          end
+        end
+        error("all returned correctly without issues (should not happen)")
+      end
+      check()
+    end)
+
+    it("fails on invalid binary", function()
+      local ok = pcall(function()
+        cmd.run_multiple({
+          { "echo", "ok" }, -- will run normally
+          { "someRandomBinary29924", "--flag" }, -- will error
+          -- will error also if you don't have notify-send (especially windows)
+          { "notify-send", "should not be running" },
+        })
+      end)
+      assert.is_false(ok)
+    end)
+
+    it("multiple outputs are correct", function()
+      local first = { "echo", "jello" }
+      local second = { "echo", "wello" }
+      local result = cmd.run_multiple({ first, second })
+      assert.same({
+        [first] = {
+          return_code = 0,
+          stderr = { contents = "" },
+          stdout = { contents = "jello\n" },
+        },
+        [second] = {
+          return_code = 0,
+          stderr = { contents = "" },
+          stdout = { contents = "wello\n" },
+        },
+      } --[[@as rissue.utils.RunMultipleResults]], result)
+    end)
+  end)
+
+  describe("run", function()
+    it("stdout outputs correctly", function()
+      local ok, result = cmd.run({ "echo", "true" })
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stdout = { contents = "true\n" },
+        stderr = { contents = "" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
+
+    it("stderr outputs correctly (linux)", function()
+      local ok, result = cmd.run({ "sh", "-c", "echo false 1>&2" })
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stdout = { contents = "" },
+        stderr = { contents = "false\n" },
+      } --[[@as rissue.utils.CmdResult]], result)
     end)
   end)
 end)

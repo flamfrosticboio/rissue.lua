@@ -84,11 +84,14 @@ local function get_provider_info_unsafe(remote_url, level)
 
   for provider_name, provider in pairs(config.providers) do
     -- async calling pattern
-    local thread = coroutine.create(provider.supports)
+    local supported = false
+    local thread = coroutine.create(function()
+      supported = provider.supports(remote_info.domain, fetcher)
+    end)
     coroutine.resume(thread)
     uv.run()
 
-    if provider.supports(remote_url, fetcher) then
+    if supported then
       return {
         name = provider_name,
         domain = remote_info.domain,
