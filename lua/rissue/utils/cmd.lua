@@ -190,8 +190,8 @@ function M.run(cmd, cwd)
       co = coroutine.create(function()
         final_result = M.spawn(cmd, cwd)
       end)
-      local ok, err = coroutine.resume(co)
-      if not ok then
+      local okk, err = coroutine.resume(co)
+      if not okk then
         error(err)
       end
       uv.run()
