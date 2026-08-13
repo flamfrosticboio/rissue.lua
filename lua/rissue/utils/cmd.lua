@@ -155,15 +155,34 @@ end
 
 --- Creates the process and waits for it to finish running.
 ---
+--- If wrapped inside a coroutine, it will run with `async` through `cmd.spawn()`
+--- but may raises errors instead of running inside a pcall (limitation from lua5.1 only).
+---
 --- The cmd result may return an exit code `-1` to signify that the process did not
 --- run correctly.
 ---@param cmd  string[]
 ---@return boolean success
 ---@return rissue.utils.CmdResult?
 function M.run(cmd)
+  local co = coroutine.running()
+  if co then
+    ---@diagnostic disable-next-line: undefined-global
+    if _VERSION == "Lua 5.1" and not jit then
+      return true, M.spawn(cmd)
+    end
+    local ok, result = pcall(function()
+      return M.spawn(cmd)
+    end)
+    if not ok then
+      error(result)
+    end
+    return ok, result
+  end
+
+  -- blocking mode
   local ok, result = pcall(function()
     local final_result
-    local co = coroutine.create(function()
+    co = coroutine.create(function()
       final_result = M.spawn(cmd)
     end)
     coroutine.resume(co)

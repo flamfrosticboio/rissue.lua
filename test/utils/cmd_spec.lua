@@ -111,5 +111,19 @@ describe("cmd", function()
         stderr = { contents = "false\n" },
       } --[[@as rissue.utils.CmdResult]], result)
     end)
+
+    it("switches to M.spawn inside coroutine correctly", function()
+      local ok, result
+      coroutine.wrap(function()
+        ok, result = cmd.run({ "echo", "true" })
+      end)()
+      require("luv").run()
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stderr = { contents = "" },
+        stdout = { contents = "true\n" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
   end)
 end)
