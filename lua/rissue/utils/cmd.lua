@@ -123,9 +123,11 @@ function M.spawn(cmd, cwd)
   ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
   local options = { args = args, stdio = { nil, stdout, stderr }, cwd = cwd }
 
-  local handle = uv.spawn(exe, options, function(code)
+  local handle
+  handle = uv.spawn(exe, options, function(code)
     exited = true
     exit_code = code
+    handle:close()
     maybe_resume()
   end)
 
