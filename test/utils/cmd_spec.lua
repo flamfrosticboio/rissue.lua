@@ -158,7 +158,7 @@ describe("cmd", function()
         return
       end
 
-      local ok, result = cmd.run({ "pwd" }, "/tmp")
+      local ok, result = cmd.run({ "pwd" }, { cwd = "/tmp" })
       assert(ok == true, result)
       assert.same({
         return_code = 0,
@@ -171,6 +171,21 @@ describe("cmd", function()
       local x = { "someRandomBinary29924", "--flag" }
       local ok = cmd.run(x)
       assert.is_false(ok)
+    end)
+
+    it("env is correct (linux)", function()
+      if is_windows then
+        -- not applicable
+        return
+      end
+
+      local ok, result = cmd.run({ "printenv", "TEST" }, { env = { "TEST=YES" } })
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stdout = { contents = "YES\n" },
+        stderr = { contents = "" },
+      } --[[@as rissue.utils.CmdResult]], result)
     end)
   end)
 end)

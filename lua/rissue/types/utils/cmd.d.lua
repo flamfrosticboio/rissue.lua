@@ -32,3 +32,7 @@
 ---@alias rissue.cmd string[] Command line
 
 ---@alias rissue.utils.RunMultipleResults table<rissue.cmd, rissue.utils.CmdResult>
+
+---@class rissue.utils.CommandOpts
+---@field cwd string? Current working directory
+---@field env string[]? Environment variables in a form of `ENV=VALUE`

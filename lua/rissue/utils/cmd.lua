@@ -82,9 +82,9 @@ end
 --- run correctly.
 ---@async
 ---@param cmd string[]
----@param cwd string? Current working directory
+---@param opts rissue.utils.CommandOpts?
 ---@return rissue.utils.CmdResult
-function M.spawn(cmd, cwd)
+function M.spawn(cmd, opts)
   local co = coroutine.running()
   if not co then
     error("not inside an coroutine")
@@ -94,6 +94,7 @@ function M.spawn(cmd, cwd)
   if not exe then
     error("no binary provided")
   end
+  ---@type string[]
   local args = {}
   for i = 2, #cmd do
     args[#args + 1] = cmd[i]
@@ -120,8 +121,18 @@ function M.spawn(cmd, cwd)
   end
 
   ---@type uv.spawn.options
-  ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
-  local options = { args = args, stdio = { nil, stdout, stderr }, cwd = cwd }
+  ---@diagnostic disable-next-line: missing-fields
+  local options = {
+    args = args,
+    stdio = { nil, stdout, stderr },
+    ---@diagnostic disable-next-line: assign-type-mismatch
+    cwd = opts and opts.cwd,
+    ---@diagnostic disable-next-line: assign-type-mismatch
+    env = opts and opts.env,
+    detached = false,
+    hide = false,
+    verbatim = false,
+  }
 
   local handle
   handle = uv.spawn(exe, options, function(code)
@@ -166,20 +177,20 @@ end
 --- The cmd result may return an exit code `-1` to signify that the process did not
 --- run correctly.
 ---@param cmd string[]
----@param cwd string? current working directory
+---@param opts rissue.utils.CommandOpts? current working directory
 ---@return boolean success
 ---@return rissue.utils.CmdResult | string
-function M.run(cmd, cwd)
+function M.run(cmd, opts)
   local co = coroutine.running()
   if co then
     -- coroutine attach mode
     ---@diagnostic disable-next-line: undefined-global
     if _VERSION == "Lua 5.1" and not jit then
       -- hardwire to M.spawn with errors since pcall wont work
-      return true, M.spawn(cmd, cwd)
+      return true, M.spawn(cmd, opts)
     end
     local ok, result = pcall(function()
-      return M.spawn(cmd, cwd)
+      return M.spawn(cmd, opts)
     end)
     if not ok then
       return false, result
@@ -190,7 +201,7 @@ function M.run(cmd, cwd)
     local ok, result = pcall(function()
       local final_result
       co = coroutine.create(function()
-        final_result = M.spawn(cmd, cwd)
+        final_result = M.spawn(cmd, opts)
       end)
       local okk, err = coroutine.resume(co)
       if not okk then
@@ -235,10 +246,10 @@ end
 ---@param url string
 ---@param method rissue.utils.HttpMethod
 ---@param headers string[]
----@param cwd string?
+---@param opts rissue.utils.CommandOpts?
 ---@return boolean success
 ---@return string result_or_error
-function M.curl(url, method, headers, cwd)
+function M.curl(url, method, headers, opts)
   local cmd = { "curl", "-sS", "-f", url, "-X", method }
   local i = #cmd
   for _, header in ipairs(headers) do
@@ -246,7 +257,7 @@ function M.curl(url, method, headers, cwd)
     cmd[i - 1] = "-H"
     cmd[i] = header
   end
-  local ok, result = M.run(cmd, cwd)
+  local ok, result = M.run(cmd, opts)
   if not ok then
     ---@cast result string
     return false, result
