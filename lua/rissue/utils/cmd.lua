@@ -81,9 +81,10 @@ end
 --- The cmd result may return an exit code `-1` to signify that the process did not
 --- run correctly.
 ---@async
----@param cmd  string[]
+---@param cmd string[]
+---@param cwd string? Current working directory
 ---@return rissue.utils.CmdResult
-function M.spawn(cmd)
+function M.spawn(cmd, cwd)
   local co = coroutine.running()
   if not co then
     error("not inside an coroutine")
@@ -118,7 +119,9 @@ function M.spawn(cmd)
     end
   end
 
-  local options = { args = args, stdio = { nil, stdout, stderr } }
+  ---@type uv.spawn.options
+  ---@diagnostic disable-next-line: missing-fields, assign-type-mismatch
+  local options = { args = args, stdio = { nil, stdout, stderr }, cwd = cwd }
 
   local handle = uv.spawn(exe, options, function(code)
     exited = true
@@ -160,10 +163,11 @@ end
 ---
 --- The cmd result may return an exit code `-1` to signify that the process did not
 --- run correctly.
----@param cmd  string[]
+---@param cmd string[]
+---@param cwd string? current working directory
 ---@return boolean success
 ---@return rissue.utils.CmdResult?
-function M.run(cmd)
+function M.run(cmd, cwd)
   local co = coroutine.running()
   if co then
     ---@diagnostic disable-next-line: undefined-global
@@ -171,7 +175,7 @@ function M.run(cmd)
       return true, M.spawn(cmd)
     end
     local ok, result = pcall(function()
-      return M.spawn(cmd)
+      return M.spawn(cmd, cwd)
     end)
     if not ok then
       error(result)
@@ -196,14 +200,18 @@ end
 ---
 --- Warning: May raise an error
 ---@param cmds rissue.cmd[]
+---@param on_a_process_complete fun(cmd: rissue.cmd)? Runs when a command finishes (e.g. counters)
 ---@return rissue.utils.RunMultipleResults results
-function M.run_multiple(cmds)
+function M.run_multiple(cmds, on_a_process_complete)
   ---@type rissue.utils.RunMultipleResults
   local results = {}
 
   for _, cmd in ipairs(cmds) do
     local co = coroutine.create(function()
       results[cmd] = M.spawn(cmd)
+      if on_a_process_complete then
+        on_a_process_complete(cmd)
+      end
     end)
     local ok, err = coroutine.resume(co)
     if not ok then
