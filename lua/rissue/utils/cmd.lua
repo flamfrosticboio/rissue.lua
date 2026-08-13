@@ -229,13 +229,14 @@ function M.run_multiple(cmds, on_a_process_complete)
   return results
 end
 
---- Wraps the `cmd.spawn()` with basic curl.
----@async
----@param url     string
----@param method  rissue.utils.HttpMethod
+--- Wraps the `cmd.run()` with basic curl.
+---@param url string
+---@param method rissue.utils.HttpMethod
 ---@param headers string[]
+---@param cwd string?
+---@return boolean success
 ---@return string result_or_error
-function M.spawn_curl(url, method, headers)
+function M.curl(url, method, headers, cwd)
   local cmd = { "curl", "-sS", "-f", url, "-X", method }
   local i = #cmd
   for _, header in ipairs(headers) do
@@ -243,15 +244,20 @@ function M.spawn_curl(url, method, headers)
     cmd[i - 1] = "-H"
     cmd[i] = header
   end
-  local result = M.spawn(cmd)
+  local ok, result = M.run(cmd, cwd)
+  if not ok then
+    ---@cast result string
+    return false, result
+  end
+  ---@cast result rissue.utils.CmdResult
   if result.return_code ~= 0 then
     if result.stderr.contents ~= "" then
-      error(result.stderr.contents)
+      return false, result.stderr.contents
     end
     -- fallback to stdout when it errors
-    error(result.stdout.contents)
+    return false, result.stdout.contents
   end
-  return result.stdout.contents
+  return true, result.stdout.contents
 end
 
 return M
