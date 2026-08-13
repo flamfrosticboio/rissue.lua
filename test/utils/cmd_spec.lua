@@ -60,7 +60,7 @@ describe("cmd", function()
       check()
     end)
 
-    it("fails on invalid binary", function()
+    it("error on unknown binary", function()
       local ok = pcall(function()
         cmd.run_multiple({
           { "echo", "ok" }, -- will run normally
@@ -124,6 +124,53 @@ describe("cmd", function()
         stderr = { contents = "" },
         stdout = { contents = "true\n" },
       } --[[@as rissue.utils.CmdResult]], result)
+    end)
+
+    it(
+      "switches to M.spawn inside coroutine correctly with error (lua5.1 only)",
+      function()
+        ---@diagnostic disable-next-line: undefined-global
+        if not (_VERSION == "Lua 5.1" and not jit) then
+          -- just ignore if not running in pure lua5.1
+          return
+        end
+        local ok = pcall(function()
+          local okk, r
+          coroutine.wrap(function()
+            okk, r = cmd.run({ "echo", "true" })
+          end)()
+          require("luv").run()
+          assert(okk == true, r)
+          assert.same({
+            return_code = 0,
+            stderr = { contents = "" },
+            stdout = { contents = "" },
+          } --[[@as rissue.utils.CmdResult]], r)
+        end)
+
+        assert.is_false(ok)
+      end
+    )
+
+    it("cwd is correct (linux)", function()
+      if is_windows then
+        -- not applicable
+        return
+      end
+
+      local ok, result = cmd.run({ "pwd" }, "/tmp")
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stderr = { contents = "" },
+        stdout = { contents = "/tmp\n" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
+
+    it("error on unknown binary", function()
+      local x = { "someRandomBinary29924", "--flag" }
+      local ok = cmd.run(x)
+      assert.is_false(ok)
     end)
   end)
 end)
