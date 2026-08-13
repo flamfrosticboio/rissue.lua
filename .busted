@@ -1,6 +1,6 @@
 return {
   _all = {
-    lpath = "./lua/?.lua;./lua/?/init.lua;./?.lua;/?/init.lua",
+    lpath = "./lua/?.lua;./lua/?/init.lua;./test/?.lua;./test/?/init.lua",
     ROOT = { "test" },
     ["exclude-tags"] = "api",
     lua = "lua5.1",
