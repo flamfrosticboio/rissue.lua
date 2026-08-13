@@ -159,41 +159,46 @@ end
 --- Creates the process and waits for it to finish running.
 ---
 --- If wrapped inside a coroutine, it will run with `async` through `cmd.spawn()`
---- but may raises errors instead of running inside a pcall (limitation from lua5.1 only).
+--- but may raise **errors** instead of wrapped safely inside a pcall (limitation from lua5.1 only).
 ---
 --- The cmd result may return an exit code `-1` to signify that the process did not
 --- run correctly.
 ---@param cmd string[]
 ---@param cwd string? current working directory
 ---@return boolean success
----@return rissue.utils.CmdResult?
+---@return rissue.utils.CmdResult | string
 function M.run(cmd, cwd)
   local co = coroutine.running()
   if co then
+    -- coroutine attach mode
     ---@diagnostic disable-next-line: undefined-global
     if _VERSION == "Lua 5.1" and not jit then
-      return true, M.spawn(cmd)
+      -- hardwire to M.spawn with errors since pcall wont work
+      return true, M.spawn(cmd, cwd)
     end
     local ok, result = pcall(function()
       return M.spawn(cmd, cwd)
     end)
     if not ok then
-      error(result)
+      return false, result
     end
     return ok, result
-  end
-
-  -- blocking mode
-  local ok, result = pcall(function()
-    local final_result
-    co = coroutine.create(function()
-      final_result = M.spawn(cmd)
+  else
+    -- blocking mode
+    local ok, result = pcall(function()
+      local final_result
+      co = coroutine.create(function()
+        final_result = M.spawn(cmd, cwd)
+      end)
+      local ok, err = coroutine.resume(co)
+      if not ok then
+        error(err)
+      end
+      uv.run()
+      return final_result
     end)
-    coroutine.resume(co)
-    uv.run()
-    return final_result
-  end)
-  return ok, result
+    return ok, result
+  end
 end
 
 --- Runs multiple commands in parallel and waits for all processes to exit.
