@@ -8,7 +8,7 @@ return {
   default = {
     verbose = true,
   },
-  apiSpec = {
+  api = {
     tags = "api",
     ROOT = { "test/api" },
     verbose = true,
