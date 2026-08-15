@@ -13,5 +13,12 @@ return {
     ROOT = { "test/api" },
     verbose = true,
     ["exclude-tags"] = "",
+    ["defer-print"] = true,
+  },
+  apiOne = {
+    tags = "api",
+    ["exclude-tags"] = "",
+    ["defer-print"] = true,
+    verbose = true,
   },
 }

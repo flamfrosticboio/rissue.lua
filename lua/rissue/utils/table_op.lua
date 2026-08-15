@@ -78,4 +78,16 @@ function M.count(tbl)
   return n
 end
 
+---@generic T, M
+---@param tbl T[]
+---@param func fun(v: T): M
+---@return M[]
+function M.map_list(tbl, func)
+  local result = {}
+  for i = 1, #tbl do
+    result[i] = func(tbl[i])
+  end
+  return result
+end
+
 return M
