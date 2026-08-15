@@ -258,11 +258,7 @@ function M.curl(url, method, headers, opts)
     cmd[i - 1] = "-H"
     cmd[i] = header
   end
-  local ok, result = M.run(cmd, opts)
-  if not ok then
-    ---@cast result string
-    return false, result
-  end
+  local result = M.run(cmd, opts)
   ---@cast result rissue.utils.CmdResult
   if result.return_code ~= 0 then
     if result.stderr.contents ~= "" then
