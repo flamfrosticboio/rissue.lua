@@ -273,4 +273,31 @@ function M.curl(url, method, headers, opts)
   return true, result.stdout.contents
 end
 
+---@param cond fun(): boolean
+---@param timeout integer
+---@param interval integer?
+---@return boolean successful
+function M.blocking_wait(cond, timeout, interval)
+  interval = interval or 100
+  local timer, err = uv.new_timer()
+  if not timer then
+    error(err)
+  end
+  timer:start(interval, interval, function() end)
+
+  local start = uv.now()
+  local ok = true
+  while not cond() do
+    if uv.now() - start >= timeout then
+      ok = false
+      break
+    end
+    uv.run("once")
+  end
+
+  timer:stop()
+  timer:close()
+  return ok
+end
+
 return M

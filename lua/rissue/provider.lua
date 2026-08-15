@@ -14,11 +14,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+local cmd = require("rissue.utils.cmd")
 local config = require("rissue.config")
-local fetcher = require("rissue.utils.cmd")
-
----@type uv
-local uv = require("luv")
 
 local M = {}
 
@@ -83,13 +80,21 @@ local function get_provider_info_unsafe(remote_url, level)
   end
 
   for provider_name, provider in pairs(config.providers) do
-    -- async calling pattern
-    local supported = false
+    -- async calling blocking pattern
+    local supported
+    local finished = false
     local thread = coroutine.create(function()
-      supported = provider.supports(remote_info.domain, fetcher)
+      supported = provider.supports(
+        remote_info.domain,
+        cmd,
+        config.options.endpoints[provider_name]
+      )
+      finished = true
     end)
     coroutine.resume(thread)
-    uv.run()
+    cmd.blocking_wait(function()
+      return finished
+    end, 60000) -- todo: add timeout in settings
 
     if supported then
       return {

@@ -36,8 +36,7 @@ jobs:
       - name: Setup Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential
-          npm install
+          sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential curl
 
       - name: Cache Luarocks
         uses: actions/cache@v6
@@ -47,6 +46,12 @@ jobs:
 
       - name: Run Tests
         run: luarocks test --local .rockspec/rissue-dev-1.rockspec
+
+      - name: Install apiSpec Dependencies
+        working-directory: ./test/api/
+        run: |
+          npm ci --omit=dev
+          ./scripts/setup_test_api.sh
 
       - name: Run Tests (Api)
         run: luarocks test --local .rockspec/rissue-dev-1.rockspec -- --run=apiSpec

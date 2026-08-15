@@ -22,7 +22,7 @@
 ---@field map_into_issue fun(fetch_result: any): rissue.issue[]
 ---@field map_into_pr    fun(fetch_result: any): rissue.pr[]
 ---@field provider_name  string
----@field supports       fun(domain: string, curl: rissue.utils.CmdModule): boolean Async function
+---@field supports       fun(domain: string, cmd: rissue.utils.CmdModule, urls: string[]): boolean Async function
 
 ---@class rissue.provider_spec.extract
 ---@field owner string
