@@ -20,6 +20,14 @@ local uv = require("luv")
 ---@class rissue.utils.CmdModule
 local M = {}
 
+---@param handle uv.uv_handle_t
+---@param callback fun()?
+local function safe_close(handle, callback)
+  if handle and not handle:is_closing() then
+    handle:close(callback)
+  end
+end
+
 ---@param buffer rissue.utils.ReadResult.raw
 ---@param pipe uv.uv_pipe_t
 ---@param on_complete? fun()
@@ -28,7 +36,7 @@ local function handle_read_pipe(pipe, buffer, on_complete)
     if err then
       buffer.failed = true
       pipe:read_stop()
-      pipe:close()
+      safe_close(pipe)
       if on_complete then
         on_complete()
       end
@@ -39,7 +47,7 @@ local function handle_read_pipe(pipe, buffer, on_complete)
       buffer.contents[#buffer.contents + 1] = data
     else
       pipe:read_stop()
-      pipe:close()
+      safe_close(pipe)
       if on_complete then
         on_complete()
       end
@@ -83,7 +91,7 @@ end
 ---@async
 ---@param cmd string[]
 ---@param opts rissue.utils.CommandOpts?
----@return rissue.utils.CmdResult
+---@return rissue.utils.CmdResult result
 function M.spawn(cmd, opts)
   local co = coroutine.running()
   if not co then
@@ -101,7 +109,11 @@ function M.spawn(cmd, opts)
   end
 
   local stdout = create_pipe_with_error()
-  local stderr = create_pipe_with_error()
+  local stderr_ok, stderr = pcall(create_pipe_with_error)
+  if not stderr_ok then
+    safe_close(stdout)
+    error(stderr)
+  end
 
   ---@type rissue.utils.ReadResult.raw
   local result_stdout = { contents = {} }
@@ -116,7 +128,10 @@ function M.spawn(cmd, opts)
 
   local function maybe_resume()
     if exited and stdout_done and stderr_done then
-      coroutine.resume(co, exit_code)
+      local ok, err = coroutine.resume(co, exit_code)
+      if not ok then
+        error(err)
+      end
     end
   end
 
@@ -138,13 +153,13 @@ function M.spawn(cmd, opts)
   handle = uv.spawn(exe, options, function(code)
     exited = true
     exit_code = code
-    handle:close()
+    safe_close(handle)
     maybe_resume()
   end)
 
   if not handle then
-    stdout:close()
-    stderr:close()
+    safe_close(stdout)
+    safe_close(stderr)
     error("Failed to spawn process: " .. exe)
   end
 
@@ -162,55 +177,41 @@ function M.spawn(cmd, opts)
   coroutine.yield()
 
   ---@type rissue.utils.CmdResult
-  return {
+  local result = {
     return_code = exit_code,
     stdout = into_read_result(result_stdout),
     stderr = into_read_result(result_stderr),
   }
+
+  return result
 end
 
 --- Creates the process and waits for it to finish running.
 ---
---- If wrapped inside a coroutine, it will run with `async` through `cmd.spawn()`
---- but may raise **errors** instead of wrapped safely inside a pcall (limitation from lua5.1 only).
+--- Warning: May raise an error
 ---
 --- The cmd result may return an exit code `-1` to signify that the process did not
 --- run correctly.
 ---@param cmd string[]
 ---@param opts rissue.utils.CommandOpts? current working directory
----@return boolean success
----@return rissue.utils.CmdResult | string
+---@return rissue.utils.CmdResult
 function M.run(cmd, opts)
   local co = coroutine.running()
   if co then
     -- coroutine attach mode
-    ---@diagnostic disable-next-line: undefined-global
-    if _VERSION == "Lua 5.1" and not jit then
-      -- hardwire to M.spawn with errors since pcall wont work
-      return true, M.spawn(cmd, opts)
-    end
-    local ok, result = pcall(function()
-      return M.spawn(cmd, opts)
-    end)
-    if not ok then
-      return false, result
-    end
-    return ok, result
+    return M.spawn(cmd, opts)
   else
-    -- blocking mode
-    local ok, result = pcall(function()
-      local final_result
-      co = coroutine.create(function()
-        final_result = M.spawn(cmd, opts)
-      end)
-      local okk, err = coroutine.resume(co)
-      if not okk then
-        error(err)
-      end
-      uv.run()
-      return final_result
+    local final_result
+    co = coroutine.create(function()
+      final_result = M.spawn(cmd, opts)
     end)
-    return ok, result
+
+    local okk, err = coroutine.resume(co)
+    if not okk then
+      error(err)
+    end
+    uv.run()
+    return final_result
   end
 end
 
@@ -296,7 +297,7 @@ function M.blocking_wait(cond, timeout, interval)
   end
 
   timer:stop()
-  timer:close()
+  safe_close(timer)
   return ok
 end
 

@@ -14,16 +14,91 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+local cmd = require("rissue.utils.cmd")
+local is_windows = package.config:sub(1, 1) == "\\"
+
 describe("cmd", function()
-  local cmd = require("rissue.utils.cmd")
-  local is_windows = package.config:sub(1, 1) == "\\"
+  describe("run", function()
+    it("stdout outputs correctly", function()
+      local ok, result = pcall(cmd.run, { "echo", "true" })
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stdout = { contents = "true\n" },
+        stderr = { contents = "" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
+
+    it("stderr outputs correctly (linux)", function()
+      local ok, result = pcall(cmd.run, { "sh", "-c", "echo false 1>&2" })
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stdout = { contents = "" },
+        stderr = { contents = "false\n" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
+
+    it("switches to M.spawn inside coroutine correctly", function()
+      local ok, result
+      ok = pcall(function()
+        coroutine.wrap(function()
+          result = cmd.run({ "echo", "true" })
+        end)()
+      end)
+      require("luv").run()
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stderr = { contents = "" },
+        stdout = { contents = "true\n" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
+
+    it("cwd is correct (linux)", function()
+      if is_windows then
+        -- not applicable
+        return
+      end
+
+      local ok, result = pcall(cmd.run, { "pwd" }, { cwd = "/tmp" })
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stderr = { contents = "" },
+        stdout = { contents = "/tmp\n" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
+
+    it("disable on unknown binary", function()
+      local ok = pcall(cmd.run, { "someRandomBinary29924", "--flag" })
+      assert.is_false(ok)
+    end)
+
+    it("env is correct (linux)", function()
+      if is_windows then
+        -- not applicable
+        return
+      end
+
+      local ok, result = pcall(
+        cmd.run,
+        { "printenv", "TEST" },
+        { env = { "TEST=YES" } }
+      )
+      assert(ok == true, result)
+      assert.same({
+        return_code = 0,
+        stdout = { contents = "YES\n" },
+        stderr = { contents = "" },
+      } --[[@as rissue.utils.CmdResult]], result)
+    end)
+  end)
 
   describe("run_multiple", function()
     it("working (linux)", function()
       -- Hard return since the commands below are not applicable for windows
-      if is_windows then
-        return
-      end
+      assert(not is_windows, "Available in linux")
 
       local results = cmd.run_multiple({
         { "sh", "-c", "echo Hello > .tmp" },
@@ -55,17 +130,17 @@ describe("cmd", function()
             return
           end
         end
-        error("all returned correctly without issues (should not happen)")
+        assert(false, "all returned correctly without issues (should not happen)")
       end
       check()
     end)
 
-    it("error on unknown binary", function()
+    it("disable on unknown binary", function()
       local ok = pcall(function()
         cmd.run_multiple({
           { "echo", "ok" }, -- will run normally
-          { "someRandomBinary29924", "--flag" }, -- will error
-          -- will error also if you don't have notify-send (especially windows)
+          { "someRandomBinary29924", "--flag" }, -- will disable
+          -- will disable also if you don't have notify-send (especially windows)
           { "notify-send", "should not be running" },
         })
       end)
@@ -88,104 +163,6 @@ describe("cmd", function()
           stdout = { contents = "wello\n" },
         },
       } --[[@as rissue.utils.RunMultipleResults]], result)
-    end)
-  end)
-
-  describe("run", function()
-    it("stdout outputs correctly", function()
-      local ok, result = cmd.run({ "echo", "true" })
-      assert(ok == true, result)
-      assert.same({
-        return_code = 0,
-        stdout = { contents = "true\n" },
-        stderr = { contents = "" },
-      } --[[@as rissue.utils.CmdResult]], result)
-    end)
-
-    it("stderr outputs correctly (linux)", function()
-      local ok, result = cmd.run({ "sh", "-c", "echo false 1>&2" })
-      assert(ok == true, result)
-      assert.same({
-        return_code = 0,
-        stdout = { contents = "" },
-        stderr = { contents = "false\n" },
-      } --[[@as rissue.utils.CmdResult]], result)
-    end)
-
-    it("switches to M.spawn inside coroutine correctly", function()
-      local ok, result
-      coroutine.wrap(function()
-        ok, result = cmd.run({ "echo", "true" })
-      end)()
-      require("luv").run()
-      assert(ok == true, result)
-      assert.same({
-        return_code = 0,
-        stderr = { contents = "" },
-        stdout = { contents = "true\n" },
-      } --[[@as rissue.utils.CmdResult]], result)
-    end)
-
-    it(
-      "switches to M.spawn inside coroutine correctly with error (lua5.1 only)",
-      function()
-        ---@diagnostic disable-next-line: undefined-global
-        if not (_VERSION == "Lua 5.1" and not jit) then
-          -- just ignore if not running in pure lua5.1
-          return
-        end
-        local ok = pcall(function()
-          local okk, r
-          coroutine.wrap(function()
-            okk, r = cmd.run({ "echo", "true" })
-          end)()
-          require("luv").run()
-          assert(okk == true, r)
-          assert.same({
-            return_code = 0,
-            stderr = { contents = "" },
-            stdout = { contents = "" },
-          } --[[@as rissue.utils.CmdResult]], r)
-        end)
-
-        assert.is_false(ok)
-      end
-    )
-
-    it("cwd is correct (linux)", function()
-      if is_windows then
-        -- not applicable
-        return
-      end
-
-      local ok, result = cmd.run({ "pwd" }, { cwd = "/tmp" })
-      assert(ok == true, result)
-      assert.same({
-        return_code = 0,
-        stderr = { contents = "" },
-        stdout = { contents = "/tmp\n" },
-      } --[[@as rissue.utils.CmdResult]], result)
-    end)
-
-    it("error on unknown binary", function()
-      local x = { "someRandomBinary29924", "--flag" }
-      local ok = cmd.run(x)
-      assert.is_false(ok)
-    end)
-
-    it("env is correct (linux)", function()
-      if is_windows then
-        -- not applicable
-        return
-      end
-
-      local ok, result = cmd.run({ "printenv", "TEST" }, { env = { "TEST=YES" } })
-      assert(ok == true, result)
-      assert.same({
-        return_code = 0,
-        stdout = { contents = "YES\n" },
-        stderr = { contents = "" },
-      } --[[@as rissue.utils.CmdResult]], result)
     end)
   end)
 end)
