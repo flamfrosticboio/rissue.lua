@@ -63,6 +63,7 @@ jobs:
 
       - name: Install Specs
         run: |
+          eval $(luarocks path --local --lua-version=5.1)
           ./scripts/setup_test_api.sh
 
       - name: Run Api Tests Parallel
