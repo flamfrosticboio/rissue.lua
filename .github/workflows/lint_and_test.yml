@@ -38,21 +38,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential curl
 
-      - name: Cache Luarocks
-        uses: actions/cache@v6
-        with:
-          path: ~/.luarocks
-          key: ${{ runner.os }}-luarocks-${{ hashFiles('.rockspec/rissue-dev-1.rockspec') }}
+      # - name: Cache Luarocks
+      #   uses: actions/cache@v6
+      #   with:
+      #     path: ~/.luarocks
+      #     key: ${{ runner.os }}-luarocks-${{ hashFiles('.rockspec/rissue-dev-1.rockspec') }}
 
       - name: Run Tests
         run: luarocks test --local .rockspec/rissue-dev-1.rockspec
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: ./test/api/package-lock.json
 
       - name: Run Api Dependencies
         working-directory: ./test/api/
         run: |
           npm ci --omit=dev
           ./scripts/setup_test_api.sh
-          luarocks test --prepare .rockspec/rissue-dev-1.rockspec
 
       - name: Run Api Tests Parallel
         shell: bash
