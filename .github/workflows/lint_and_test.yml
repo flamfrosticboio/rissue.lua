@@ -71,4 +71,4 @@ jobs:
         run: |
           shopt -s globstar
           eval $(luarocks path --local --lua-version=5.1)
-          parallel --jobs 8 busted --run=apiOne ::: test/api/**/*_spec.lua
+          busted --run=api
