@@ -26,7 +26,7 @@ local M = {}
 
 M.host = "127.0.0.1"
 M.port = 35880
-local timeout = 30000 -- 30 second
+local timeout = 60000 -- in seconds
 
 ---@param pipe_or_handle uv.uv_handle_t
 local function safe_close(pipe_or_handle)
