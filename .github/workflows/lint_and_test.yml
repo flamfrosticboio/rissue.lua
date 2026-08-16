@@ -45,7 +45,9 @@ jobs:
       #     key: ${{ runner.os }}-luarocks-${{ hashFiles('.rockspec/rissue-dev-1.rockspec') }}
 
       - name: Run Tests
-        run: luarocks test --local .rockspec/rissue-dev-1.rockspec
+        run: |
+          eval $(luarocks path --local --lua-version=5.1)
+          luarocks test --local .rockspec/rissue-dev-1.rockspec
 
       - uses: actions/setup-node@v4
         with:
@@ -63,4 +65,5 @@ jobs:
         shell: bash
         run: |
           shopt -s globstar
+          eval $(luarocks path --local --lua-version=5.1)
           parallel --jobs 8 busted --run=apiOne ::: test/api/**/*_spec.lua
