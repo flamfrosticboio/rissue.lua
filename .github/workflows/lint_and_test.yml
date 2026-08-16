@@ -56,10 +56,13 @@ jobs:
           cache: 'npm'
           cache-dependency-path: ./test/api/package-lock.json
 
-      - name: Run Api Dependencies
+      - name: Install Api Dependencies
         working-directory: ./test/api/
         run: |
           npm ci --omit=dev
+
+      - name: Install Specs
+        run: |
           ./scripts/setup_test_api.sh
 
       - name: Run Api Tests Parallel
