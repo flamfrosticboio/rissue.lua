@@ -25,7 +25,7 @@ local teardown = teardown or require("busted").teardown
 local M = {}
 
 M.host = "127.0.0.1"
-M.port = 35880
+M.port = 55000
 local timeout = 60000 -- in seconds
 
 ---@param pipe_or_handle uv.uv_handle_t
