@@ -16,6 +16,8 @@
 
 local describe = describe or require("busted").describe
 local it = it or require("busted").it
+---@type luassert | fun()
+local assert = require("busted").assert
 
 local test_files = ".test_setup/github"
 
