@@ -27,7 +27,7 @@ local M = {}
 M.host = "127.0.0.1"
 M.port = 55000
 local timeout = 60000 -- in milliseconds
-local close_timeout = 30000 -- in milliseconds, for close hangs
+local close_timeout = 5000 -- in milliseconds, for close hangs
 
 ---@param filepath string
 ---@param callback fun()
