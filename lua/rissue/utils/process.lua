@@ -101,7 +101,8 @@ end
 
 --- Closes the process by killing it. Requires waiting for the process to finish
 ---@param callback fun()?
-function Process:close(callback)
+---@param signal string | integer | nil
+function Process:close(callback, signal)
   -- skip if the process was finished
   if self._complete then
     if callback then
@@ -115,7 +116,7 @@ function Process:close(callback)
   end
 
   if not self._handle:is_closing() then
-    local success, err = self._handle:kill("sigterm")
+    local success, err = self._handle:kill(signal or "sigterm")
     if not success then
       require("rissue.utils.log").warn(err or "failed to kill process")
     end
