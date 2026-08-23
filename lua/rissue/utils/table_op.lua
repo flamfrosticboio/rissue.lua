@@ -90,4 +90,16 @@ function M.map_list(tbl, func)
   return result
 end
 
+--- Returns if all booleans are true
+---@param bool_table boolean[]
+---@return boolean
+function M.all(bool_table)
+  for _, item in pairs(bool_table) do
+    if item == false then
+      return false
+    end
+  end
+  return true
+end
+
 return M
