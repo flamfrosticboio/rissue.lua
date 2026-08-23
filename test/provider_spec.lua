@@ -16,7 +16,7 @@
 
 local function reset()
   for name in pairs(package.loaded) do
-    if name:match("^rissue") then
+    if name:match("^rissue") and not name:match("^rissue%.utils") then
       package.loaded[name] = nil
     end
   end

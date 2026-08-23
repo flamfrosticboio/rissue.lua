@@ -1,6 +1,7 @@
 default_install_hook_types:
   - pre-commit
   - commit-msg
+  - pre-push
 default_stages: [pre-commit]
 
 repos:
@@ -66,7 +67,7 @@ repos:
         stages: [pre-commit]
       - id: busted
         name: busted
-        entry: busted test/
+        entry: busted test/ --defer-print --suppress-pending --lua=lua5.1
         language: system
         types: [lua]
         exclude: ^lua/rissue/types/

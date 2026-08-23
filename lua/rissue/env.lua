@@ -61,6 +61,7 @@ function M.get(name)
 end
 
 ---@param provider rissue.provider
+---@return string?
 function M.get_token(provider)
   return M.get(config.options.env.provider_prefix .. provider:upper())
 end

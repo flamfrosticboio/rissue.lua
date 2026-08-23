@@ -78,4 +78,28 @@ function M.count(tbl)
   return n
 end
 
+---@generic T, M
+---@param tbl T[]
+---@param func fun(v: T): M
+---@return M[]
+function M.map_list(tbl, func)
+  local result = {}
+  for i = 1, #tbl do
+    result[i] = func(tbl[i])
+  end
+  return result
+end
+
+--- Returns if all booleans are true
+---@param bool_table boolean[]
+---@return boolean
+function M.all(bool_table)
+  for _, item in pairs(bool_table) do
+    if item == false then
+      return false
+    end
+  end
+  return true
+end
+
 return M

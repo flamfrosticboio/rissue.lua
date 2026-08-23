@@ -15,10 +15,9 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local config = require("rissue.config")
-local fetcher = require("rissue.utils.cmd")
-
----@type uv
-local uv = require("luv")
+local env = require("rissue.env")
+local log = require("rissue.utils.log")
+local process = require("rissue.utils.process")
 
 local M = {}
 
@@ -58,6 +57,7 @@ end
 ---@param remote_url string
 ---@param level integer
 ---@return rissue.ProviderInfo
+---@return string? warnings
 local function get_provider_info_unsafe(remote_url, level)
   level = level or 0
   local remote_info = M.remote_info(remote_url)
@@ -71,31 +71,51 @@ local function get_provider_info_unsafe(remote_url, level)
     for _, pattern in ipairs(spec.patterns) do
       if remote_url:match(pattern) then
         ---@type rissue.ProviderInfo
-        return {
+        local info = {
           domain = spec.domain,
           name = provider_name,
           owner = remote_info.owner,
           repo = remote_info.repo,
           protocol = remote_info.curl_protocol,
         }
+        return info
       end
     end
   end
 
   for provider_name, provider in pairs(config.providers) do
-    -- async calling pattern
-    local thread = coroutine.create(provider.supports)
-    coroutine.resume(thread)
-    uv.run()
+    -- async calling blocking pattern
+    local supported
+    local finished = false
 
-    if provider.supports(remote_url, fetcher) then
-      return {
+    local token = env.get_token(provider_name)
+    local thread = coroutine.create(function()
+      supported = provider.supports(remote_info, process, token)
+      finished = true
+    end)
+    local co_ok, co_error = coroutine.resume(thread)
+    if not co_ok then
+      error(co_error)
+    end
+
+    -- todo: make this compatible inside coroutine
+
+    local success = process.wait(function()
+      return finished
+    end, 60000) -- todo: add timeout in settings
+    if not success then
+      log.warn("provider check timeout on " .. provider)
+    end
+
+    if supported then
+      local info = {
         name = provider_name,
         domain = remote_info.domain,
         owner = remote_info.owner,
         repo = remote_info.repo,
         protocol = remote_info.curl_protocol,
       }
+      return info
     end
   end
 
