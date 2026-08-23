@@ -14,9 +14,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local cmd = require("rissue.utils.cmd")
 local config = require("rissue.config")
 local env = require("rissue.env")
+local log = require("rissue.utils.log")
+local process = require("rissue.utils.process")
 
 local M = {}
 
@@ -89,7 +90,7 @@ local function get_provider_info_unsafe(remote_url, level)
 
     local token = env.get_token(provider_name)
     local thread = coroutine.create(function()
-      supported = provider.supports(remote_info, cmd, token)
+      supported = provider.supports(remote_info, process, token)
       finished = true
     end)
     local co_ok, co_error = coroutine.resume(thread)
@@ -97,9 +98,14 @@ local function get_provider_info_unsafe(remote_url, level)
       error(co_error)
     end
 
-    cmd.blocking_wait(function()
+    -- todo: make this compatible inside coroutine
+
+    local success = process.wait(function()
       return finished
-    end, 30000) -- todo: add timeout in settings
+    end, 60000) -- todo: add timeout in settings
+    if not success then
+      log.warn("provider check timeout on " .. provider)
+    end
 
     if supported then
       local info = {
