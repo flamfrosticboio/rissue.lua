@@ -88,9 +88,13 @@ local function run_mock_server(filepath, id, callback)
     if not ok then
       print("Warning: Failed to kill process gracefully. Attempting to force kill...")
       p:close(nil, "sigkill")
-      cmd.wait(function()
+      if not cmd.wait(function()
         return is_closed
-      end, 5000)
+      end, 5000) then
+        print(
+          "Warning: Failed to force kill application (not responding). Proceeding..."
+        )
+      end
     end
   end
 

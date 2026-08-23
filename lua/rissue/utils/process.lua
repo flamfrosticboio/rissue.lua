@@ -17,6 +17,7 @@
 ---@class rissue.utils.ProcessModule
 local M = {}
 
+local log = require("rissue.utils.log")
 local table_op = require("rissue.utils.table_op")
 local uv = require("luv") ---@type uv
 
@@ -190,6 +191,7 @@ function Process:run()
   local handle = uv.spawn(self._opts.cmd, options, function(code)
     -- for now we don't handle signal code
     self._exit_code = code
+    log.trace("Program exited with code " .. tostring(code))
     close_handle(self._handle, function()
       self._finished.handle = true
       self:try_exit()
@@ -205,6 +207,7 @@ function Process:run()
   -- unknown reason why read_pipe must happen after uv.spawn
 
   read_pipe(pipe_stdout, self._stdout_raw, function()
+    log.trace("Stdout pipe closed")
     self._finished.stdout = true
     self:try_exit()
   end, function()
@@ -213,6 +216,7 @@ function Process:run()
   end)
 
   read_pipe(pipe_stderr, self._stderr_raw, function()
+    log.trace("Stderr pipe closed")
     self._finished.stderr = true
     self:try_exit()
   end, function()
