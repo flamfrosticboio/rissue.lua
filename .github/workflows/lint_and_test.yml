@@ -55,7 +55,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential curl libuv1-dev
-          luarocks install --local luv LIBUV_DIR=/usr
 
       - uses: actions/setup-node@v6
         with:
@@ -89,4 +88,4 @@ jobs:
         run: |
           shopt -s globstar
           eval $(luarocks path --local --lua-version=5.1)
-          busted --run=api
+          LIBUV_DIR=/usr luarocks test --local .rockspec/rissue-dev-1.rockspec -- --run=api
