@@ -52,12 +52,9 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Setup Dependencies
-        env:
-          LIBUV_DIR=/usr
         run: |
           sudo apt-get update
           sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential curl libuv1-dev
-          luarocks test --prepare --tree=.luarocks .rockspec/rissue-dev-1.rockspec
 
       - uses: actions/setup-node@v6
         with:
