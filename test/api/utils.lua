@@ -91,6 +91,7 @@ local function run_mock_server(filepath, id, callback)
 
     watch_loop:start(1000, 1000, function()
       local watch_err = coroutine.wrap(function()
+        print("Checking...")
         local result, co_err = cmd.run_co({
           cmd = "timeout",
           args = {

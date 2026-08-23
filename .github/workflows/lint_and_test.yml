@@ -55,7 +55,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential curl libuv1-dev
-          LIBUV_DIR=/usr luarocks make --local .rockspec/rissue-dev-1.rockspec
+          LIBUV_DIR=/usr luarocks make --tree=.luarocks .rockspec/rissue-dev-1.rockspec
 
       - uses: actions/setup-node@v6
         with:
@@ -78,7 +78,7 @@ jobs:
       - name: Install Specs
         if: steps.cache-test-setup.outputs.cache-hit != 'true'
         run: |
-          eval $(luarocks path --local --lua-version=5.1)
+          eval $(luarocks path --tree=.luarocks --lua-version=5.1)
           ./scripts/setup_test_api.sh
 
       - name: Run Api Tests Parallel
@@ -88,6 +88,4 @@ jobs:
           TEST_STRICT: true
         run: |
           shopt -s globstar
-          eval $(luarocks path --local --lua-version=5.1)
-          LIBUV_DIR=/usr luarocks make --local .rockspec/rissue-dev-1.rockspec
-          luarocks test --local .rockspec/rissue-dev-1.rockspec -- --run=api
+          luarocks test --tree=.luarocks .rockspec/rissue-dev-1.rockspec -- --run=api
