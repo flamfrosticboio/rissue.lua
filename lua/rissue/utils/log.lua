@@ -67,6 +67,11 @@ function M.log(msg, level)
   M._logger(("[%s][%s]: %s"):format(time, log_name[level], msg), level)
 end
 
+---@param level 0 | 1 | 2 | 3 | 4 | 5
+function M.level_enabled(level)
+  return level >= M.log_level
+end
+
 ---@param msg string
 function M.info(msg)
   M.log(msg, M.levels.info)
