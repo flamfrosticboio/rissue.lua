@@ -31,9 +31,11 @@ function M.test_version(name, id)
   describe("provider github enterprise #api", function()
     utils.with_server(name, id, test_files .. "/" .. name .. ".json", function()
       it("found provider", function()
+        print("RUNNING TESTS")
         local ok, info = provider.get_provider_info(
-          "http://" .. utils.host .. ":" .. utils.port .. "/owner/repo.git"
+          "http://" .. utils.host .. ":" .. utils.port + id .. "/owner/repo.git"
         )
+        print("RESULTS ARE HERE")
         if not ok then
           error(info)
         end
@@ -45,6 +47,8 @@ function M.test_version(name, id)
           repo = "repo",
           protocol = "http", -- since prism is launched in http mode
         } --[[@as rissue.ProviderInfo]], info)
+
+        print("OK DONE")
       end)
     end)
   end)
