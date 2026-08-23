@@ -88,4 +88,5 @@ jobs:
         run: |
           shopt -s globstar
           eval $(luarocks path --local --lua-version=5.1)
-          LIBUV_DIR=/usr luarocks test --local .rockspec/rissue-dev-1.rockspec -- --run=api
+          LIBUV_DIR=/usr luarocks make --local .rockspec/rissue-dev-1.rockspec
+          luarocks test --local .rockspec/rissue-dev-1.rockspec -- --run=api
