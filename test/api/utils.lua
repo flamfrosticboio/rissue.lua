@@ -27,6 +27,7 @@ local M = {}
 M.host = "127.0.0.1"
 M.port = 55000
 local timeout = 60000 -- in milliseconds
+local close_timeout = 30000 -- in milliseconds, for close hangs
 
 ---@param filepath string
 ---@param callback fun()
@@ -81,9 +82,16 @@ local function run_mock_server(filepath, id, callback)
     p:close(function()
       is_closed = true
     end)
-    cmd.wait(function()
+    local ok = cmd.wait(function()
       return is_closed
-    end, -1)
+    end, close_timeout)
+    if not ok then
+      print("Warning: Failed to kill process gracefully. Attempting to force kill...")
+      p:close(nil, "sigkill")
+      cmd.wait(function()
+        return is_closed
+      end, 5000)
+    end
   end
 
   local function start()
