@@ -397,7 +397,7 @@ function M.wait(condition, timeout, interval)
   local interval_timer
 
   local timed_out = false
-  if timeout and timeout < 0 then
+  if timeout and timeout > 0 then
     local timeout_timer_err
     timeout_timer, timeout_timer_err = uv.new_timer()
     if not timeout_timer then
