@@ -178,6 +178,18 @@ function Process:run()
     error(pipe_stderr)
   end
 
+  local function on_stdout_pipe_close()
+    log.trace("Stdout pipe closed")
+    self._finished.stdout = true
+    self:try_exit()
+  end
+
+  local function on_stderr_pipe_close()
+    log.trace("Stderr pipe closed")
+    self._finished.stderr = true
+    self:try_exit()
+  end
+
   ---@cast pipe_stderr uv.uv_pipe_t
 
   ---@type uv.spawn.options
@@ -196,6 +208,9 @@ function Process:run()
       self._finished.handle = true
       self:try_exit()
     end)
+
+    close_handle(pipe_stdout, on_stdout_pipe_close)
+    close_handle(pipe_stderr, on_stderr_pipe_close)
   end)
 
   if not handle then
@@ -206,20 +221,12 @@ function Process:run()
 
   -- unknown reason why read_pipe must happen after uv.spawn
 
-  read_pipe(pipe_stdout, self._stdout_raw, function()
-    log.trace("Stdout pipe closed")
-    self._finished.stdout = true
-    self:try_exit()
-  end, function()
+  read_pipe(pipe_stdout, self._stdout_raw, on_stdout_pipe_close, function()
     run_all_events(self._events.on_stdout)
     run_all_events(self._events.on_output)
   end)
 
-  read_pipe(pipe_stderr, self._stderr_raw, function()
-    log.trace("Stderr pipe closed")
-    self._finished.stderr = true
-    self:try_exit()
-  end, function()
+  read_pipe(pipe_stderr, self._stderr_raw, on_stderr_pipe_close, function()
     run_all_events(self._events.on_stderr)
     run_all_events(self._events.on_output)
   end)
