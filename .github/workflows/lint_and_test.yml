@@ -52,6 +52,13 @@ jobs:
             sudo ln -s $(pwd)/.lua/bin/lua /usr/local/bin/lua5.1
           fi
 
+      - name: Cache Test Dependencies
+        id: cache-test-dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.luarocks
+          key: luarocks-${{ hashFiles('**/*.rockspec') }}
+
       - name: Setup Test Dependencies
         env:
           LIBUV_DIR: /usr
@@ -99,6 +106,12 @@ jobs:
         working-directory: ./test/api/
         run: |
           npm ci --omit=dev
+
+      - name: Cache Test Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.luarocks
+          key: luarocks-${{ hashFiles('**/*.rockspec') }}
 
       - name: Setup Test Dependencies
         env:
