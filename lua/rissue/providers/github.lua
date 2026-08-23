@@ -42,6 +42,7 @@ local function curl_get(mod, url, headers)
     args[#args + 1] = "-H"
     args[#args + 1] = header
   end
+  print("START RUNNING WITH CO")
   return mod.run_co({
     cmd = "curl",
     args = args,

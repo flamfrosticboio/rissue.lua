@@ -26,7 +26,7 @@ local M = {}
 
 M.host = "127.0.0.1"
 M.port = 55000
-local timeout = 60000 -- in seconds
+local timeout = 60000 -- in milliseconds
 
 ---@param filepath string
 ---@param callback fun()
@@ -55,6 +55,7 @@ local function run_mock_server(filepath, id, callback)
       "--port",
       tostring(port),
       filepath,
+      "--verboseLevel=trace",
     },
     cwd = "test/api",
   })
@@ -145,6 +146,7 @@ function M.with_server(name, id, spec_filepath, func)
         return server_run
       end, timeout)
       if not successful then
+        server_close()
         error("Timeout reached")
       end
     end)
