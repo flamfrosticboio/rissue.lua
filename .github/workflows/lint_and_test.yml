@@ -33,6 +33,10 @@ jobs:
           version: "0.31.0"
           args: test/ --config .selene.tests.toml
 
+      - name: Setup Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
 
       - uses: leafo/gh-actions-lua@v13
         with:
@@ -41,11 +45,6 @@ jobs:
       - uses: leafo/gh-actions-luarocks@v6
         with:
           luaRocksVersion: "3.13.0"
-
-      - name: Setup Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libuv1-dev cmake
 
       - name: Link lua5.1
         run: |
@@ -71,6 +70,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Setup Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
+
       - uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: "5.1"
@@ -84,11 +88,6 @@ jobs:
           node-version: '24'
           cache: 'npm'
           cache-dependency-path: ./test/api/package-lock.json
-
-      - name: Setup Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libuv1-dev cmake
 
       - name: Link lua5.1
         run: |
