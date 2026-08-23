@@ -55,6 +55,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks cmake build-essential curl libuv1-dev
+          LIBUV_DIR=/usr luarocks make --local .rockspec/rissue-dev-1.rockspec
 
       - uses: actions/setup-node@v6
         with:
