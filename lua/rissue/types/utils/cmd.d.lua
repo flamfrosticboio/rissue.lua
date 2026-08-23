@@ -14,25 +14,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@alias rissue.utils.HttpMethod "GET" | "POST" | "PUT" | "DELETE" | "PATCH"
-
----@class rissue.utils.ReadResult
----@field failed boolean?
----@field contents string
-
----@class rissue.utils.ReadResult.raw
----@field failed boolean?
----@field contents string[]
-
 ---@class rissue.utils.CmdResult
 ---@field return_code integer
----@field stdout rissue.utils.ReadResult
----@field stderr rissue.utils.ReadResult
+---@field stdout string
+---@field stderr string
 
 ---@alias rissue.cmd string[] Command line
 
----@alias rissue.utils.RunMultipleResults table<rissue.cmd, rissue.utils.CmdResult>
-
 ---@class rissue.utils.CommandOpts
----@field cwd string? Current working directory
----@field env string[]? Environment variables in a form of `ENV=VALUE`
+---@field cmd string
+---@field args? string[]
+---@field cwd? string Current working directory
+---@field env? string[] | table<string, string> Environment variables in a form of `ENV=VALUE` or {ENV = VALUE}
