@@ -91,7 +91,7 @@ local function get_provider_info_unsafe(remote_url, level)
 
     local token = env.get_token(provider_name)
     local thread = coroutine.create(function()
-      supported, additional_info = provider.supports(remote_info, process, token)
+      supported, additional_info = provider.supports(remote_info, token)
       finished = true
     end)
     local co_ok, co_error = coroutine.resume(thread)

@@ -27,7 +27,7 @@
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
 ---
 ---The second return is where there are additional information to relay to provider info
----@field supports       fun(info: rissue.RemoteInfo, mod: rissue.utils.ProcessModule, token: string?): boolean, table?
+---@field supports       fun(info: rissue.RemoteInfo, token: string?): boolean, table?
 
 ---@class rissue.provider_spec.extract
 ---@field owner string

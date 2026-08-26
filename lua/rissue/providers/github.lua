@@ -80,7 +80,7 @@ local M = {
   provider_name = "github",
   get_merge_requests = function(opts, info, token) end,
   get_issues = function(opts, info, token) end,
-  supports = function(info, util, token)
+  supports = function(info, token)
     ---@type string[]
     local headers = list_shallow_copy(curl_headers_template)
     headers[#headers + 1] = basic_json_header
