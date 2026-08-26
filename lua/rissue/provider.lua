@@ -85,12 +85,13 @@ local function get_provider_info_unsafe(remote_url, level)
 
   for provider_name, provider in pairs(config.providers) do
     -- async calling blocking pattern
-    local supported
+    local supported ---@type boolean
+    local additional_info ---@type table?
     local finished = false
 
     local token = env.get_token(provider_name)
     local thread = coroutine.create(function()
-      supported = provider.supports(remote_info, process, token)
+      supported, additional_info = provider.supports(remote_info, process, token)
       finished = true
     end)
     local co_ok, co_error = coroutine.resume(thread)
@@ -108,12 +109,14 @@ local function get_provider_info_unsafe(remote_url, level)
     end
 
     if supported then
+      ---@type rissue.ProviderInfo
       local info = {
         name = provider_name,
         domain = remote_info.domain,
         owner = remote_info.owner,
         repo = remote_info.repo,
         protocol = remote_info.curl_protocol,
+        additional_info = additional_info,
       }
       return info
     end

@@ -23,7 +23,9 @@
 ---@field map_into_pr    fun(fetch_result: any): rissue.pr[]
 ---@field provider_name  string
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
----@field supports       fun(info: rissue.RemoteInfo, mod: rissue.utils.ProcessModule, token: string?): boolean
+---
+---The second return is where there are additional information to relay to provider info
+---@field supports       fun(info: rissue.RemoteInfo, mod: rissue.utils.ProcessModule, token: string?): boolean, table?
 
 ---@class rissue.provider_spec.extract
 ---@field owner string
