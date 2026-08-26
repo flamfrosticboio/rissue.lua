@@ -34,11 +34,12 @@
 ---@field repo  string
 
 ---@class rissue.ProviderInfo
----@field domain   string
----@field name     string
----@field owner    string
----@field repo     string
+---@field domain string
+---@field name string
+---@field owner string
+---@field repo string
 ---@field protocol "http" | "https"
+---@field additional_info? table
 
 ---@class (exact) rissue.RemoteInfo
 ---@field curl_protocol "http" | "https"
