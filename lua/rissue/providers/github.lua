@@ -15,6 +15,7 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local log = require("rissue.utils.log")
+local process = require("rissue.utils.process")
 
 local token_header_template = "Authorization: Bearer " -- just append the token after this
 -- local fetch_response_header = "Accept: application/vnd.github.raw+json"
@@ -31,33 +32,54 @@ local function list_shallow_copy(list)
   return result
 end
 
----@param mod rissue.utils.ProcessModule
 ---@param url string
 ---@param headers string[]
 ---@return rissue.utils.CmdResult? result
 ---@return string? error
-local function curl_get(mod, url, headers)
+local function curl_get(url, headers)
   local args = { "-sS", "-L", "-X", "GET", url }
   for _, header in ipairs(headers) do
     args[#args + 1] = "-H"
     args[#args + 1] = header
   end
   print("START RUNNING WITH CO")
-  return mod.run_co({
+  return process.run_co({
     cmd = "curl",
     args = args,
   })
 end
 
+--- todo: complete this
+--- Instead of mapping, we just let the provider do it
+--- But we need to implement the abstract method on curling
+
+---@class rissue.Provider.Opts: table
+---@field custom_fetch_endpoints string[]
+
+---@param info rissue.ProviderInfo
+local function get_api_endpoint(info)
+  return info.protocol
+    .. "://"
+    .. info.domain
+    .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
+end
+
+---@param url string
+---@param headers string[]
+local function check(url, headers)
+  local result, err = curl_get(url, headers)
+  if not result then
+    log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
+  end
+
+  return result and result.stdout:match("verifiable_password_authentication")
+end
+
 ---@type rissue.provider_spec
 local M = {
   provider_name = "github",
-  map_into_issue = function(_fetch_result)
-    return {}
-  end,
-  map_into_pr = function(_fetch_result)
-    return {}
-  end,
+  get_merge_requests = function(opts, info, token) end,
+  get_issues = function(opts, info, token) end,
   supports = function(info, util, token)
     ---@type string[]
     local headers = list_shallow_copy(curl_headers_template)
@@ -66,21 +88,13 @@ local M = {
       headers[#headers + 1] = token_header_template .. token
     end
 
-    ---@type string[]
-    local urls = {
-      info.curl_protocol .. "://" .. info.domain .. "/meta",
-      info.curl_protocol .. "://" .. info.domain .. "/api/v3/meta",
-    }
+    local base = info.curl_protocol .. "://" .. info.domain
 
-    for _, url in ipairs(urls) do
-      local result, err = curl_get(util, url, headers)
-      if not result then
-        log.warn("Failed to fetch endpoint: " .. err)
-      end
-
-      if result and result.stdout:match("verifiable_password_authentication") then
-        return true
-      end
+    -- is ghes version
+    if check(base .. "/api/v3/meta", headers) then
+      return true, { ghes = true }
+    elseif check(base .. "/meta", headers) then
+      return true
     end
 
     return false
