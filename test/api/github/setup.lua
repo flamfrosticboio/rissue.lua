@@ -23,13 +23,20 @@ local cwd = ".test_setup/github"
 return function()
   ---@type __rissue.SetupConfig
   local setup_file = {
+    --- Github enterprise cloud
     sutils.setup_command(cwd .. "/ghec.json", "./scripts/curl_safe.sh", {
       true,
-      "https://github.com/octokit/openapi/releases/download/v22.0.0/ghec.deref.json",
+      "https://unpkg.com/@octokit/openapi@22.0.0/generated/ghec.deref.json",
     }),
     sutils.setup_file(cwd .. "/server-statistics-advisory-db.yaml", ""),
     sutils.setup_file(cwd .. "/server-statistics-packages.yaml", ""),
     sutils.setup_file(cwd .. "/server-statistics-actions.yaml", ""),
+
+    --- Github Public Api
+    sutils.setup_command(cwd .. "/github_api.json", "./scripts/curl_safe.sh", {
+      true,
+      "https://unpkg.com/@octokit/openapi@22.0.0/generated/api.github.com.deref.json",
+    }),
   }
 
   local ghes_versions = { "3.14", "3.15", "3.16", "3.17", "3.18", "3.19" }
@@ -39,7 +46,7 @@ return function()
       "./scripts/curl_safe.sh",
       {
         true,
-        "https://github.com/octokit/openapi/releases/download/v22.0.0/ghes-"
+        "https://unpkg.com/@octokit/openapi@22.0.0/generated/ghes-"
           .. version
           .. ".deref.json",
       }
