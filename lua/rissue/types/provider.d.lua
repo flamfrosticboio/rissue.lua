@@ -19,8 +19,10 @@
 ---@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
 ---@class (exact) rissue.provider_spec
----@field map_into_issue fun(fetch_result: any): rissue.issue[]
----@field map_into_pr    fun(fetch_result: any): rissue.pr[]
+---Second return is an error string
+---@field get_issues fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.issue[]?, string?
+---Second return is an error string
+---@field get_merge_requests fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.pr[]?, string?
 ---@field provider_name  string
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
 ---
