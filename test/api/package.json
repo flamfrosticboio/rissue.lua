@@ -1,5 +1,6 @@
 {
-  "dependencies": {
-    "@stoplight/prism-cli": "^5.16.0"
-  }
+    "dependencies": {
+        "@stoplight/prism-cli": "^5.6.0",
+        "http-proxy": "^1.18.1"
+    }
 }
