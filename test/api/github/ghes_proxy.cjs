@@ -8,6 +8,8 @@ const proxy = httpProxy.createProxyServer({ target: 'http://localhost:55000' });
 
 const PREFIX = '/api/v3';
 
+const port = Number(process.env.PORT) || 55000
+
 const server = http.createServer((req, res) => {
     if (req.url.startsWith(PREFIX)) {
         req.url = req.url.slice(PREFIX.length) || '/';
@@ -18,6 +20,6 @@ const server = http.createServer((req, res) => {
     });
 });
 
-server.listen(8080, () => {
-    console.log('Prefix proxy running on http://localhost:8080' + PREFIX);
+server.listen(port, () => {
+    console.log(`Prefix proxy running on http://localhost:${port}` + PREFIX);
 });
