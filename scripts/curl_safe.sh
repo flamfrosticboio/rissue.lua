@@ -16,7 +16,7 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-if curl -sS --remove-on-error -L -o "$tmpfile" "$url"; then
+if curl -sSf --remove-on-error -L -o "$tmpfile" "$url"; then
     mv "$tmpfile" "$outfile"
     echo "Saved to $outfile"
 else
