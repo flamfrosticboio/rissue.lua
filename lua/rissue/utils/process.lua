@@ -324,7 +324,7 @@ end
 ---
 --- Warning: May raise errors
 --- @param command_opts rissue.utils.CommandOpts
---- @param opts rissue.utils.run.Opts
+--- @param opts rissue.utils.run.Opts?
 --- @return rissue.utils.CmdResult? result
 --- @return string? error
 function M.run_co(command_opts, opts)
@@ -368,7 +368,7 @@ end
 --- Use `os.execute()` for simplicity instead.
 --- @param command_opts rissue.utils.CommandOpts
 --- @param timeout integer Pass -1 to disable timeout
---- @param opts rissue.utils.run.Opts
+--- @param opts rissue.utils.run.Opts?
 --- @return rissue.utils.CmdResult? result
 --- @return string? error
 function M.run(command_opts, timeout, opts)
