@@ -197,7 +197,7 @@ function Process:run()
   local options = {
     args = self._opts.args,
     cwd = self._opts.cwd,
-    env = self._opts.env,
+    env = self._opts.env --[=[@type string[]]=],
     stdio = { nil, pipe_stdout, pipe_stderr },
   }
   local handle = uv.spawn(self._opts.cmd, options, function(code)
