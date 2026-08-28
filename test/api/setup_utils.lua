@@ -219,6 +219,7 @@ function M.setup_file(file, contents)
 end
 
 ---@param configs __rissue.SetupConfig
+---@return string[]
 local function run_setup_config(configs)
   if configs.cache then
     local marker_path = M.cwd .. "/cache-marker-" .. configs.cache.name
@@ -251,16 +252,18 @@ local function run_setup_config(configs)
     end
   end
 
-  ---@type rissue.cmd[]
-  local commands_to_execute = {}
-  ---@type __rissue.setup.type.File[]
-  local files_to_write = {}
+  local files_affected = {} ---@type string[]
+  local commands_to_execute = {} ---@type rissue.cmd[]
+  local command_file_map = {} ---@type table<rissue.cmd[], string>
+  local files_to_write = {} ---@type __rissue.setup.type.File[]
 
   for _, config in ipairs(configs) do
     if not (config.file and uv.fs_stat(config.file)) then
       if config.type == "command" then
         local args = replace_in_list(config.args, true, config.file)
-        commands_to_execute[#commands_to_execute + 1] = { config.bin, unpack(args) }
+        local cmd = { config.bin, unpack(args) }
+        commands_to_execute[#commands_to_execute + 1] = cmd
+        command_file_map[cmd] = config.file
       elseif config.type == "file" then
         files_to_write[#files_to_write + 1] = config
       else
@@ -277,6 +280,7 @@ local function run_setup_config(configs)
       uv.fs_write(fd, config.contents)
       uv.fs_close(fd)
     end
+    files_affected[#files_affected + 1] = config.file
     print("Wrote file: " .. config.file)
   end
 
@@ -289,20 +293,30 @@ local function run_setup_config(configs)
     print("$: " .. table.concat(args, " "))
   end
 
-  local _, errors = M.run_multiple(commands_to_execute)
+  local results, errors = M.run_multiple(commands_to_execute)
   if #errors > 0 then
     print(table.concat(errors, "\n"))
   end
+
+  for _, result in ipairs(results) do
+    if result.return_code ~= 0 then
+      files_affected[#files_affected + 1] = command_file_map[result.cmd]
+    end
+  end
+
+  return files_affected
 end
 
 ---@param cwd string The current working directory
 ---@param setup_config __rissue.SetupConfig
+---@return string[] files_affected
 function M.run_setup(cwd, setup_config)
   -- run luv without blocking
   uv.run("nowait")
   mkdir_p(cwd)
-  run_setup_config(setup_config)
+  local files_affected = run_setup_config(setup_config)
   print("DONE")
+  return files_affected
 end
 
 return M

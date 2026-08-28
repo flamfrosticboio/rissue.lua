@@ -19,37 +19,46 @@
 local gutils = require("api.github.setup_utils")
 local sutils = require("api.setup_utils")
 
-return function()
-  local cwd = sutils.cwd .. "/github"
+local cwd = sutils.cwd .. "/github"
 
+---@return string[] spec_files
+local function get_specs()
   ---@type __rissue.SetupConfig
   local setup_file = {
     cache = {
       name = "github",
       folder = "github",
-      ttl = 7 * 24 * 60 * 60, -- 1 week
+      ttl = 7 * 24 * 60 * 60, -- 1 week since they get updated regularl
     },
 
     --- Github enterprise cloud (api: 2026)
-    sutils.setup_command(cwd .. "/ghec.json", "./scripts/curl_safe.sh", {
-      true,
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/dereferenced/ghec.2026-03-10.deref.json",
-    }),
+    sutils.setup_command(
+      cwd .. "/ghec.json",
+      "./scripts/curl_and_prune_spec_file.sh",
+      {
+        true,
+        "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/dereferenced/ghec.2026-03-10.deref.json",
+      }
+    ),
     sutils.setup_file(cwd .. "/server-statistics-advisory-db.yaml", ""),
     sutils.setup_file(cwd .. "/server-statistics-packages.yaml", ""),
     sutils.setup_file(cwd .. "/server-statistics-actions.yaml", ""),
 
     --- Github Public Api (api: 2026)
-    sutils.setup_command(cwd .. "/github_api.json", "./scripts/curl_safe.sh", {
-      true,
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/dereferenced/api.github.com.2026-03-10.deref.json",
-    }),
+    sutils.setup_command(
+      cwd .. "/github_api.json",
+      "./scripts/curl_and_prune_spec_file.sh",
+      {
+        true,
+        "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/dereferenced/api.github.com.2026-03-10.deref.json",
+      }
+    ),
   }
 
   for _, version in ipairs(gutils.ghes_2022_versions) do
     setup_file[#setup_file + 1] = sutils.setup_command(
       cwd .. "/ghes-" .. version .. ".json",
-      "./scripts/curl_safe.sh",
+      "./scripts/curl_and_prune_spec_file.sh",
       {
         true,
         "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
@@ -64,7 +73,7 @@ return function()
   for _, version in ipairs(gutils.ghes_2026_versions) do
     setup_file[#setup_file + 1] = sutils.setup_command(
       cwd .. "/ghes-" .. version .. "-2026.json",
-      "./scripts/curl_safe.sh",
+      "./scripts/curl_and_prune_spec_file.sh",
       {
         true,
         "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
@@ -79,7 +88,7 @@ return function()
   for _, version in ipairs(gutils.ghes_non_dated_versions) do
     setup_file[#setup_file + 1] = sutils.setup_command(
       cwd .. "/ghes-" .. version .. ".json",
-      "./scripts/curl_safe.sh",
+      "./scripts/curl_and_prune_spec_file.sh",
       {
         true,
         "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
@@ -91,5 +100,15 @@ return function()
     )
   end
 
-  sutils.run_setup(cwd, setup_file)
+  return sutils.run_setup(cwd, setup_file)
+end
+
+return function()
+  local affected_files = get_specs()
+  if #affected_files > 0 then
+    print("Files Affected:")
+    for _, file in ipairs(affected_files) do
+      print("- " .. file)
+    end
+  end
 end

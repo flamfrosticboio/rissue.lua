@@ -54,15 +54,14 @@ local function run_mock_server(filepath, port_offset, callback)
   local err ---@type string?
 
   p, err = cmd.spawn({
-    cmd = "npx",
+    cmd = "./node_modules/.bin/prism",
     args = {
-      "@stoplight/prism-cli",
       "mock",
+      filepath,
       "--host",
       M.host,
       "--port",
       tostring(port),
-      filepath,
       "--verboseLevel=trace",
     },
     cwd = "test/api",
