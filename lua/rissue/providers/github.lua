@@ -90,10 +90,14 @@ local M = {
 
     local base = info.curl_protocol .. "://" .. info.domain
 
-    -- is ghes version
+    -- ghes version
     if check(base .. "/api/v3/meta", headers) then
       return true, { ghes = true }
-    elseif check(base .. "/meta", headers) then
+    end
+
+    -- ghec or api.github.com version (when checking with url failed)
+    -- examples includes: domain proxy, GHEC with Data Residency
+    if check(base .. "/meta", headers) then
       return true
     end
 
