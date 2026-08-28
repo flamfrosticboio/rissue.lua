@@ -55,14 +55,15 @@ end
 
 ---@async
 ---@param remote_url string
+---@param request_opts table?
 ---@param level integer
 ---@return rissue.ProviderInfo
 ---@return string? warnings
-local function get_provider_info_unsafe(remote_url, level)
-  level = level or 0
+local function get_provider_info_unsafe(remote_url, request_opts, level)
+  level = level and (2 + level) or 2
   local remote_info = M.remote_info(remote_url)
   if not remote_info then
-    error("Could not parse remote url", 2 + level)
+    error("Could not parse remote url", level)
   end
   remote_url = remote_info.full_url
 
@@ -91,7 +92,8 @@ local function get_provider_info_unsafe(remote_url, level)
 
     local token = env.get_token(provider_name)
     local thread = coroutine.create(function()
-      supported, additional_info = provider.supports(remote_info, token)
+      supported, additional_info =
+        provider.supports(remote_info, token, { request = request_opts })
       finished = true
     end)
     local co_ok, co_error = coroutine.resume(thread)
@@ -129,10 +131,11 @@ end
 --- May trigger api requests to the url.
 ---@async
 ---@param remote_url string
+---@param req_opts table? Additional request options passed to provider
 ---@return boolean success
 ---@return rissue.ProviderInfo | string
-function M.get_provider_info(remote_url)
-  local ok, info = pcall(get_provider_info_unsafe, remote_url)
+function M.get_provider_info(remote_url, req_opts)
+  local ok, info = pcall(get_provider_info_unsafe, remote_url, req_opts, 1)
   return ok, info
 end
 

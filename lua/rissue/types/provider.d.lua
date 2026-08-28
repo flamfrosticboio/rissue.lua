@@ -18,6 +18,9 @@
 
 ---@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
+---@class (exact) rissue.provider_spec.supports.Opts<T>
+---@field request T?
+
 ---@class (exact) rissue.provider_spec
 ---Second return is an error string
 ---@field get_issues fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.issue[]?, string?
@@ -27,7 +30,7 @@
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
 ---
 ---The second return is where there are additional information to relay to provider info
----@field supports       fun(info: rissue.RemoteInfo, token: string?): boolean, table?
+---@field supports       fun(info: rissue.RemoteInfo, token: string?, opts: rissue.provider_spec.supports.Opts): boolean, table?
 
 ---@class rissue.provider_spec.extract
 ---@field owner string
