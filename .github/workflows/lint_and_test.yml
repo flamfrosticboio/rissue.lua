@@ -129,7 +129,6 @@ jobs:
           key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}-test_all_${{ env.TEST_ALL }}
 
       - name: Install Specs
-        if: steps.cache-test-setup.outputs.cache-hit != 'true'
         run: |
           ./scripts/setup_test_api.sh
 
