@@ -74,6 +74,8 @@ jobs:
   test-api:
     runs-on: ubuntu-slim
     timeout-minutes: 15
+    env:
+      TEST_ALL: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}
     steps:
       - uses: actions/checkout@v6
 
@@ -124,7 +126,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .test_setup
-          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
+          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}-test_all_${{ env.TEST_ALL }}
 
       - name: Install Specs
         if: steps.cache-test-setup.outputs.cache-hit != 'true'
