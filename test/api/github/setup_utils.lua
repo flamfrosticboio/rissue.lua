@@ -42,12 +42,12 @@ local ghes_min = os.getenv("TEST_ALL") and 0 or 16
 local ghes_max = 22
 M.ghes_versions = populate_range(ghes_min, ghes_max, constructor)
 
-local ghes_2022_min = 9
+local ghes_2022_min = math.max(9, ghes_min)
 local ghes_2022_max = ghes_max
 --- GHES Versions to test against
 M.ghes_2022_versions = populate_range(ghes_2022_min, ghes_2022_max, constructor)
 
-local ghes_2026_min = 21
+local ghes_2026_min = math.max(21, ghes_min)
 local ghes_2026_max = ghes_max
 --- Versions with 2026 api variant
 M.ghes_2026_versions = populate_range(ghes_2026_min, ghes_2026_max, constructor)
@@ -57,5 +57,10 @@ local ghes_non_dated_max = 8 -- last version to not have a versioned api
 --- Versions without any specific api date
 M.ghes_non_dated_versions =
   populate_range(ghes_non_dated_min, ghes_non_dated_max, constructor)
+
+M.ghes_code_mapped = {}
+for i = ghes_min, ghes_max do
+  M.ghes_code_mapped["3." .. i] = 3000 + i
+end
 
 return M
