@@ -26,3 +26,6 @@
 ---@field args? string[]
 ---@field cwd? string Current working directory
 ---@field env? string[] | table<string, string> Environment variables in a form of `ENV=VALUE` or {ENV = VALUE}
+
+---@class rissue.utils.run.Opts
+---@field print_output boolean
