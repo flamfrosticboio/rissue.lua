@@ -113,7 +113,7 @@ jobs:
         id: cache-test-dependencies
         uses: actions/cache/restore@v6
         with:
-          path: ~/.luarocks
+          path: .luarocks
           key: luarocks-${{ hashFiles('**/*.rockspec') }}
 
       - name: Setup Test Dependencies
@@ -126,7 +126,7 @@ jobs:
         uses: actions/cache/save@v6
         if: always() && steps.cache-test-dependencies.outputs.cache-hit != 'true'
         with:
-          path: ~/.luarocks
+          path: .luarocks
           key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
 
       - name: Load cache for '.test_setup'
