@@ -19,9 +19,20 @@ local M = {}
 local subprocess = require("rissue.utils.process")
 local uv = require("luv") ---@type uv
 
+M.cwd = "./.test_setup"
+
+---@class __rissue.SetupConfigOptions.cache
+---@field ttl integer
+---@field name string
+---@field folder string
+
+---@class __rissue.SetupConfigOptions
+---@field cache? __rissue.SetupConfigOptions.cache
+---@field cwd string
+
 ---@alias __rissue.setup.Type __rissue.setup.type.File | __rissue.setup.type.Command
 
----@alias __rissue.SetupConfig __rissue.setup.Type[]
+---@alias __rissue.SetupConfig __rissue.setup.Type[] | __rissue.SetupConfigOptions
 
 ---@generic T: any, A: any, B: any
 ---@param list (T | A)[]
@@ -151,6 +162,35 @@ local function mkdir_p(path)
   return true
 end
 
+local function rmdir_recursive(path)
+  local fd, err = uv.fs_scandir(path)
+  if not fd then
+    return false, err
+  end
+
+  while true do
+    local name, typ = uv.fs_scandir_next(fd)
+    if not name then
+      break
+    end
+
+    local full_path = path .. "/" .. name
+    if typ == "directory" then
+      local ok, e = rmdir_recursive(full_path)
+      if not ok then
+        return false, e
+      end
+    else
+      local ok, e = uv.fs_unlink(full_path)
+      if not ok then
+        return false, e
+      end
+    end
+  end
+
+  return uv.fs_rmdir(path)
+end
+
 ---@class __rissue.setup.type.Command
 ---@field type "command"
 ---@field file string
@@ -180,6 +220,37 @@ end
 
 ---@param configs __rissue.SetupConfig
 local function run_setup_config(configs)
+  if configs.cache then
+    local marker_path = M.cwd .. "/cache-marker-" .. configs.cache.name
+    local f, _ = io.open(marker_path, "r")
+    if f then
+      local content = f:read("*a")
+      f:close()
+      content = tonumber(content)
+      if content and os.time() - content > configs.cache.ttl then
+        local ok, err = rmdir_recursive(configs.cache.folder)
+        if not ok then
+          print("Warning: failed to delete expired cached folder: " .. err)
+        end
+        os.remove(marker_path)
+      end
+    else
+      print("WARNING: No cache file found")
+      local err
+      f, err = io.open(marker_path, "w")
+      if not f then
+        -- if I can't write cache, then there is a problem
+        error(err)
+      end
+
+      local _, ferr = f:write(tostring(os.time()))
+      f:close()
+      if ferr then
+        print("Warning: failed to write to cache file: " .. ferr)
+      end
+    end
+  end
+
   ---@type rissue.cmd[]
   local commands_to_execute = {}
   ---@type __rissue.setup.type.File[]

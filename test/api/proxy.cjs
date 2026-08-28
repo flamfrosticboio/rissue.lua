@@ -19,5 +19,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-    console.log(`Prefix proxy running on http://localhost:${PORT}` + PREFIX);
+    console.log(`Proxy running on http://localhost:${PORT}` + PREFIX);
+    console.log("Proxy ready")
 });
