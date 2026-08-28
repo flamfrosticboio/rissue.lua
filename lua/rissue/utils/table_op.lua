@@ -34,6 +34,15 @@ function M.is_list(t)
   return true
 end
 
+--- Merges two tables based on keys. Cases with lists are not supported and may get overwritten
+---@param dest table
+---@param source table
+function M.shallow_key_merge_overwrite(dest, source)
+  for key, value in pairs(source) do
+    dest[key] = value
+  end
+end
+
 ---@param ... table
 ---@return table
 function M.force_deep_extend(...)
