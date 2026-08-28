@@ -38,7 +38,9 @@ local function constructor(i)
   return "3." .. tostring(i)
 end
 
-local ghes_min = os.getenv("TEST_ALL") and 0 or 16
+local FLAG_TEST_ALL = os.getenv("TEST_ALL") == "true"
+
+local ghes_min = FLAG_TEST_ALL and 0 or 16
 local ghes_max = 22
 M.ghes_versions = populate_range(ghes_min, ghes_max, constructor)
 
