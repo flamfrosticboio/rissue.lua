@@ -75,13 +75,13 @@ end
 ---@class rissue.Provider.Opts: table
 ---@field custom_fetch_endpoints string[]
 
----@param info rissue.ProviderInfo
-local function get_api_endpoint(info)
-  return info.protocol
-    .. "://"
-    .. info.domain
-    .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
-end
+-- ---@param info rissue.ProviderInfo
+-- local function get_api_endpoint(info)
+--   return info.protocol
+--     .. "://"
+--     .. info.domain
+--     .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
+-- end
 
 ---@param url string
 ---@param headers string[]
@@ -110,8 +110,12 @@ end
 ---@type rissue.provider_spec
 local M = {
   provider_name = "github",
-  get_merge_requests = function(opts, info, token) end,
-  get_issues = function(opts, info, token) end,
+  get_merge_requests = function(opts, info, token)
+    print(opts, info, token)
+  end,
+  get_issues = function(opts, info, token)
+    print(opts, info, token)
+  end,
 
   ---@param opts rissue.provider_spec.supports.Opts<rissue.Github.supports.Opts>
   supports = function(info, token, opts)
