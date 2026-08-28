@@ -169,6 +169,7 @@ local function run_proxy(opts)
       PORT = tostring(opts.port),
       TARGET_PORT = tostring(opts.target_port),
       PREFIX = tostring(opts.prefix),
+      PATH = os.getenv("PATH"),
     },
   })
 
