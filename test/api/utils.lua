@@ -15,8 +15,8 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local cmd = require("rissue.utils.process")
----@type uv
-local uv = require("luv")
+local fn = require("api.setup_utils_fn")
+local uv = require("luv") ---@type uv
 
 local describe = describe or require("busted").describe
 local before_each = before_each or require("busted").before_each
@@ -39,9 +39,10 @@ end
 ---@param filepath string
 ---@param callback fun(err_msg: string|nil)
 ---@param port_offset integer
+---@param id integer
 ---@return fun() start
 ---@return fun() close
-local function run_mock_server(filepath, port_offset, callback)
+local function run_mock_server(filepath, port_offset, id, callback)
   local watch_loop, watch_loop_err = uv.new_timer()
   if not watch_loop then
     error(watch_loop_err)
@@ -82,13 +83,11 @@ local function run_mock_server(filepath, port_offset, callback)
   end)
 
   p:register_event("on_stdout", function()
-    local str = p:get_last_stdout():gsub("[\r\n]+$", "")
-    print("| " .. str)
+    print(fn.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id))
   end)
 
   p:register_event("on_stderr", function()
-    local str = p:get_last_stderr():gsub("[\r\n]+$", "")
-    print("| " .. str)
+    print(fn.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id))
   end)
 
   local function close_func()
@@ -261,6 +260,7 @@ function M.with_server(opts, func)
       run, server_close = run_mock_server(
         "../../" .. opts.specfile,
         port_offset,
+        id,
         function()
           print(("[%s]: Server is up"):format(opts.name))
           server_run = true
