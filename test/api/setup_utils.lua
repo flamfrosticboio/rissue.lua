@@ -16,101 +16,107 @@
 
 local M = {}
 
+local fn = require("api.setup_utils_fn")
 local subprocess = require("rissue.utils.process")
 local uv = require("luv") ---@type uv
 
+M.cwd = "./.test_setup"
+
+local CPU_COUNT = tonumber(os.getenv("CPU"))
+if not CPU_COUNT then
+  local cpus = uv.cpu_info()
+  CPU_COUNT = cpus and #cpus or 1
+end
+
+---@class __rissue.SetupConfigOptions.cache
+---@field ttl integer
+---@field name string
+---@field folder string
+
+---@class __rissue.SetupConfigOptions
+---@field cache? __rissue.SetupConfigOptions.cache
+---@field cwd string
+
 ---@alias __rissue.setup.Type __rissue.setup.type.File | __rissue.setup.type.Command
 
----@alias __rissue.SetupConfig __rissue.setup.Type[]
-
----@generic T: any, A: any, B: any
----@param list (T | A)[]
----@param from A
----@param to B
----@return (T | B)[]
-local function replace_in_list(list, from, to)
-  local result = {}
-  for i = 1, #list do
-    if list[i] == from then
-      result[i] = to
-    else
-      result[i] = list[i]
-    end
-  end
-  return result
-end
-
----@param arg string
----@return string
-local function shell_escape(arg)
-  local needs_escape = arg == "" or arg:find("[^%w%-%._/]") ~= nil
-  if needs_escape then
-    return "'" .. arg:gsub("'", "'\\''") .. "'"
-  end
-  return arg
-end
+---@alias __rissue.SetupConfig __rissue.setup.Type[] | __rissue.SetupConfigOptions
 
 ---@class __rissue._CmdResult: rissue.utils.CmdResult
 ---@field cmd string[]
 
 ---@param cmds rissue.cmd[]
+---@param process_limit integer
 ---@return __rissue._CmdResult[], string[]
-function M.run_multiple(cmds)
+function M.run_multiple(cmds, process_limit)
+  if #cmds <= 0 then
+    return {}, {}
+  end
+
   local errors = {} ---@type string[]
   local results = {} ---@type __rissue._CmdResult[]
   local total = #cmds
   local finished = 0
+  local running = 0
+  local pointer = 0
 
-  ---@type rissue.utils.Process[]
-  local processes = {}
-  for j, command in ipairs(cmds) do
-    assert(command[1], "No binary passed")
+  while finished < total do
+    while pointer < total do
+      --- Get next cmd to run
+      pointer = pointer + 1
+      local command = cmds[pointer]
+      local id = pointer
 
-    local args = {}
-    for i = 2, #command do
-      args[#args + 1] = command[i]
-    end
-    local process, err = subprocess.spawn({ cmd = command[1], args = args })
-    if not process then
-      error(err)
-    end
+      assert(command[1], "No binary passed")
 
-    process:register_event("on_stdout", function()
-      print(tostring(j) .. "| " .. process:get_last_stdout(true))
-    end)
-    process:register_event("on_stderr", function()
-      print(tostring(j) .. "E " .. process:get_last_stderr(true))
-    end)
-    process:register_event("on_exit", function()
-      finished = finished + 1
-      for i = 1, #command do
-        command[i] = shell_escape(command[i])
+      local args = {}
+      for i = 2, #command do
+        args[#args + 1] = command[i]
       end
-      print(
-        tostring(finished)
-          .. "/"
-          .. tostring(total)
-          .. ": "
-          .. table.concat(command, " ")
-      )
 
-      results[j] = {
-        return_code = process:get_code(),
-        stdout = process:get_stdout(),
-        stderr = process:get_stderr(),
-        cmd = command,
-      }
-    end)
-    processes[j] = process
+      local process, err = subprocess.spawn({ cmd = command[1], args = args })
+      if not process then
+        error(err)
+      end
+
+      process:register_event("on_stdout", function()
+        print(
+          fn.ccolor(("[%03d] | "):format(id), id)
+            .. process:get_last_stdout(true):gsub("\n", fn.ccolor("\n^| ", id))
+        )
+      end)
+      process:register_event("on_stderr", function()
+        print(
+          fn.ccolor(("[%03d] @ "):format(id), id)
+            .. process:get_last_stderr(true):gsub("\n", fn.ccolor("\n^@ ", id))
+        )
+      end)
+      process:register_event("on_exit", function()
+        finished = finished + 1
+        running = running - 1
+
+        results[id] = {
+          return_code = process:get_code(),
+          stdout = process:get_stdout(),
+          stderr = process:get_stderr(),
+          cmd = command,
+        }
+
+        fn.print_shell(command, ("[%d/%d][DONE]: "):format(finished, total), true)
+      end)
+
+      process:run()
+      running = running + 1
+
+      subprocess.wait(function()
+        return running < process_limit
+      end, -1, 100)
+    end
+
+    -- final wait
+    subprocess.wait(function()
+      return finished >= total
+    end, -1, 100)
   end
-
-  for _, process in ipairs(processes) do
-    process:run()
-  end
-
-  subprocess.wait(function()
-    return finished >= total
-  end, -1)
 
   for _, result in ipairs(results) do
     if result.return_code ~= 0 then
@@ -127,30 +133,6 @@ function M.run_multiple(cmds)
   return results, errors
 end
 
-local function mkdir_p(path)
-  -- normalize trailing slash
-  path = path:gsub("/$", "")
-
-  local stat = uv.fs_stat(path)
-  if stat and stat.type == "directory" then
-    return true -- already exists
-  end
-
-  local parent = path:match("^(.*)/[^/]+$")
-  if parent and parent ~= "" then
-    local ok, err = mkdir_p(parent) -- recurse into parent first
-    if not ok then
-      return nil, err
-    end
-  end
-
-  local ok, err, errname = uv.fs_mkdir(path, tonumber("755", 8))
-  if not ok and errname ~= "EEXIST" then
-    return nil, err
-  end
-  return true
-end
-
 ---@class __rissue.setup.type.Command
 ---@field type "command"
 ---@field file string
@@ -162,7 +144,7 @@ end
 ---@param args (string | true)[]?
 ---@return __rissue.setup.type.Command
 function M.setup_command(file, binary, args)
-  args = replace_in_list(args or {}, true, file)
+  args = fn.replace_in_list(args or {}, true, file)
   return { file = file, bin = binary, args = args, type = "command" }
 end
 
@@ -178,18 +160,62 @@ function M.setup_file(file, contents)
   return { file = file, contents = contents, type = "file" }
 end
 
+---@param cache __rissue.SetupConfigOptions.cache
+local function handle_cache(cache)
+  local marker_path = M.cwd .. "/cache-marker-" .. cache.name
+  local f, _ = io.open(marker_path, "r")
+  if f then
+    local content = f:read("*a")
+    f:close()
+    content = tonumber(content)
+    if content and os.time() - content > cache.ttl then
+      local ok, err = fn.rmdir(cache.folder)
+      if not ok then
+        print("Warning: failed to delete expired cached folder: " .. err)
+      end
+      os.remove(marker_path)
+    end
+  else
+    print("WARNING: No cache file found")
+    local err
+    f, err = io.open(marker_path, "w")
+    if not f then
+      -- if I can't write cache, then there is a problem
+      error(err)
+    end
+
+    local _, ferr = f:write(tostring(os.time()))
+    f:close()
+    if ferr then
+      print("Warning: failed to write to cache file: " .. ferr)
+    end
+  end
+end
+
+---@class __rissue.run_setup_config.Result
+---@field files_processed string[]
+---@field files_failed string[]
+
 ---@param configs __rissue.SetupConfig
+---@return __rissue.run_setup_config.Result
 local function run_setup_config(configs)
-  ---@type rissue.cmd[]
-  local commands_to_execute = {}
-  ---@type __rissue.setup.type.File[]
-  local files_to_write = {}
+  if configs.cache then
+    handle_cache(configs.cache)
+  end
+
+  local files_affected = {} ---@type string[]
+  local files_failed = {} ---@type string
+  local commands_to_execute = {} ---@type rissue.cmd[]
+  local command_file_map = {} ---@type table<rissue.cmd[], string>
+  local files_to_write = {} ---@type __rissue.setup.type.File[]
 
   for _, config in ipairs(configs) do
     if not (config.file and uv.fs_stat(config.file)) then
       if config.type == "command" then
-        local args = replace_in_list(config.args, true, config.file)
-        commands_to_execute[#commands_to_execute + 1] = { config.bin, unpack(args) }
+        local args = fn.replace_in_list(config.args, true, config.file)
+        local cmd = { config.bin, unpack(args) }
+        commands_to_execute[#commands_to_execute + 1] = cmd
+        command_file_map[cmd] = config.file
       elseif config.type == "file" then
         files_to_write[#files_to_write + 1] = config
       else
@@ -206,32 +232,38 @@ local function run_setup_config(configs)
       uv.fs_write(fd, config.contents)
       uv.fs_close(fd)
     end
+    files_affected[#files_affected + 1] = config.file
     print("Wrote file: " .. config.file)
   end
 
-  -- just for printing
-  for _, file in ipairs(commands_to_execute) do
-    local args = {}
-    for _, arg in ipairs(file) do
-      args[#args + 1] = shell_escape(arg)
-    end
-    print("$: " .. table.concat(args, " "))
-  end
+  local results, errors = M.run_multiple(commands_to_execute, CPU_COUNT)
 
-  local _, errors = M.run_multiple(commands_to_execute)
   if #errors > 0 then
     print(table.concat(errors, "\n"))
   end
+
+  for _, result in ipairs(results) do
+    local cmd = command_file_map[result.cmd]
+    if result.return_code ~= 0 then
+      files_affected[#files_affected + 1] = cmd
+    else
+      files_failed[#files_failed + 1] = cmd
+    end
+  end
+
+  return files_affected
 end
 
 ---@param cwd string The current working directory
 ---@param setup_config __rissue.SetupConfig
+---@return __rissue.run_setup_config.Result
 function M.run_setup(cwd, setup_config)
   -- run luv without blocking
   uv.run("nowait")
-  mkdir_p(cwd)
-  run_setup_config(setup_config)
-  print("DONE")
+  fn.mkdir(cwd)
+  local files_affected = run_setup_config(setup_config)
+  print("Done")
+  return files_affected
 end
 
 return M
