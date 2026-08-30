@@ -1,0 +1,11 @@
+rules:
+  nullable-type-sibling: off
+decorators:
+  remove-unused-components: on
+  filter-in:
+    applyTo: Operation
+    property: tags
+    value:
+      - issues
+      - pulls
+      - meta

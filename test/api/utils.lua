@@ -15,11 +15,11 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local cmd = require("rissue.utils.process")
----@type uv
-local uv = require("luv")
+local fn = require("api.setup_utils_fn")
+local uv = require("luv") ---@type uv
 
 local describe = describe or require("busted").describe
-local setup = setup or require("busted").setup
+local before_each = before_each or require("busted").before_each
 local teardown = teardown or require("busted").teardown
 
 local M = {}
@@ -29,33 +29,40 @@ M.port = 55000
 local timeout = 60000 -- in milliseconds
 local close_timeout = 5000 -- in milliseconds, for close hangs
 
+local _id_counter = 0
+---@return integer
+function M.new_id()
+  _id_counter = _id_counter + 1
+  return _id_counter
+end
+
 ---@param filepath string
----@param callback fun()
+---@param callback fun(err_msg: string|nil)
+---@param port_offset integer
 ---@param id integer
 ---@return fun() start
 ---@return fun() close
-local function run_mock_server(filepath, id, callback)
+local function run_mock_server(filepath, port_offset, id, callback)
   local watch_loop, watch_loop_err = uv.new_timer()
   if not watch_loop then
     error(watch_loop_err)
   end
 
   -- bump the port to separate servers and avoid race conditions
-  local port = M.port + id
+  local port = M.port + port_offset
 
   local p = nil ---@type (rissue.utils.Process | string)?
   local err ---@type string?
 
   p, err = cmd.spawn({
-    cmd = "npx",
+    cmd = "./node_modules/.bin/prism",
     args = {
-      "@stoplight/prism-cli",
       "mock",
+      filepath,
       "--host",
       M.host,
       "--port",
       tostring(port),
-      filepath,
       "--verboseLevel=trace",
     },
     cwd = "test/api",
@@ -65,16 +72,22 @@ local function run_mock_server(filepath, id, callback)
 
   p:register_event("on_exit", function()
     watch_loop:stop()
+    if p:get_code() ~= 0 then
+      local exit_err = p:get_stderr()
+      if exit_err == "" then
+        exit_err = p:get_stdout()
+      end
+      callback(exit_err)
+      error(exit_err)
+    end
   end)
 
   p:register_event("on_stdout", function()
-    local str = p:get_last_stdout():gsub("[\r\n]+$", "")
-    print("| " .. str)
+    print(fn.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id))
   end)
 
   p:register_event("on_stderr", function()
-    local str = p:get_last_stderr():gsub("[\r\n]+$", "")
-    print("| " .. str)
+    print(fn.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id))
   end)
 
   local function close_func()
@@ -132,25 +145,129 @@ local function run_mock_server(filepath, id, callback)
   return start, close_func
 end
 
----@param name string
----@param spec_filepath string
----@param id integer
+---@class __rissue.with_server.Opts
+---@field name string
+---@field specfile string
+---@field is_proxy boolean
+
+---@class __rissue.with_proxy.Opts
+---@field prefix string
+---@field port integer
+---@field target_port integer
+---@field name string
+
+---@param opts __rissue.with_proxy.Opts
+---@return rissue.utils.Process
+local function run_proxy(opts)
+  local p, err = cmd.spawn({
+    cmd = "node",
+    args = {
+      "test/api/proxy.cjs",
+    },
+    env = {
+      PORT = tostring(opts.port),
+      TARGET_PORT = tostring(opts.target_port),
+      PREFIX = tostring(opts.prefix),
+      PATH = os.getenv("PATH"),
+    },
+  })
+
+  if not p then
+    error(err)
+  end
+
+  local is_running = false
+  p:register_event("on_stdout", function()
+    if p:get_stdout():match("Proxy ready") then
+      is_running = true
+    end
+  end)
+
+  p:run()
+
+  local ok = cmd.wait(function()
+    return is_running
+  end, timeout)
+
+  if not ok then
+    error("timeout reached")
+  end
+
+  return p
+end
+
+---@param opts __rissue.with_proxy.Opts
 ---@param func fun()
-function M.with_server(name, id, spec_filepath, func)
-  describe(name, function()
+function M.with_proxy(opts, func)
+  ---@type rissue.utils.Process?
+  local process
+  describe(opts.name, function()
+    before_each(function()
+      if process then
+        return
+      end
+
+      uv.run("nowait")
+      process = run_proxy(opts)
+    end)
+
+    teardown(function()
+      if process then
+        local is_closed = false
+        process:close(function()
+          is_closed = true
+        end)
+        local has_not_timeouted = cmd.wait(function()
+          return is_closed
+        end, close_timeout)
+        if not has_not_timeouted then
+          print(
+            "Warning: Failed to safely close proxy. Attempting to close forcefully."
+          )
+          process:close(nil, "sigkill")
+          local has_not_timeouted_forced = cmd.wait(function()
+            return is_closed
+          end, close_timeout)
+          if not has_not_timeouted_forced then
+            print("Warning: Failed to close proxy forcefully. Skipping...")
+          end
+        end
+      end
+    end)
+
+    func()
+  end)
+end
+
+---@param opts __rissue.with_server.Opts
+---@param func fun(id: integer, port: integer)
+function M.with_server(opts, func)
+  local id = M.new_id()
+  describe(opts.name, function()
     ---@type fun(), fun()
     local run, server_close
     local server_run = false
 
-    setup(function()
+    local port_offset = opts.is_proxy and 1 or 0
+
+    before_each(function()
+      if server_run then
+        return
+      end
+
       uv.run("nowait")
-      print(("[%s]: Opening server"):format(name))
-      run, server_close = run_mock_server("../../" .. spec_filepath, id, function()
-        print(("[%s]: Server is up"):format(name))
-        server_run = true
-      end)
+      print(("[%s]: Opening server"):format(opts.name))
+      run, server_close = run_mock_server(
+        "../../" .. opts.specfile,
+        port_offset,
+        id,
+        function()
+          print(("[%s]: Server is up"):format(opts.name))
+          server_run = true
+        end
+      )
       if not (run and server_close) then
-        print(("[%s]: Failed to setup server"):format(name))
+        print(("[%s]: Failed to setup server"):format(opts.name))
       end
 
       run()
@@ -165,12 +282,14 @@ function M.with_server(name, id, spec_filepath, func)
     end)
 
     teardown(function()
-      print(("[%s]: Closing server"):format(name))
-      server_close()
-      print(("[%s]: Server closed"):format(name))
+      if server_close then
+        print(("[%s]: Closing server"):format(opts.name))
+        server_close()
+        print(("[%s]: Server closed"):format(opts.name))
+      end
     end)
 
-    func()
+    func(id, M.port)
   end)
 end
 

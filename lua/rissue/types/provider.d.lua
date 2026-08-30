@@ -18,23 +18,31 @@
 
 ---@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
+---@class (exact) rissue.provider_spec.supports.Opts<T>
+---@field request T?
+
 ---@class (exact) rissue.provider_spec
----@field map_into_issue fun(fetch_result: any): rissue.issue[]
----@field map_into_pr    fun(fetch_result: any): rissue.pr[]
+---Second return is an error string
+---@field get_issues fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.issue[]?, string?
+---Second return is an error string
+---@field get_merge_requests fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.pr[]?, string?
 ---@field provider_name  string
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
----@field supports       fun(info: rissue.RemoteInfo, mod: rissue.utils.ProcessModule, token: string?): boolean
+---
+---The second return is where there are additional information to relay to provider info
+---@field supports       fun(info: rissue.RemoteInfo, token: string?, opts: rissue.provider_spec.supports.Opts): boolean, table?
 
 ---@class rissue.provider_spec.extract
 ---@field owner string
 ---@field repo  string
 
 ---@class rissue.ProviderInfo
----@field domain   string
----@field name     string
----@field owner    string
----@field repo     string
+---@field domain string
+---@field name string
+---@field owner string
+---@field repo string
 ---@field protocol "http" | "https"
+---@field additional_info? table
 
 ---@class (exact) rissue.RemoteInfo
 ---@field curl_protocol "http" | "https"

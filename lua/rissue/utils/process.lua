@@ -197,7 +197,7 @@ function Process:run()
   local options = {
     args = self._opts.args,
     cwd = self._opts.cwd,
-    env = self._opts.env,
+    env = self._opts.env --[=[@type string[]]=],
     stdio = { nil, pipe_stdout, pipe_stderr },
   }
   local handle = uv.spawn(self._opts.cmd, options, function(code)
@@ -323,29 +323,40 @@ end
 --- Use `process.spawn()` if manually implementing instead.
 ---
 --- Warning: May raise errors
---- @param opts rissue.utils.CommandOpts
+--- @param command_opts rissue.utils.CommandOpts
+--- @param opts rissue.utils.run.Opts?
 --- @return rissue.utils.CmdResult? result
 --- @return string? error
-function M.run_co(opts)
+function M.run_co(command_opts, opts)
   local co, is_main = coroutine.running()
   if is_main or not co then
     error("must be inside a coroutine")
   end
 
-  local process, err = M.spawn(opts)
-  if not process then
+  local p, err = M.spawn(command_opts)
+  if not p then
     return nil, err
   end
 
-  process:register_event("on_exit", function()
+  p:register_event("on_exit", function()
     coroutine.resume(co)
   end)
-  process:run()
+
+  if opts and opts.print_output then
+    p:register_event("on_stdout", function()
+      log.info("| " .. p:get_last_stdout(true))
+    end)
+    p:register_event("on_stderr", function()
+      log.info("@ " .. p:get_last_stderr(true))
+    end)
+  end
+
+  p:run()
   coroutine.yield()
   return {
-    return_code = process:get_code(),
-    stdout = process:get_stdout(),
-    stderr = process:get_stderr(),
+    return_code = p:get_code(),
+    stdout = p:get_stdout(),
+    stderr = p:get_stderr(),
   } --[[@as rissue.utils.CmdResult]]
 end
 
@@ -355,19 +366,28 @@ end
 ---
 --- Use `process.run_co()` to run blocking on coroutine instead.
 --- Use `os.execute()` for simplicity instead.
---- @param opts rissue.utils.CommandOpts
+--- @param command_opts rissue.utils.CommandOpts
 --- @param timeout integer Pass -1 to disable timeout
+--- @param opts rissue.utils.run.Opts?
 --- @return rissue.utils.CmdResult? result
 --- @return string? error
-function M.run(opts, timeout)
+function M.run(command_opts, timeout, opts)
   local finished = false
-  local p, err = M.spawn(opts)
+  local p, err = M.spawn(command_opts)
   if not p then
     return nil, err
   end
   p:register_event("on_exit", function()
     finished = true
   end)
+  if opts and opts.print_output then
+    p:register_event("on_stdout", function()
+      log.info("| " .. p:get_last_stdout(true))
+    end)
+    p:register_event("on_stderr", function()
+      log.info("@ " .. p:get_last_stderr(true))
+    end)
+  end
   p:run()
   local wait_ok = M.wait(function()
     return finished
