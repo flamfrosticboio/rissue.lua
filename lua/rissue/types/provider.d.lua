@@ -37,10 +37,6 @@
 ---The second return is where there are additional information to relay to provider info
 ---@field supports rissue.provider_info.Supports
 
----@class rissue.provider_spec.extract
----@field owner string
----@field repo  string
-
 ---@class rissue.ProviderInfo
 ---@field domain string
 ---@field name string
