@@ -25,7 +25,7 @@
 
 ---@alias rissue.provider_info.GetMergeRequests fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string|nil): rissue.pr[]?, string?
 
----@alias rissue.provider_info.Supports<T> fun(info: rissue.RemoteInfo, token: string|nil, opts: T): boolean, table?
+---@alias rissue.provider_info.Supports<T, K> fun(info: rissue.RemoteInfo, token: string|nil, opts: { request: T, settings: K }): boolean, table?
 
 ---@class (exact) rissue.provider_spec
 ---@field provider_name  string
