@@ -18,14 +18,18 @@
 
 ---@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
----@class (exact) rissue.provider_spec.supports.Opts<T>
----@field request T?
+---@class (exact) rissue.provider_spec.called.Opts<T, S>
+---@field settings S | table
+---@field request? T | table
 
----@alias rissue.provider_info.GetIssues fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string|nil): rissue.issue[]?, string?
+---@alias rissue.provider_info.GetIssues<T, S>
+---| fun(info: rissue.ProviderInfo, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]?, string?
 
----@alias rissue.provider_info.GetMergeRequests fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string|nil): rissue.pr[]?, string?
+---@alias rissue.provider_info.GetMergeRequests<T, S>
+---| fun(info: rissue.ProviderInfo, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]?, string?
 
----@alias rissue.provider_info.Supports<T, K> fun(info: rissue.RemoteInfo, token: string|nil, opts: { request: T, settings: K }): boolean, table?
+---@alias rissue.provider_info.Supports<T, S>
+---| fun(info: rissue.RemoteInfo, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
 
 ---@class (exact) rissue.provider_spec
 ---@field provider_name  string
@@ -37,13 +41,13 @@
 ---The second return is where there are additional information to relay to provider info
 ---@field supports rissue.provider_info.Supports
 
----@class rissue.ProviderInfo
+---@class rissue.ProviderInfo<T>
 ---@field domain string
 ---@field name string
 ---@field owner string
 ---@field repo string
 ---@field protocol "http" | "https"
----@field additional_info? table
+---@field additional_info? T
 
 ---@class (exact) rissue.RemoteInfo
 ---@field curl_protocol "http" | "https"
