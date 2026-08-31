@@ -319,6 +319,17 @@ function M.spawn(opts)
   return setmetatable(process, Process), nil
 end
 
+--- A lightweight wrapper that calls `error()` on error
+---@param opts rissue.utils.CommandOpts
+---@return rissue.utils.Process
+function M.spawn_err(opts)
+  local p, err = M.spawn(opts)
+  if not p then
+    error(err)
+  end
+  return p
+end
+
 --- Wrapper to M.spawn with `uv.spawn()` that blocks for exit inside coroutines.
 --- Use `process.spawn()` if manually implementing instead.
 ---
