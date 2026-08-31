@@ -30,3 +30,5 @@ globals:
     any: true
   mock:
     any: true
+  match:
+    any: true
