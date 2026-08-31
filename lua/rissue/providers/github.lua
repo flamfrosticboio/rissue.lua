@@ -18,7 +18,7 @@ local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 
 local token_header_template = "Authorization: Bearer " -- just append the token after this
--- local fetch_response_header = "Accept: application/vnd.github.raw+json"
+local fetch_response_header = "Accept: application/vnd.github.raw+json"
 local basic_json_header = "Accept: application/json"
 local curl_headers_template = {
   "X-GitHub-Api-Version: 2022-11-28",
@@ -43,6 +43,12 @@ local function from_range(range, target)
   end
 end
 
+local default_issues_queries = {
+  "/search/issues?q=repo:{owner}/{repo}+type:issue+is:open+label:security,critical&sort=interactions&order=desc",
+  "/search/issues?q=repo:{owner}/{repo}+type:issue+is:open+label:blocker,P0&sort=interactions&order=desc",
+  "/search/issues?q=repo:{owner}/{repo}+type:issue+is:open&sort=interactions&order=desc",
+}
+
 local function list_shallow_copy(list)
   local result = {}
   for i = 1, #list do
@@ -54,18 +60,20 @@ end
 ---@param url string
 ---@param headers string[]
 ---@return rissue.utils.CmdResult? result
----@return string? error
 local function curl_get(url, headers)
   local args = { "-sS", "-L", "-X", "GET", url }
   for _, header in ipairs(headers) do
     args[#args + 1] = "-H"
     args[#args + 1] = header
   end
-  print("START RUNNING WITH CO")
-  return process.run_co({
+  local result, err = process.run_co({
     cmd = "curl",
     args = args,
   })
+  if not result then
+    log.warn(("Warning: Failed to fetch '%s': %s"):format(url, err or "unknown error"))
+  end
+  return result
 end
 
 --- todo: complete this
@@ -75,13 +83,13 @@ end
 ---@class rissue.Provider.Opts: table
 ---@field custom_fetch_endpoints string[]
 
--- ---@param info rissue.ProviderInfo
--- local function get_api_endpoint(info)
---   return info.protocol
---     .. "://"
---     .. info.domain
---     .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
--- end
+---@param info rissue.ProviderInfo
+local function get_api_endpoint(info)
+  return info.protocol
+    .. "://"
+    .. info.domain
+    .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
+end
 
 ---@param url string
 ---@param headers string[]
@@ -107,58 +115,79 @@ end
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
 ---@field api_version rissue.Github.SupportedApiVersions?
 
----@type rissue.provider_spec
-local M = {
-  provider_name = "github",
-  get_merge_requests = function(opts, info, token)
-    print(opts, info, token)
-  end,
-  get_issues = function(opts, info, token)
-    print(opts, info, token)
-  end,
+---@type rissue.provider_info.Supports<rissue.Github.supports.Opts>
+local function supports(info, token, opts)
+  ---@type string[]
+  local headers = list_shallow_copy(curl_headers_template)
+  headers[#headers + 1] = basic_json_header
+  if token then
+    headers[#headers + 1] = token_header_template .. token
+  end
 
-  ---@param opts rissue.provider_spec.supports.Opts<rissue.Github.supports.Opts>
-  supports = function(info, token, opts)
-    ---@type string[]
-    local headers = list_shallow_copy(curl_headers_template)
-    headers[#headers + 1] = basic_json_header
-    if token then
-      headers[#headers + 1] = token_header_template .. token
-    end
+  local base = info.curl_protocol .. "://" .. info.domain
 
-    local base = info.curl_protocol .. "://" .. info.domain
+  -- ghes version
+  local is_ghes, ghes_output = check(base .. "/api/v3/meta", headers)
+  if is_ghes then
+    ---@type rissue.Github.supports.AdditionalInfo
+    local additional_info = {}
+    if ghes_output then
+      local major, minor = ghes_output:match('"installed_version":%s*"(%d+)%.(%d+)')
+      local version = tonumber(major) * 1000 + tonumber(minor)
+      additional_info.ghes = major .. "." .. minor
+      additional_info.ghes_code = version
 
-    -- ghes version
-    local is_ghes, ghes_output = check(base .. "/api/v3/meta", headers)
-    if is_ghes then
-      ---@type rissue.Github.supports.AdditionalInfo
-      local additional_info = {}
-      if ghes_output then
-        local major, minor = ghes_output:match('"installed_version":%s*"(%d+)%.(%d+)')
-        local version = tonumber(major) * 1000 + tonumber(minor)
-        additional_info.ghes = major .. "." .. minor
-        additional_info.ghes_code = version
-
-        if opts.request then
-          if type(opts.request.api_version) == "string" then
-            additional_info.api_version = opts.request.api_version
-          end
-          -- do nothing if api_version is false or any other types
-        else
-          additional_info.api_version = from_range(ghes_api_versions_range, version)
+      if opts.request then
+        if type(opts.request.api_version) == "string" then
+          additional_info.api_version = opts.request.api_version
         end
+        -- do nothing if api_version is false or any other types
+      else
+        additional_info.api_version = from_range(ghes_api_versions_range, version)
       end
-      return true, additional_info
     end
+    return true, additional_info
+  end
 
-    -- ghec or api.github.com version (when checking with url failed)
-    -- examples includes: domain proxy, GHEC with Data Residency
-    if check(base .. "/meta", headers) then
-      return true
-    end
+  -- ghec or api.github.com version (when checking with url failed)
+  -- examples includes: domain proxy, GHEC with Data Residency
+  if check(base .. "/meta", headers) then
+    return true
+  end
 
-    return false
-  end,
+  return false
+end
+
+---@type rissue.provider_info.GetIssues
+local function get_issues(opts, info, token)
+  local headers = list_shallow_copy(curl_headers_template)
+  headers[#headers + 1] = fetch_response_header -- accept type header
+  if token then
+    headers[#headers + 1] = token_header_template .. token
+  end
+
+  ---@type string[]
+  local endpoints = opts.custom_fetch_endpoints or default_issues_queries
+  local base_endpoint = get_api_endpoint(info)
+
+  for _, query in ipairs(endpoints) do
+    --- todo: add switch to parallel fetching on each query endpoint if limits are threshold (default=50)
+    --- If link header is present, we just use that until there is no more rel=next.
+    --- NOTE: Sometimes, there will be validation failed because you have more than 5 boolean operators (AND, OR, NOT)
+    --- NOTE : There is incomplete_results on the /search pagination field
+
+    -- Example: "/search?q=type:issue"
+    local endpoint = base_endpoint .. query
+    curl_get(endpoint, headers)
+  end
+end
+
+---@type rissue.provider_info.GetMergeRequests
+local function get_merge_requests() end
+
+---@type rissue.provider_spec
+return {
+  supports = supports,
+  get_merge_requests = get_merge_requests,
+  get_issues = get_issues,
 }
-
-return M

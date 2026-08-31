@@ -21,16 +21,21 @@
 ---@class (exact) rissue.provider_spec.supports.Opts<T>
 ---@field request T?
 
+---@alias rissue.provider_info.GetIssues fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string|nil): rissue.issue[]?, string?
+
+---@alias rissue.provider_info.GetMergeRequests fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string|nil): rissue.pr[]?, string?
+
+---@alias rissue.provider_info.Supports<T> fun(info: rissue.RemoteInfo, token: string|nil, opts: T): boolean, table?
+
 ---@class (exact) rissue.provider_spec
----Second return is an error string
----@field get_issues fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.issue[]?, string?
----Second return is an error string
----@field get_merge_requests fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.pr[]?, string?
 ---@field provider_name  string
+---Second return is an error string
+---@field get_issues rissue.provider_info.GetIssues
+---Second return is an error string
+---@field get_merge_requests rissue.provider_info.GetMergeRequests
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
----
 ---The second return is where there are additional information to relay to provider info
----@field supports       fun(info: rissue.RemoteInfo, token: string?, opts: rissue.provider_spec.supports.Opts): boolean, table?
+---@field supports rissue.provider_info.Supports
 
 ---@class rissue.provider_spec.extract
 ---@field owner string
