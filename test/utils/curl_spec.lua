@@ -44,6 +44,13 @@ local function list_count(list, val)
   return count
 end
 
+local function check_if_present(list, key)
+  assert.is_not_nil(
+    list_find(list, key),
+    ("Cannot find %s in the command line arguments"):format(key)
+  )
+end
+
 ---@param name string
 ---@param major integer
 ---@param minor integer
