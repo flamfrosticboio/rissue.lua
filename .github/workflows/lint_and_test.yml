@@ -134,7 +134,7 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: .test_setup
-          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}-test_all_${{ env.TEST_ALL }}
+          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
 
       - name: Install Specs
         run: |
