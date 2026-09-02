@@ -44,6 +44,13 @@ local function list_count(list, val)
   return count
 end
 
+local function check_if_present(list, key)
+  assert.is_not_nil(
+    list_find(list, key),
+    ("Cannot find %s in the command line arguments"):format(key)
+  )
+end
+
 ---@param name string
 ---@param major integer
 ---@param minor integer
@@ -95,11 +102,8 @@ mock_version("curl", _major, _minor, function()
       }
 
       local res = curl.construct("example", opts)
-      assert.is_not_nil(
-        list_find(res, "-X"),
-        "Cannot find method argkey on the args list"
-      )
-      assert.is_not_nil(list_find(res, "POST"), "Cannot find url on the args list")
+      check_if_present(res, "-X")
+      check_if_present(res, "POST")
     end)
 
     it("-H headers passed", function()
@@ -111,9 +115,9 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
 
       assert.equal(list_count(res, "-H"), 3, "-H count mismatch")
-      assert.is_not_nil(list_find(res, "a"), "Cannot find specified")
-      assert.is_not_nil(list_find(res, "b"), "Cannot find specified")
-      assert.is_not_nil(list_find(res, "c"), "Cannot find specified")
+      check_if_present(res, "a")
+      check_if_present(res, "b")
+      check_if_present(res, "c")
     end)
 
     mock_version("-A user_agent supported", 7, 1, function()
@@ -125,8 +129,8 @@ mock_version("curl", _major, _minor, function()
 
         local res = curl.construct("example", opts)
 
-        assert.is_not_nil(list_find(res, "-A"), "Cannot find user agent argkey")
-        assert.is_not_nil(list_find(res, "hi"), "Cannot find user agent")
+        check_if_present(res, "-A")
+        check_if_present(res, "hi")
       end)
     end)
 
@@ -140,8 +144,8 @@ mock_version("curl", _major, _minor, function()
         local res = curl.construct("example", opts)
         -- print(require("inspect")(res))
 
-        assert.is_not_nil(list_find(res, "-H"), "Cannot find user agent argkey")
-        assert.is_not_nil(list_find(res, "User-Agent: hi"), "Cannot find user agent")
+        check_if_present(res, "-H")
+        check_if_present(res, "User-Agent: hi")
       end)
     end)
 
@@ -154,8 +158,8 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "-u"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "hello:world"), "Cannot find arg value")
+      check_if_present(res, "-u")
+      check_if_present(res, "hello:world")
     end)
 
     it("-H auth token ok", function()
@@ -167,11 +171,8 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "-H"), "Cannot find argkey")
-      assert.is_not_nil(
-        list_find(res, "Authorization: Bearer mytokenbearer"),
-        "Cannot find arg value"
-      )
+      check_if_present(res, "-H")
+      check_if_present(res, "Authorization: Bearer mytokenbearer")
     end)
 
     it("--max-time timeout ok", function()
@@ -183,8 +184,8 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--max-time"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "1.5"), "Cannot find arg value")
+      check_if_present(res, "--max-time")
+      check_if_present(res, "1.5")
     end)
 
     it("-L follow redirects ok", function()
@@ -196,7 +197,7 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "-L"), "Cannot find argkey")
+      check_if_present(res, "-L")
     end)
 
     mock_version("--fail fail unsupported", 7, 75, function()
@@ -209,7 +210,7 @@ mock_version("curl", _major, _minor, function()
         local res = curl.construct("example", opts)
         -- print(require("inspect")(res))
 
-        assert.is_not_nil(list_find(res, "--fail"), "Cannot find argkey")
+        check_if_present(res, "--fail")
       end)
     end)
 
@@ -223,7 +224,7 @@ mock_version("curl", _major, _minor, function()
         local res = curl.construct("example", opts)
         -- print(require("inspect")(res))
 
-        assert.is_not_nil(list_find(res, "--fail-with-body"), "Cannot find argkey")
+        check_if_present(res, "--fail-with-body")
       end)
     end)
 
@@ -236,8 +237,8 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--retry"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "10"), "Cannot find arg value")
+      check_if_present(res, "--retry")
+      check_if_present(res, "10")
     end)
 
     it("--retry retry ok", function()
@@ -249,8 +250,8 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--retry-delay"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "10"), "Cannot find arg value")
+      check_if_present(res, "--retry-delay")
+      check_if_present(res, "10")
     end)
 
     it("--data data normal ok", function()
@@ -264,8 +265,8 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--data"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "hello"), "Cannot find arg value")
+      check_if_present(res, "--data")
+      check_if_present(res, "hello")
     end)
 
     it("--data-raw data literal ok", function()
@@ -279,88 +280,149 @@ mock_version("curl", _major, _minor, function()
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--data-raw"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "hello"), "Cannot find arg value")
+      check_if_present(res, "--data-raw")
+      check_if_present(res, "hello")
     end)
 
     it("--data-binary data binary ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
         is_form = false,
-        data_type = "special",
+        data_type = "binary",
         data = "hello",
       }
 
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--data-binary"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "hello"), "Cannot find arg value")
+      check_if_present(res, "--data-binary")
+      check_if_present(res, "hello")
+    end)
+
+    it("--data-urlencode fails successfully on type(data) is string", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = "hello=true&world=true",
+        method = "GET",
+      }
+
+      local res = pcall(curl.construct, "example", opts)
+      assert.is_false(res, "Did not successfully fail")
+    end)
+
+    it("--data-urlencode no -G on POST", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "POST",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
+    end)
+
+    it("--data-urlencode has -G on GET", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "GET",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
+    end)
+
+    it("--data-urlencode data urlencode ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "GET",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "-G")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
+    end)
+
+    it("--data-urlencode has -G on HEAD", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "HEAD",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
     end)
 
     it("--form form fail on type(data) is a string", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = true,
-        data_type = "default",
+        data_type = "form",
         data = "hello",
       }
 
-      assert.equal(
-        false,
-        pcall(function()
-          local _ = curl.construct("example", opts)
-        end, "Did not fail successfully")
-      )
+      local res = pcall(function()
+        local _ = curl.construct("example", opts)
+      end, "Did not fail successfully")
+      assert.is_false(res)
       -- print(require("inspect")(res))
     end)
 
     it("--form form normal ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = true,
-        data_type = "default",
-        data = { name = true },
+        data_type = "form",
+        data = { name = true, write = false },
       }
 
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--form"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "name=true"), "Cannot find arg value")
+      assert.equal(2, list_count(res, "--form"))
+      check_if_present(res, "name=true")
+      check_if_present(res, "write=false")
     end)
 
-    it("--form form literal ok", function()
+    it("--form-string form_literal ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = true,
-        data_type = "literal",
-        data = { name = true },
+        data_type = "form_string",
+        data = { name = true, write = false },
       }
 
       local res = curl.construct("example", opts)
       -- print(require("inspect")(res))
 
-      assert.is_not_nil(list_find(res, "--form-string"), "Cannot find argkey")
-      assert.is_not_nil(list_find(res, "name=true"), "Cannot find arg value")
-    end)
-
-    it("--form form special errors ok", function()
-      ---@type rissue.utils.curl.Opts
-      local opts = {
-        is_form = true,
-        data_type = "special",
-        data = { name = true },
-      }
-
-      assert.equal(
-        false,
-        pcall(function()
-          local _ = curl.construct("example", opts)
-          -- print(require("inspect")(res))
-        end),
-        "Did not successfully fail"
-      )
+      assert.equal(2, list_count(res, "--form-string"))
+      check_if_present(res, "name=true")
+      check_if_present(res, "write=false")
     end)
   end)
 

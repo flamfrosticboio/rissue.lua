@@ -59,17 +59,19 @@ end
 
 ---@alias rissue.utils.curl.Formats "application/json" | "text/html" | string
 
----@alias rissue.utils.curl.DataType "default" | "literal" | "special"
+---@alias rissue.utils.curl.DataType "default" | "literal" | "binary" | "urlencode" | "form" | "form_string"
 
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
 ---@field literal string
----@field special string
+---@field binary string
+---@field urlencode string
+---@field form string
+---@field form_string string
 
 ---@class rissue.utils.curl.Opts
 --- Default: GET
 ---@field method? rissue.utils.curl.Method
----@field query? table<string, any>
 --- Headers to be passed to curl. Other headers are also handled without manually
 --- constructing the headers yourself.
 ---@field headers? string[]
@@ -94,8 +96,6 @@ end
 ---@field auth? string | { user: string, pass: string }
 ---@field content_type? rissue.utils.curl.Formats
 ---@field accept? rissue.utils.curl.Formats
---- Sets the body type to form mode
----@field is_form? boolean
 --- Enables form escape mode
 ---@field form_escape? boolean
 --- If `data_type` == `special` then:
@@ -108,22 +108,20 @@ end
 ---@field cwd? string
 ---@field env? string[]|table<string, string?>
 
----@type table<boolean, __rissue.curl.DataTypeMap>
+---@type __rissue.curl.DataTypeMap
 local _data_type_arg = {
-  [false] = {
-    default = "--data",
-    literal = "--data-raw",
-    special = "--data-binary",
-  },
-  [true] = {
-    default = "--form",
-    literal = "--form-string",
-    special = "",
-  },
+  default = "--data",
+  literal = "--data-raw",
+  binary = "--data-binary",
+  urlencode = "--data-urlencode",
+  form = "--form",
+  form_string = "--form-string",
 }
 
 --- construct the command line arguments based on curl opts
---- @return string[] args
+---@param url string
+---@param opts rissue.utils.curl.Opts
+---@return string[] args
 function M.construct(url, opts)
   --- Apply default options
   opts = opts or {}
@@ -131,21 +129,8 @@ function M.construct(url, opts)
   opts.retries = opts.retries or 3
   opts.retry_delay = opts.retry_delay or 1
   opts.data_type = opts.data_type or "default"
-  opts.is_form = opts.is_form or false
 
   local args = {}
-
-  --- Add basics
-  if opts.query then
-    local parts = {}
-    for k, v in pairs(opts.query) do
-      parts[#parts + 1] = tostring(k) .. "=" .. tostring(v)
-    end
-    if #parts > 0 then
-      local sep = url:find("?") and "&" or "?"
-      url = url .. sep .. table.concat(parts, "&")
-    end
-  end
 
   args[#args + 1] = url
   args[#args + 1] = "-s"
@@ -206,27 +191,35 @@ function M.construct(url, opts)
     local d = opts.data
     local d_type = opts.data_type
 
-    if opts.data_type == "special" and opts.is_form then
-      error("No special is used when `is_form` is true")
-    end
-
     if opts.form_escape then
       args[#args + 1] = "--form-escape"
+    end
+
+    if
+      opts.data_type == "urlencode" and (opts.method == "GET" or opts.method == "HEAD")
+    then
+      --- Make urlencode be placed on url when method=GET is used
+      args[#args + 1] = "-G"
     end
 
     if type(d) == "table" then
       --- assuming its a table
       for k, v in pairs(d) do
         local line = k .. "=" .. tostring(v)
-        local arg_key = _data_type_arg[opts.is_form][d_type]
+        local arg_key = _data_type_arg[d_type]
         args[#args + 1] = arg_key
         args[#args + 1] = line
       end
     else
-      if opts.is_form then
-        error("Cannot use form if the data is pure string")
+      if opts.data_type == "form" then
+        error("Cannot use 'form' if the data is pure string")
+      elseif opts.data_type == "form_literal" then
+        error("Cannot use 'form_literal' if the data is pure string")
+      elseif opts.data_type == "urlencode" then
+        error("Cannot use option 'urlencode' on pure string. Pass a table instead")
       end
-      local arg_key = _data_type_arg[false][d_type]
+
+      local arg_key = _data_type_arg[d_type]
       args[#args + 1] = arg_key
       args[#args + 1] = d
     end
