@@ -251,7 +251,11 @@ function M.raw(args, cwd, env)
 
   local code = p:get_code()
   if code ~= 0 then
-    return p:get_stderr(), code
+    local stderr = p:get_stderr()
+    if stderr == "" then
+      stderr = p:get_stdout()
+    end
+    return stderr, code
   end
   return p:get_stdout(), code
 end
