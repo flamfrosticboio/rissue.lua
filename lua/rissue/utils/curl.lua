@@ -59,13 +59,15 @@ end
 
 ---@alias rissue.utils.curl.Formats "application/json" | "text/html" | string
 
----@alias rissue.utils.curl.DataType "default" | "literal" | "special" | "urlencode"
+---@alias rissue.utils.curl.DataType "default" | "literal" | "special" | "urlencode" | "form" | "form_literal"
 
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
 ---@field literal string
 ---@field special string
 ---@field urlencode string
+---@field form string
+---@field form_literal string
 
 ---@class rissue.utils.curl.Opts
 --- Default: GET
@@ -94,8 +96,6 @@ end
 ---@field auth? string | { user: string, pass: string }
 ---@field content_type? rissue.utils.curl.Formats
 ---@field accept? rissue.utils.curl.Formats
---- Sets the body type to form mode
----@field is_form? boolean
 --- Enables form escape mode
 ---@field form_escape? boolean
 --- If `data_type` == `special` then:
@@ -108,20 +108,14 @@ end
 ---@field cwd? string
 ---@field env? string[]|table<string, string?>
 
----@type table<boolean, __rissue.curl.DataTypeMap>
+---@type __rissue.curl.DataTypeMap
 local _data_type_arg = {
-  [false] = {
-    default = "--data",
-    literal = "--data-raw",
-    special = "--data-binary",
-    urlencode = "--data-urlencode",
-  },
-  [true] = {
-    default = "--form",
-    literal = "--form-string",
-    special = "",
-    urlencode = "",
-  },
+  default = "--data",
+  literal = "--data-raw",
+  special = "--data-binary",
+  urlencode = "--data-urlencode",
+  form = "--form",
+  form_literal = "--form-string",
 }
 
 --- construct the command line arguments based on curl opts
@@ -135,7 +129,6 @@ function M.construct(url, opts)
   opts.retries = opts.retries or 3
   opts.retry_delay = opts.retry_delay or 1
   opts.data_type = opts.data_type or "default"
-  opts.is_form = opts.is_form or false
 
   local args = {}
 
@@ -198,14 +191,6 @@ function M.construct(url, opts)
     local d = opts.data
     local d_type = opts.data_type
 
-    if opts.is_form then
-      if d_type == "special" then
-        error("'data_type=special' cannot be used when 'is_form' is enabled")
-      elseif d_type == "urlencode" then
-        error("'data_type=urlencode' cannot be used when 'is_form' is enabled")
-      end
-    end
-
     if opts.form_escape then
       args[#args + 1] = "--form-escape"
     end
@@ -221,18 +206,20 @@ function M.construct(url, opts)
       --- assuming its a table
       for k, v in pairs(d) do
         local line = k .. "=" .. tostring(v)
-        local arg_key = _data_type_arg[opts.is_form][d_type]
+        local arg_key = _data_type_arg[d_type]
         args[#args + 1] = arg_key
         args[#args + 1] = line
       end
     else
-      if opts.is_form then
-        error("Cannot use form if the data is pure string")
+      if opts.data_type == "form" then
+        error("Cannot use 'form' if the data is pure string")
+      elseif opts.data_type == "form_literal" then
+        error("Cannot use 'form_literal' if the data is pure string")
+      elseif opts.data_type == "urlencode" then
+        error("Cannot use option 'urlencode' on pure string. Pass a table instead")
       end
-      if opts.data_type == "urlencode" then
-        error("Cannot use --data-urlencode on pure string. Pass a table instead")
-      end
-      local arg_key = _data_type_arg[false][d_type]
+
+      local arg_key = _data_type_arg[d_type]
       args[#args + 1] = arg_key
       args[#args + 1] = d
     end

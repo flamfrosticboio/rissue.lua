@@ -305,19 +305,6 @@ mock_version("curl", _major, _minor, function()
       assert.is_not_nil(list_find(res, "hello"), "Cannot find arg value")
     end)
 
-    it("--data-urlencode is_form fails successfully", function()
-      ---@type rissue.utils.curl.Opts
-      local opts = {
-        is_form = true,
-        data_type = "urlencode",
-        data = { name = "john", write = "false" },
-        method = "GET",
-      }
-
-      local res = pcall(curl.construct, "example", opts)
-      assert.is_false(res, "Did not successfully fail")
-    end)
-
     it("--data-urlencode fails successfully on type(data) is string", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
@@ -403,8 +390,7 @@ mock_version("curl", _major, _minor, function()
     it("--form form fail on type(data) is a string", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = true,
-        data_type = "default",
+        data_type = "form",
         data = "hello",
       }
 
@@ -420,8 +406,7 @@ mock_version("curl", _major, _minor, function()
     it("--form form normal ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = true,
-        data_type = "default",
+        data_type = "form",
         data = { name = true },
       }
 
@@ -435,8 +420,7 @@ mock_version("curl", _major, _minor, function()
     it("--form form literal ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = true,
-        data_type = "literal",
+        data_type = "form_literal",
         data = { name = true },
       }
 
@@ -445,24 +429,6 @@ mock_version("curl", _major, _minor, function()
 
       assert.is_not_nil(list_find(res, "--form-string"), "Cannot find argkey")
       assert.is_not_nil(list_find(res, "name=true"), "Cannot find arg value")
-    end)
-
-    it("--form form special errors ok", function()
-      ---@type rissue.utils.curl.Opts
-      local opts = {
-        is_form = true,
-        data_type = "special",
-        data = { name = true },
-      }
-
-      assert.equal(
-        false,
-        pcall(function()
-          local _ = curl.construct("example", opts)
-          -- print(require("inspect")(res))
-        end),
-        "Did not successfully fail"
-      )
     end)
   end)
 
