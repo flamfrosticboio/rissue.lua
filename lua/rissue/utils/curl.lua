@@ -59,17 +59,17 @@ end
 
 ---@alias rissue.utils.curl.Formats "application/json" | "text/html" | string
 
----@alias rissue.utils.curl.DataType "default" | "literal" | "special"
+---@alias rissue.utils.curl.DataType "default" | "literal" | "special" | "urlencode"
 
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
 ---@field literal string
 ---@field special string
+---@field urlencode string
 
 ---@class rissue.utils.curl.Opts
 --- Default: GET
 ---@field method? rissue.utils.curl.Method
----@field query? table<string, any>
 --- Headers to be passed to curl. Other headers are also handled without manually
 --- constructing the headers yourself.
 ---@field headers? string[]
@@ -114,16 +114,20 @@ local _data_type_arg = {
     default = "--data",
     literal = "--data-raw",
     special = "--data-binary",
+    urlencode = "--data-urlencode",
   },
   [true] = {
     default = "--form",
     literal = "--form-string",
     special = "",
+    urlencode = "",
   },
 }
 
 --- construct the command line arguments based on curl opts
---- @return string[] args
+---@param url string
+---@param opts rissue.utils.curl.Opts
+---@return string[] args
 function M.construct(url, opts)
   --- Apply default options
   opts = opts or {}
@@ -134,18 +138,6 @@ function M.construct(url, opts)
   opts.is_form = opts.is_form or false
 
   local args = {}
-
-  --- Add basics
-  if opts.query then
-    local parts = {}
-    for k, v in pairs(opts.query) do
-      parts[#parts + 1] = tostring(k) .. "=" .. tostring(v)
-    end
-    if #parts > 0 then
-      local sep = url:find("?") and "&" or "?"
-      url = url .. sep .. table.concat(parts, "&")
-    end
-  end
 
   args[#args + 1] = url
   args[#args + 1] = "-s"
@@ -206,12 +198,23 @@ function M.construct(url, opts)
     local d = opts.data
     local d_type = opts.data_type
 
-    if opts.data_type == "special" and opts.is_form then
-      error("No special is used when `is_form` is true")
+    if opts.is_form then
+      if d_type == "special" then
+        error("'data_type=special' cannot be used when 'is_form' is enabled")
+      elseif d_type == "urlencode" then
+        error("'data_type=urlencode' cannot be used when 'is_form' is enabled")
+      end
     end
 
     if opts.form_escape then
       args[#args + 1] = "--form-escape"
+    end
+
+    if
+      opts.data_type == "urlencode" and (opts.method == "GET" or opts.method == "HEAD")
+    then
+      --- Make urlencode be placed on url when method=GET is used
+      args[#args + 1] = "-G"
     end
 
     if type(d) == "table" then
@@ -225,6 +228,9 @@ function M.construct(url, opts)
     else
       if opts.is_form then
         error("Cannot use form if the data is pure string")
+      end
+      if opts.data_type == "urlencode" then
+        error("Cannot use --data-urlencode on pure string. Pass a table instead")
       end
       local arg_key = _data_type_arg[false][d_type]
       args[#args + 1] = arg_key

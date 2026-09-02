@@ -305,6 +305,101 @@ mock_version("curl", _major, _minor, function()
       assert.is_not_nil(list_find(res, "hello"), "Cannot find arg value")
     end)
 
+    it("--data-urlencode is_form fails successfully", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = true,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "GET",
+      }
+
+      local res = pcall(curl.construct, "example", opts)
+      assert.is_false(res, "Did not successfully fail")
+    end)
+
+    it("--data-urlencode fails successfully on type(data) is string", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = "hello=true&world=true",
+        method = "GET",
+      }
+
+      local res = pcall(curl.construct, "example", opts)
+      assert.is_false(res, "Did not successfully fail")
+    end)
+
+    it("--data-urlencode no -G on POST", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "POST",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
+    end)
+
+    it("--data-urlencode has -G on GET", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "GET",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
+    end)
+
+    it("--data-urlencode data urlencode ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "GET",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "-G")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
+    end)
+
+    it("--data-urlencode has -G on HEAD", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        is_form = false,
+        data_type = "urlencode",
+        data = { name = "john", write = "false" },
+        method = "HEAD",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--data-urlencode")
+      check_if_present(res, "name=john")
+      check_if_present(res, "write=false")
+    end)
+
     it("--form form fail on type(data) is a string", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
