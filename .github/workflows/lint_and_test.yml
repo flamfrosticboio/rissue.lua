@@ -104,10 +104,10 @@ jobs:
             sudo ln -s $(pwd)/.lua/bin/lua /usr/local/bin/lua5.1
           fi
 
-      - name: Install Mock Server
+      - name: Install Node Dependencies
         working-directory: ./test/api/
         run: |
-          npm ci --omit=dev
+          npm ci
 
       - name: Load cache for Test Dependencies
         id: cache-test-dependencies

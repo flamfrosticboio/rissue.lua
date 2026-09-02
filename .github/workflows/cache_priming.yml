@@ -1,0 +1,79 @@
+name: Cache Priming
+on:
+  workflow_dispatch:
+jobs:
+  prime-api:
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
+    env:
+      TEST_ALL: true
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: ./test/api/package-lock.json
+
+      - uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v6
+        with:
+          luaRocksVersion: "3.13.0"
+
+      - name: Link lua5.1
+        run: |
+          if [ ! -e "/usr/local/bin/lua5.1" ]; then
+            sudo ln -s $(pwd)/.lua/bin/lua /usr/local/bin/lua5.1
+          fi
+
+      - name: Install Node Dependencies
+        working-directory: ./test/api/
+        run: |
+          npm ci --omit=prod
+
+      - name: Load cache for Test Dependencies
+        id: cache-test-dependencies
+        uses: actions/cache/restore@v6
+        with:
+          path: .luarocks
+          key: luarocks-${{ hashFiles('**/*.rockspec') }}
+
+      - name: Setup Test Dependencies
+        env:
+          LIBUV_DIR: /usr
+        run: |
+          luarocks test --prepare --tree=.luarocks .rockspec/rissue-dev-1.rockspec
+
+      - name: Save cache for Test Dependencies
+        uses: actions/cache/save@v6
+        if: always() && steps.cache-test-dependencies.outputs.cache-hit != 'true'
+        with:
+          path: .luarocks
+          key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
+
+      - name: Load cache for '.test_setup'
+        id: cache-test-setup
+        uses: actions/cache/restore@v6
+        with:
+          path: .test_setup
+          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}-test_all_${{ env.TEST_ALL }}
+
+      - name: Install Specs
+        run: |
+          ./scripts/setup_test_api.sh
+
+      - name: Save cache for '.test_setup'
+        if: always() && steps.cache-test-setup.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: .test_setup
+          key: ${{ steps.cache-test-setup.outputs.cache-primary-key }}
