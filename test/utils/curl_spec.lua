@@ -294,7 +294,7 @@ mock_version("curl", _major, _minor, function()
       ---@type rissue.utils.curl.Opts
       local opts = {
         is_form = false,
-        data_type = "special",
+        data_type = "binary",
         data = "hello",
       }
 

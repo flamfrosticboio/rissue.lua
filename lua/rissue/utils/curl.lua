@@ -59,12 +59,12 @@ end
 
 ---@alias rissue.utils.curl.Formats "application/json" | "text/html" | string
 
----@alias rissue.utils.curl.DataType "default" | "literal" | "special" | "urlencode" | "form" | "form_literal"
+---@alias rissue.utils.curl.DataType "default" | "literal" | "binary" | "urlencode" | "form" | "form_literal"
 
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
 ---@field literal string
----@field special string
+---@field binary string
 ---@field urlencode string
 ---@field form string
 ---@field form_literal string
@@ -112,7 +112,7 @@ end
 local _data_type_arg = {
   default = "--data",
   literal = "--data-raw",
-  special = "--data-binary",
+  binary = "--data-binary",
   urlencode = "--data-urlencode",
   form = "--form",
   form_literal = "--form-string",
