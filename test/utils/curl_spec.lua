@@ -413,7 +413,7 @@ mock_version("curl", _major, _minor, function()
     it("--form-string form_literal ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        data_type = "form_literal",
+        data_type = "form_string",
         data = { name = true, write = false },
       }
 

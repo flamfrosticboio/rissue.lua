@@ -59,7 +59,7 @@ end
 
 ---@alias rissue.utils.curl.Formats "application/json" | "text/html" | string
 
----@alias rissue.utils.curl.DataType "default" | "literal" | "binary" | "urlencode" | "form" | "form_literal"
+---@alias rissue.utils.curl.DataType "default" | "literal" | "binary" | "urlencode" | "form" | "form_string"
 
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
@@ -67,7 +67,7 @@ end
 ---@field binary string
 ---@field urlencode string
 ---@field form string
----@field form_literal string
+---@field form_string string
 
 ---@class rissue.utils.curl.Opts
 --- Default: GET
@@ -115,7 +115,7 @@ local _data_type_arg = {
   binary = "--data-binary",
   urlencode = "--data-urlencode",
   form = "--form",
-  form_literal = "--form-string",
+  form_string = "--form-string",
 }
 
 --- construct the command line arguments based on curl opts
