@@ -115,20 +115,20 @@ end
 --- Supports accessing values with 'fun(v: any): boolean'
 ---@param list any[]
 ---@param value_to_find any
----@overload fun(list: any[], value_to_find: fun(v: any): boolean): any|nil
----@return any|nil
+---@overload fun(list: any[], value_to_find: fun(v: any): boolean): any|nil, integer
+---@return any|nil, integer
 function M.find(list, value_to_find)
   if type(value_to_find) ~= "function" then
     value_to_find = function(v)
       return v == value_to_find
     end
   end
-  for _, item in ipairs(list) do
+  for i, item in ipairs(list) do
     if value_to_find(item) then
-      return item
+      return item, i
     end
   end
-  return nil
+  return nil, -1
 end
 
 return M
