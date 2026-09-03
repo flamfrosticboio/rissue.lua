@@ -253,12 +253,16 @@ local function get_issues(info, token, opts)
         end
         return decoded
       end)
-      local items = unmap_result(decoded_result)
-      if items then
-        for _, item in ipairs(items) do
-          local issue = into_issue(item)
-          print(require("inspect")(issue))
+      if ok then
+        local items = unmap_result(decoded_result)
+        if items then
+          for _, item in ipairs(items) do
+            local issue = into_issue(item)
+            print(require("inspect")(issue))
+          end
         end
+      else
+        log.warn("Failed to decode a response: " .. decoded_result)
       end
     end
   end
