@@ -111,4 +111,24 @@ function M.all(bool_table)
   return true
 end
 
+--- Finds the item in the list.
+--- Supports accessing values with 'fun(v: any): boolean'
+---@param list any[]
+---@param value_to_find any
+---@overload fun(list: any[], value_to_find: fun(v: any): boolean): any|nil
+---@return any|nil
+function M.find(list, value_to_find)
+  if type(value_to_find) ~= "function" then
+    value_to_find = function(v)
+      return v == value_to_find
+    end
+  end
+  for _, item in ipairs(list) do
+    if value_to_find(item) then
+      return item
+    end
+  end
+  return nil
+end
+
 return M
