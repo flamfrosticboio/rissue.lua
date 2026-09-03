@@ -20,25 +20,6 @@ Install dependencies required:
   luarocks install luv
   ```
 
-### Support
-
-#### Github
-
-Github versions that the provider supports:
-
-- api.github.com (2026-03-10)
-- ghec (Github Enterprise Cloud) (2026-03-10)
-- ghes 3.10-3.22 (Github Enterprise Server) (2026-03-10 and 2022-11-28)
-
-Minimum active support for ghes: 3.10
-
-Theoretical support for ghes: 3.0
-
-> [!NOTE] Support for ghes versions lower than the minimum active support
-> There is has no active maintenance for versions lower than the active support,
-> but is sometimes compatible from the theoretical support. For compatibility, versions
-> starting at ghes 3.0 will be tested.
-
 ## Developing
 
 ### Required Tools
