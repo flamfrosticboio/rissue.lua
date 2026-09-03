@@ -26,6 +26,10 @@ function M.set_logger(logger)
   M._logger = logger
 end
 
+function M.set_log_level(level)
+  M.log_level = level
+end
+
 M._logger = function(msg)
   print(msg)
 end
@@ -36,6 +40,7 @@ end
 ---@field info T
 ---@field warn T
 ---@field error T
+---@field off T
 
 ---@class rissue.log.levels: __rissue.log._levels<integer>
 
@@ -46,6 +51,7 @@ M.levels = {
   info = 2,
   warn = 3,
   error = 4,
+  off = 5,
 }
 
 ---@type table<integer, string>
@@ -55,6 +61,7 @@ local log_name = {
   [M.levels.error] = "ERROR",
   [M.levels.info] = " INFO",
   [M.levels.warn] = " WARN",
+  [M.levels.off] = "",
 }
 
 ---@param msg string
