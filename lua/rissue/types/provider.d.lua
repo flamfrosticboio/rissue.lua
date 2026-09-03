@@ -55,3 +55,7 @@
 ---@field owner string
 ---@field domain string
 ---@field full_url string A whitespace stripped version of url
+
+---@class rissue.Query
+---@field endpoint string
+---@field param table<string, string>
