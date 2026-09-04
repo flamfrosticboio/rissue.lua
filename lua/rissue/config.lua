@@ -27,11 +27,6 @@ config.options = {
     provider_prefix = "GIT_TK_",
   },
   provider_options = {},
-  endpoints = {
-    github = {
-      "https://{domain}/{}",
-    },
-  },
   endpoint_shortcuts = {
     github = {
       domain = "api.github.com",
