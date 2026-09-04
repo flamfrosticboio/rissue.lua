@@ -33,6 +33,9 @@
 
 ---@class (exact) rissue.provider_spec
 ---@field provider_name  string
+---@field version string
+---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
+---@field version_code integer
 ---Second return is an error string
 ---@field get_issues rissue.provider_info.GetIssues<any, any, any>
 ---Second return is an error string

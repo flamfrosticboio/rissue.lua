@@ -300,6 +300,8 @@ local function get_merge_requests(_info, _token, _opts) end
 ---@type rissue.provider_spec
 return {
   provider_name = "github",
+  version = "0.1",
+  version_code = 1000,
   supports = supports,
   get_merge_requests = get_merge_requests,
   get_issues = get_issues,
