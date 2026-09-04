@@ -131,4 +131,13 @@ function M.find(list, value_to_find)
   return nil, -1
 end
 
+---@param dest any[] Items to be merged
+---@param source any[] Items to merge with
+function M.list_extend(dest, source)
+  local offset = #dest
+  for i = 1, #source do
+    dest[offset + i] = source[i]
+  end
+end
+
 return M
