@@ -20,7 +20,7 @@ Install dependencies required:
   luarocks install luv
   ```
 
-- curl (version >= 6.0)
+- curl (version >= 7.81.0)
 
 On linux, install it with your preferred package manager (apt, pacman, etc.).
 
