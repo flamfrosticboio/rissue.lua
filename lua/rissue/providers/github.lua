@@ -178,7 +178,10 @@ local function supports(info, token, opts)
   -- ghec or api.github.com version (when checking with url failed)
   -- examples includes: domain proxy, GHEC with Data Residency
   local res = check(base .. "/meta", settings)
-  return res
+  if res then
+    return res, { api_version = "2026-03-10" } --[[@as rissue.Github.supports.AdditionalInfo]]
+  end
+  return false
 end
 
 ---@param result any
