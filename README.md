@@ -9,6 +9,10 @@ A nvim plugin that abstracts issues and pull requests from git providers such as
 
 This plugin can be extended for integrations for multiple plugins such as Snacks.
 
+## Documentation
+
+Browse in the [docs folder](./docs) for documentation.
+
 ## Setup
 
 Install dependencies required:
