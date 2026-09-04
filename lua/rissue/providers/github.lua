@@ -18,6 +18,7 @@ local curl = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
 local log = require("rissue.utils.log")
+local table_op = require("rissue.utils.table_op")
 local time = require("rissue.utils.time")
 
 --- !TYPES
@@ -220,6 +221,8 @@ local function get_issues(info, token, opts)
     headers[#headers + 1] = api_ver_template .. info.additional_info.api_version
   end
 
+  local issues = {}
+
   for _, query in ipairs(endpoints) do
     --- todo: add switch to parallel fetching on each query endpoint if limits are threshold (default=50)
     --- If link header is present, we just use that until there is no more rel=next.
@@ -255,18 +258,29 @@ local function get_issues(info, token, opts)
         return decoded
       end)
       if ok then
-        local items = unmap_result(decoded_result)
-        if items then
-          for _, item in ipairs(items) do
-            local issue = into_issue(item)
-            print(require("inspect")(issue))
+        local unmap_ok, issues_current = pcall(function()
+          local items = unmap_result(decoded_result)
+          local _issues = {}
+          if items then
+            for _, item in ipairs(items) do
+              local issue = into_issue(item)
+              _issues[#_issues + 1] = issue
+            end
           end
+          return _issues
+        end)
+        if not unmap_ok then
+          log.warn("Failed to construct response: " .. issues_current)
+        else
+          table_op.list_extend(issues, issues_current)
         end
       else
         log.warn("Failed to decode a response: " .. decoded_result)
       end
     end
   end
+
+  return issues
 end
 
 ---@type rissue.provider_info.GetIssues<rissue.Github.get_merge_requests.Opts, rissue.Github.Opts, rissue.Github.supports.AdditionalInfo>
