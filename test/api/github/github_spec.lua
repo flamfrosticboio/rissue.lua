@@ -66,10 +66,14 @@ local gutils = require("api.github.setup_utils")
 describe("github #api", function()
   local utils = require("api.utils")
   test_version("api.github.com #github_api", "github_api", {
-    additional_info = nil,
+    additional_info = {
+      api_version = "2026-03-10",
+    },
   })
   test_version("ghec #ghec", "ghec", {
-    additional_info = nil,
+    additional_info = {
+      api_version = "2026-03-10",
+    },
   })
 
   utils.with_proxy({
