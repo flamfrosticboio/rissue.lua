@@ -72,7 +72,6 @@ jobs:
           ./scripts/setup_test_api.sh
 
       - name: Save cache for '.test_setup'
-        if: always() && steps.cache-test-setup.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
           path: .test_setup
