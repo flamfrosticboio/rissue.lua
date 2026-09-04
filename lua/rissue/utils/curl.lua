@@ -19,48 +19,13 @@ local process = require("rissue.utils.process")
 
 local M = {}
 
-local function _get_curl_version_raw()
-  local result, err = process.run({ cmd = "curl", args = { "--version" } }, 5000)
-  if not result then
-    error(err)
-  end
-  local major, minor = result.stdout:match("curl (%d+)%.(%d+)")
-  return tonumber(major), tonumber(minor)
-end
-
-local _major, _minor = nil, nil
-
---- Checks if the version is major >= current_major and minor >= current_minor
----@param major integer
----@param minor integer
-function M.version_atleast(major, minor)
-  local current_major, current_minor = M.get_version()
-  if current_major > major then
-    return true
-  end
-  return current_major == major and current_minor >= minor
-end
-
---- Used inside tests
----@param major integer?
----@param minor integer?
-function M.__mock_version(major, minor)
-  _major = major
-  _minor = minor
-end
-
-function M.get_version()
-  if not _major or not _minor then
-    _major, _minor = _get_curl_version_raw()
-  end
-  return _major, _minor
-end
-
 ---@alias rissue.utils.curl.Method  "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS" | "TRACE" | "CONNECT" | string
 
 ---@alias rissue.utils.curl.Formats "application/json" | "text/html" | string
 
 ---@alias rissue.utils.curl.DataType "default" | "literal" | "binary" | "urlencode" | "form" | "form_string"
+
+---@alias rissue.utils.curl.AuthMethod "ntlm" | "digest" | "negotiate" | "anyauth"
 
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
@@ -94,7 +59,7 @@ end
 ---@field raw_args? string[]
 ---If passed as string, it will be used as a token directly. Otherwise, it will be pass
 ---to `curl -u` option
----@field auth? string | { user: string, pass: string }
+---@field auth? string | { user: string, pass: string, method: rissue.utils.curl.AuthMethod? }
 ---@field content_type? rissue.utils.curl.Formats
 ---@field accept? rissue.utils.curl.Formats
 --- Enables form escape mode
@@ -146,14 +111,8 @@ function M.construct(url, opts)
   end
 
   if opts.user_agent then
-    if M.version_atleast(7, 1) then
-      args[#args + 1] = "-A"
-      args[#args + 1] = opts.user_agent
-    else
-      -- raw header mode
-      args[#args + 1] = "-H"
-      args[#args + 1] = "User-Agent: " .. opts.user_agent
-    end
+    args[#args + 1] = "-A"
+    args[#args + 1] = opts.user_agent
   end
 
   if opts.auth then
@@ -163,6 +122,9 @@ function M.construct(url, opts)
     elseif type(opts.auth) == "table" then
       args[#args + 1] = "-u"
       args[#args + 1] = opts.auth.user .. ":" .. opts.auth.pass
+      if opts.auth.method then
+        args[#args + 1] = "--" .. opts.auth.method
+      end
     end
   end
 
@@ -176,11 +138,7 @@ function M.construct(url, opts)
   end
 
   if opts.fail_fast ~= false then
-    if M.version_atleast(7, 76) then
-      args[#args + 1] = "--fail-with-body"
-    else
-      args[#args + 1] = "--fail"
-    end
+    args[#args + 1] = "--fail-with-body"
   end
 
   args[#args + 1] = "--retry"
