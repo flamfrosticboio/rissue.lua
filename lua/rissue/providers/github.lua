@@ -42,9 +42,6 @@ local time = require("rissue.utils.time")
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
 ---@field api_version rissue.Github.SupportedApiVersions?
 
----@class rissue.Github.Opts
----@field endpoints string[]
-
 ---@class rissue.Github.Settings
 --- Required field on param in each query: `q`
 --- `q` can be used as template string.
@@ -54,39 +51,46 @@ local time = require("rissue.utils.time")
 --- - `{repo}` - Repository name
 ---
 --- See default settings for examples.
----@field endpoints rissue.Query[]
+---@field endpoints rissue.Github.opts.Endpoints
+
+---@class rissue.Github.opts.Endpoints
+---@field issues rissue.Query[]
+---@field merge_requests rissue.Query[]
 
 --- /!TYPES
 
 --- !SETTINGS
 
+---@type rissue.Github.Settings
 local default_settings = {
-  ---@type rissue.Query[]
   endpoints = {
-    {
-      endpoint = "/search/issues",
-      param = {
-        q = "repo:{owner}/{repo} type:issue is:open label:security,critical",
-        sort = "interactions",
-        order = "desc",
+    issues = {
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} type:issue is:open label:security,critical",
+          sort = "interactions",
+          order = "desc",
+        },
+      },
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} type:issue is:open label:blocker,P0",
+          sort = "interactions",
+          order = "desc",
+        },
+      },
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} type:issue is:open",
+          sort = "interactions",
+          order = "desc",
+        },
       },
     },
-    {
-      endpoint = "/search/issues",
-      param = {
-        q = "repo:{owner}/{repo} type:issue is:open label:blocker,P0",
-        sort = "interactions",
-        order = "desc",
-      },
-    },
-    {
-      endpoint = "/search/issues",
-      param = {
-        q = "repo:{owner}/{repo} type:issue is:open",
-        sort = "interactions",
-        order = "desc",
-      },
-    },
+    merge_requests = {},
   },
 }
 
@@ -145,7 +149,7 @@ local function check(url, opts)
   return exit_code == 0 and result:match("verifiable_password_authentication"), result
 end
 
----@type rissue.provider_info.Supports<rissue.Github.supports.Opts, rissue.Github.Opts, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider_info.Supports<rissue.Github.supports.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
 local function supports(info, token, opts)
   local base = info.curl_protocol .. "://" .. info.domain
 
@@ -224,10 +228,10 @@ local function into_issue(raw)
   }
 end
 
----@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Opts, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
 local function get_issues(info, token, opts)
   ---@type rissue.Query[]
-  local endpoints = opts.settings.endpoints or default_settings.endpoints
+  local endpoints = opts.settings.endpoints.issues or default_settings.endpoints.issues
   local base_endpoint = get_api_endpoint(info)
 
   local headers = {}
@@ -297,7 +301,7 @@ local function get_issues(info, token, opts)
   return issues
 end
 
----@type rissue.provider_info.GetIssues<rissue.Github.get_merge_requests.Opts, rissue.Github.Opts, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider_info.GetMergeRequests<rissue.Github.get_merge_requests.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
 local function get_merge_requests(_info, _token, _opts) end
 
 ---@type rissue.provider_spec
