@@ -118,6 +118,9 @@ local _data_type_arg = {
   form_string = "--form-string",
 }
 
+--- todo: add version checking on multiple flags
+--- todo: add user authentication methods (--digest, --ntlm, --negotiate)
+
 --- construct the command line arguments based on curl opts
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
