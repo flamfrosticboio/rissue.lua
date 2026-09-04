@@ -28,6 +28,9 @@
 --- Example: issues="https://{provider}/search/issues?q=repo:{owner}/{repo}+type:issue+is:open"
 ---@field endpoints table<rissue.provider, rissue.fetch_type.Map<rissue.url[]>>
 ---@field endpoint_shortcuts table<rissue.provider, rissue.EndpointShortcut>
+--- List of options for a provider. See the provider's documentation for the
+--- list of options that is supported.
+---@field provider_options table<string, table>
 
 ---@class rissue.EndpointShortcut
 --- List of patterns that can be used on `string:match()`
