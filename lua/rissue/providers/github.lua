@@ -18,6 +18,7 @@ local curl = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
 local log = require("rissue.utils.log")
+local time = require("rissue.utils.time")
 
 --- !TYPES
 
@@ -203,7 +204,7 @@ local function into_issue(raw)
       username = raw.user.login,
       display_name = raw.user.name,
     },
-    created_at = tonumber(raw.created_at) or 0, --- todo: add tz reader
+    created_at = time.iso_to_timestamp_utc(raw.created_at),
     labels = {}, -- todo: complete reading labels
   }
 end
