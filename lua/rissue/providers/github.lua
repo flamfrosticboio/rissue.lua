@@ -193,6 +193,17 @@ end
 ---@param raw table
 ---@return rissue.issue
 local function into_issue(raw)
+  ---@type rissue.label[]
+  local labels = {}
+
+  for _, label in ipairs(raw.labels) do
+    labels[#labels + 1] = {
+      name = label.name,
+      color = label.color,
+      description = label.description,
+    }
+  end
+
   ---@type rissue.issue
   return {
     is_open = raw.state == "open",
@@ -206,7 +217,7 @@ local function into_issue(raw)
       display_name = raw.user.name,
     },
     created_at = time.iso_to_timestamp_utc(raw.created_at),
-    labels = {}, -- todo: complete reading labels
+    labels = labels,
   }
 end
 
