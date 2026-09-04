@@ -24,6 +24,8 @@ local M = {}
 
 ---@alias rissue.utils.curl.DataType "default" | "literal" | "binary" | "urlencode" | "form" | "form_string"
 
+---@alias rissue.utils.curl.AuthMethod "ntlm" | "digest" | "negotiate" | "anyauth"
+
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
 ---@field literal string
@@ -56,7 +58,7 @@ local M = {}
 ---@field raw_args? string[]
 ---If passed as string, it will be used as a token directly. Otherwise, it will be pass
 ---to `curl -u` option
----@field auth? string | { user: string, pass: string }
+---@field auth? string | { user: string, pass: string, method: rissue.utils.curl.AuthMethod? }
 ---@field content_type? rissue.utils.curl.Formats
 ---@field accept? rissue.utils.curl.Formats
 --- Enables form escape mode
@@ -80,8 +82,6 @@ local _data_type_arg = {
   form = "--form",
   form_string = "--form-string",
 }
-
---- todo: add user authentication methods (--digest, --ntlm, --negotiate)
 
 --- construct the command line arguments based on curl opts
 ---@param url string
@@ -121,6 +121,9 @@ function M.construct(url, opts)
     elseif type(opts.auth) == "table" then
       args[#args + 1] = "-u"
       args[#args + 1] = opts.auth.user .. ":" .. opts.auth.pass
+      if opts.auth.method then
+        args[#args + 1] = "--" .. opts.auth.method
+      end
     end
   end
 

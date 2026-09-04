@@ -355,6 +355,58 @@ describe("curl", function()
       check_if_present(res, "name=true")
       check_if_present(res, "write=false")
     end)
+
+    it("--negotiate auth passed ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        auth = { pass = "", user = "", method = "negotiate" },
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--negotiate")
+      check_if_present(res, ":")
+    end)
+
+    it("--ntlm auth passed ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        auth = { pass = "", user = "", method = "ntlm" },
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--ntlm")
+      check_if_present(res, ":")
+    end)
+
+    it("--digest auth passed ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        auth = { pass = "", user = "", method = "digest" },
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--digest")
+      check_if_present(res, ":")
+    end)
+
+    it("--anyauth auth passed ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        auth = { pass = "", user = "", method = "anyauth" },
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--anyauth")
+      check_if_present(res, ":")
+    end)
   end)
 
   describe("post", function()
