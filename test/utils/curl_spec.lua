@@ -51,43 +51,7 @@ local function check_if_present(list, key)
   )
 end
 
----@param name string
----@param major integer
----@param minor integer
----@param func fun()
-local function mock_version(name, major, minor, func)
-  describe(name, function()
-    before_each(function()
-      curl.__mock_version(major, minor)
-    end)
-
-    after_each(function()
-      curl.__mock_version(nil, nil)
-    end)
-
-    func()
-  end)
-end
-
-local _major, _minor = curl.get_version()
-
-mock_version("curl", _major, _minor, function()
-  mock_version("version", 10, 10, function()
-    it("get_version() is correct", function()
-      local M, m = curl.get_version()
-      assert.equal(10, M)
-      assert.equal(10, m)
-    end)
-
-    it("version_atleast() is correct", function()
-      assert(false == curl.version_atleast(11, 9), "1 failed")
-      assert(false == curl.version_atleast(10, 11), "2 failed")
-      assert(true == curl.version_atleast(9, 10), "3 failed")
-      assert(true == curl.version_atleast(10, 9), "4 failed")
-      assert(false == curl.version_atleast(11, 1), "4 failed")
-    end)
-  end)
-
+describe("curl", function()
   describe("construct", function()
     it("url ok", function()
       local url = "https://example.com"
@@ -120,33 +84,16 @@ mock_version("curl", _major, _minor, function()
       check_if_present(res, "c")
     end)
 
-    mock_version("-A user_agent supported", 7, 1, function()
-      it("ok", function()
-        ---@type rissue.utils.curl.Opts
-        local opts = {
-          user_agent = "hi",
-        }
+    it("-A user_agent supported ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        user_agent = "hi",
+      }
 
-        local res = curl.construct("example", opts)
+      local res = curl.construct("example", opts)
 
-        check_if_present(res, "-A")
-        check_if_present(res, "hi")
-      end)
-    end)
-
-    mock_version("-A user_agent unsupported", 7, 0, function()
-      it("ok", function()
-        ---@type rissue.utils.curl.Opts
-        local opts = {
-          user_agent = "hi",
-        }
-
-        local res = curl.construct("example", opts)
-        -- print(require("inspect")(res))
-
-        check_if_present(res, "-H")
-        check_if_present(res, "User-Agent: hi")
-      end)
+      check_if_present(res, "-A")
+      check_if_present(res, "hi")
     end)
 
     it("-u auth user pass ok", function()
@@ -200,32 +147,16 @@ mock_version("curl", _major, _minor, function()
       check_if_present(res, "-L")
     end)
 
-    mock_version("--fail fail unsupported", 7, 75, function()
-      it("ok", function()
-        ---@type rissue.utils.curl.Opts
-        local opts = {
-          fail_fast = true,
-        }
+    it("--fail-with-body fail ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        fail_fast = true,
+      }
 
-        local res = curl.construct("example", opts)
-        -- print(require("inspect")(res))
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
 
-        check_if_present(res, "--fail")
-      end)
-    end)
-
-    mock_version("--fail fail supported", 7, 76, function()
-      it("ok", function()
-        ---@type rissue.utils.curl.Opts
-        local opts = {
-          fail_fast = true,
-        }
-
-        local res = curl.construct("example", opts)
-        -- print(require("inspect")(res))
-
-        check_if_present(res, "--fail-with-body")
-      end)
+      check_if_present(res, "--fail-with-body")
     end)
 
     it("--retry retry ok", function()
