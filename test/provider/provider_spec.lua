@@ -100,6 +100,9 @@ describe("provider_info", function()
       owner = "flamfrosticboio",
       repo = "rissue",
       protocol = "https",
+      additional_info = {
+        api_version = "2026-03-10",
+      },
     }, info)
   end)
 end)

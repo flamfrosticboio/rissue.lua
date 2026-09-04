@@ -36,6 +36,8 @@
 --- List of patterns that can be used on `string:match()`
 ---@field patterns string[]
 ---@field domain   rissue.url
+--- Additional info to pass to an endpoint shortcut
+---@field additional_info table?
 
 -- todo: add method: get provider endpoints
 

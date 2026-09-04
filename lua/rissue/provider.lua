@@ -78,6 +78,7 @@ local function get_provider_info_unsafe(remote_url, request_opts, level)
           owner = remote_info.owner,
           repo = remote_info.repo,
           protocol = remote_info.curl_protocol,
+          additional_info = spec.additional_info,
         }
         return info
       end
