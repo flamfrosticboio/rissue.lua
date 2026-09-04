@@ -1,4 +1,4 @@
-std = "lua51+.selene/luajit"
+std = "lua51+.selene/luajit+.selene/vim"
 exclude = [".types/**", "test/**"]
 
 [rules]

@@ -475,4 +475,28 @@ function M.wait(condition, timeout, interval)
   return true
 end
 
+---@param arg string
+---@return string
+local function shell_escape(arg)
+  local needs_escape = arg == "" or arg:find("[^%w%-%._/]") ~= nil
+  if needs_escape then
+    return "'" .. arg:gsub("'", "'\\''") .. "'"
+  end
+  return arg
+end
+
+--- A utility function that constructs a command line string that can be used to print
+--- into console for debugging purposes
+---@param cmd string
+---@param args string[]
+---@return string
+function M.construct_command_line_string(cmd, args)
+  local str_tbl = {}
+  str_tbl[#str_tbl + 1] = shell_escape(cmd)
+  for i, arg in ipairs(args) do
+    str_tbl[i + 1] = shell_escape(arg)
+  end
+  return table.concat(str_tbl, " ")
+end
+
 return M

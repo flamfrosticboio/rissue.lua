@@ -14,6 +14,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 
 local M = {}
@@ -209,7 +210,11 @@ function M.raw(args, cwd, env)
 
   local code = p:get_code()
   if code ~= 0 then
-    return p:get_stderr(), code
+    local stderr = p:get_stderr()
+    if stderr == "" then
+      stderr = p:get_stdout()
+    end
+    return stderr, code
   end
   return p:get_stdout(), code
 end
@@ -221,6 +226,7 @@ end
 ---@return integer exit_code
 function M.request(url, opts)
   local args = M.construct(url, opts)
+  log.debug("Running: " .. process.construct_command_line_string("curl", args))
   return M.raw(args, opts.cwd, opts.env)
 end
 

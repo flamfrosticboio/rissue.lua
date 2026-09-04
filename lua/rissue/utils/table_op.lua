@@ -111,4 +111,33 @@ function M.all(bool_table)
   return true
 end
 
+--- Finds the item in the list.
+--- Supports accessing values with 'fun(v: any): boolean'
+---@param list any[]
+---@param value_to_find any
+---@overload fun(list: any[], value_to_find: fun(v: any): boolean): any|nil, integer
+---@return any|nil, integer
+function M.find(list, value_to_find)
+  if type(value_to_find) ~= "function" then
+    value_to_find = function(v)
+      return v == value_to_find
+    end
+  end
+  for i, item in ipairs(list) do
+    if value_to_find(item) then
+      return item, i
+    end
+  end
+  return nil, -1
+end
+
+---@param dest any[] Items to be merged
+---@param source any[] Items to merge with
+function M.list_extend(dest, source)
+  local offset = #dest
+  for i = 1, #source do
+    dest[offset + i] = source[i]
+  end
+end
+
 return M

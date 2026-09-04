@@ -176,7 +176,7 @@ local function handle_cache(cache)
       os.remove(marker_path)
     end
   else
-    print("WARNING: No cache file found")
+    print("Warning: No cache file found")
     local err
     f, err = io.open(marker_path, "w")
     if not f then

@@ -18,31 +18,39 @@
 
 ---@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
----@class (exact) rissue.provider_spec.supports.Opts<T>
----@field request T?
+---@class (exact) rissue.provider_spec.called.Opts<T, S>
+---@field settings S | table
+---@field request? T | table
+
+---@alias rissue.provider_info.GetIssues<T, S, I>
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]?, string?
+
+---@alias rissue.provider_info.GetMergeRequests<T, S, I>
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]?, string?
+
+---@alias rissue.provider_info.Supports<T, S, I>
+---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
 
 ---@class (exact) rissue.provider_spec
----Second return is an error string
----@field get_issues fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.issue[]?, string?
----Second return is an error string
----@field get_merge_requests fun(opts: rissue.Provider.Opts, info: rissue.ProviderInfo, token: string?): rissue.pr[]?, string?
 ---@field provider_name  string
+---@field version string
+---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
+---@field version_code integer
+---Second return is an error string
+---@field get_issues rissue.provider_info.GetIssues<any, any, any>
+---Second return is an error string
+---@field get_merge_requests rissue.provider_info.GetMergeRequests<any, any, any>
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
----
 ---The second return is where there are additional information to relay to provider info
----@field supports       fun(info: rissue.RemoteInfo, token: string?, opts: rissue.provider_spec.supports.Opts): boolean, table?
+---@field supports rissue.provider_info.Supports
 
----@class rissue.provider_spec.extract
----@field owner string
----@field repo  string
-
----@class rissue.ProviderInfo
+---@class rissue.ProviderInfo<T>
 ---@field domain string
 ---@field name string
 ---@field owner string
 ---@field repo string
 ---@field protocol "http" | "https"
----@field additional_info? table
+---@field additional_info? T
 
 ---@class (exact) rissue.RemoteInfo
 ---@field curl_protocol "http" | "https"
@@ -50,3 +58,7 @@
 ---@field owner string
 ---@field domain string
 ---@field full_url string A whitespace stripped version of url
+
+---@class rissue.Query
+---@field endpoint string
+---@field param table<string, string>

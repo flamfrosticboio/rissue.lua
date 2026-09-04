@@ -26,15 +26,14 @@ config.options = {
   env = {
     provider_prefix = "GIT_TK_",
   },
-  endpoints = {
-    github = {
-      "https://{domain}/{}",
-    },
-  },
+  provider_options = {},
   endpoint_shortcuts = {
     github = {
       domain = "api.github.com",
       patterns = { "github%.com" },
+      additional_info = {
+        api_version = "2026-03-10",
+      } --[[@as rissue.Github.supports.AdditionalInfo]],
     },
   },
 }

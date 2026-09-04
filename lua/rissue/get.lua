@@ -14,23 +14,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@class rissue.Config
----@field additional_providers string[] List of lua filenames to import
----@field env_file string The name of the env file
----@field env rissue.config.Env
----@field endpoint_shortcuts table<rissue.provider, rissue.EndpointShortcut>
---- List of options for a provider. See the provider's documentation for the
---- list of options that is supported.
----@field provider_options table<string, table>
+local M = {}
 
----@class rissue.EndpointShortcut
---- List of patterns that can be used on `string:match()`
----@field patterns string[]
----@field domain   rissue.url
---- Additional info to pass to an endpoint shortcut
----@field additional_info table?
+local config = require("rissue.config")
+local env = require("rissue.env")
 
--- todo: add method: get provider endpoints
+---@param info rissue.ProviderInfo
+---@param opts table? Settings that are based on provider
+function M.get_issues(info, opts)
+  local provider = config.providers[info.name]
+  if not provider then
+    error("Could not find appropriate provider: " .. info.name)
+  end
 
----@class (partial) rissue.Opts: rissue.Config
----@field env? rissue.opts.Env
+  return provider.get_issues(info, env.get_token(provider.provider_name), {
+    settings = config.options.provider_options[provider.provider_name] or {},
+    request = opts,
+  })
+end
+
+return M
