@@ -56,7 +56,7 @@ Process.__index = Process
 ---@param events fun()[]
 local function run_all_events(events)
   for _, event in ipairs(events) do
-    pcall(event)
+    event()
   end
 end
 
@@ -363,7 +363,10 @@ function M.run_co(command_opts, opts)
   end
 
   p:register_event("on_exit", function()
-    coroutine.resume(co)
+    local ok, resume_err = coroutine.resume(co)
+    if not ok then
+      error(debug.traceback(co, resume_err), 0)
+    end
   end)
 
   if opts and opts.print_output then
