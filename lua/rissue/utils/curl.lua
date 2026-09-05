@@ -102,6 +102,11 @@ function M.construct(url, opts)
   args[#args + 1] = "-X"
   args[#args + 1] = opts.method
 
+  if opts.accept then
+    args[#args + 1] = "-H"
+    args[#args + 1] = "Accept: " .. opts.accept
+  end
+
   if opts.headers then
     for _, header in ipairs(opts.headers) do
       args[#args + 1] = "-H"

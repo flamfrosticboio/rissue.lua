@@ -407,6 +407,19 @@ describe("curl", function()
       check_if_present(res, "--anyauth")
       check_if_present(res, ":")
     end)
+
+    it("-H accept header passed ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        accept = "application/json",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "-H")
+      check_if_present(res, "Accept: application/json")
+    end)
   end)
 
   describe("post", function()
