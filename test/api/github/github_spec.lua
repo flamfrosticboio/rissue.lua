@@ -14,6 +14,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@diagnostic disable: redundant-parameter
+
 local describe = describe or require("busted").describe
 local it = it or require("busted").it
 ---@type luassert | fun()
@@ -33,12 +35,15 @@ local function test_version(name, specfile, opts)
   local is_proxy = opts.is_proxy
   local utils = require("api.utils")
   local provider = require("rissue.provider")
+  local get = require("rissue.get")
   utils.with_server({
     name = name,
     specfile = test_files .. "/" .. specfile .. ".json",
     is_proxy = is_proxy or false,
   }, function(_, port)
     local domain = utils.host .. ":" .. port
+
+    local info_shared = nil
 
     it("found provider", function()
       local ok, info = provider.get_provider_info(
@@ -57,6 +62,16 @@ local function test_version(name, specfile, opts)
         protocol = "http", -- since prism is launched in http mode
         additional_info = opts.additional_info,
       } --[[@as rissue.ProviderInfo]], info)
+
+      info_shared = info
+    end)
+
+    it("issues ok", function()
+      assert.is_not_nil(info_shared, "provider test was not ok")
+      ---@cast info_shared rissue.ProviderInfo
+      local _, issues = get.get_issues(info_shared)
+      -- todo: write compare here
+      print(require("inspect")(issues))
     end)
   end)
 end
@@ -65,22 +80,37 @@ local gutils = require("api.github.setup_utils")
 
 describe("github #api", function()
   local utils = require("api.utils")
-  test_version("api.github.com #github_api", "github_api", {
-    additional_info = {
-      api_version = "2026-03-10",
-    },
-  })
-  test_version("ghec #ghec", "ghec", {
-    additional_info = {
-      api_version = "2026-03-10",
-    },
-  })
+  utils.with_proxy({
+    -- Since the current api description does not support custom, we will just rewrite
+    -- all application into application/json
+    accept_rewrite = "application/json",
+    port = 55000,
+    target_port = 55001,
+    name = "github cloud",
+    prefix = "",
+  }, function()
+    test_version("api.github.com #github_api", "github_api", {
+      additional_info = {
+        api_version = "2026-03-10",
+      },
+      is_proxy = true,
+    })
+    test_version("ghec #ghec", "ghec", {
+      additional_info = {
+        api_version = "2026-03-10",
+      },
+      is_proxy = true,
+    })
+  end)
 
   utils.with_proxy({
     name = "github ghes #ghes",
     prefix = "/api/v3",
     port = 55000,
     target_port = 55001,
+    -- Since the current api description does not support custom, we will just rewrite
+    -- all application into application/json
+    accept_rewrite = "application/json",
   }, function()
     for _, version in ipairs(gutils.ghes_2022_versions) do
       local code = gutils.ghes_code_mapped[version]
