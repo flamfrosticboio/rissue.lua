@@ -22,13 +22,13 @@
 ---@field settings S | table
 ---@field request? T | table
 
---- Warning: May raise errors
+--- Second return is for errors
 ---@alias rissue.provider_info.GetIssues<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]?, string?
 
---- Warning: May raise errors
+--- Second return is for errors
 ---@alias rissue.provider_info.GetMergeRequests<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]?, string?
 
 ---@alias rissue.provider_info.Supports<T, S, I>
 ---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
