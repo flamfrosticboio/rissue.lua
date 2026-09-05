@@ -188,6 +188,12 @@ function M.construct(url, opts)
     end
   end
 
+  if opts.raw_args then
+    for _, arg in ipairs(opts.raw_args) do
+      args[#args + 1] = arg
+    end
+  end
+
   return args
 end
 

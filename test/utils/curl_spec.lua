@@ -420,6 +420,19 @@ describe("curl", function()
       check_if_present(res, "-H")
       check_if_present(res, "Accept: application/json")
     end)
+
+    it("raw args added", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        raw_args = { "--my-raw-arg", "--my-other-raw-arg" },
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--my-raw-arg")
+      check_if_present(res, "--my-other-raw-arg")
+    end)
   end)
 
   describe("post", function()
