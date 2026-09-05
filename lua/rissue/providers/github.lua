@@ -18,7 +18,6 @@ local curl = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
 local log = require("rissue.utils.log")
-local table_op = require("rissue.utils.table_op")
 local time = require("rissue.utils.time")
 
 --- !TYPES
@@ -271,32 +270,32 @@ local function get_issues(info, token, opts)
     })
 
     if exit_code == 0 then
-      local ok, decoded_result = pcall(function()
-        local decoded, err = json.decode(result)
-        if not decoded then
-          error(err, 0)
+      local ok, err = pcall(function()
+        local decoded_result, decode_error = json.decode(result)
+        if not decoded_result then
+          error(decode_error, 0)
         end
-        return decoded
+
+        local raw_items = unmap_result(decoded_result)
+        if not raw_items then
+          error("Invalid response sent by server", 0)
+        end
+
+        local buf = {}
+        for _, item in ipairs(raw_items) do
+          local issue = into_issue(item)
+          buf[#buf + 1] = issue
+        end
+
+        return buf
       end)
-      if ok then
-        local unmap_ok, issues_current = pcall(function()
-          local items = unmap_result(decoded_result)
-          local _issues = {}
-          if items then
-            for _, item in ipairs(items) do
-              local issue = into_issue(item)
-              _issues[#_issues + 1] = issue
-            end
-          end
-          return _issues
-        end)
-        if not unmap_ok then
-          log.warn("Failed to construct response: " .. issues_current)
-        else
-          table_op.list_extend(issues, issues_current)
-        end
-      else
-        log.warn("Failed to decode a response: " .. decoded_result)
+
+      if not ok then
+        assert(
+          type(err) == "string",
+          "[bug]: failed but error provided is not a string"
+        )
+        log.error(err or "An unknown error occurred when decoding response into issue")
       end
     end
   end
