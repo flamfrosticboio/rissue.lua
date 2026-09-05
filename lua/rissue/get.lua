@@ -40,6 +40,8 @@ function M.get_issues(info, opts)
   process.wait(function()
     return result ~= nil
   end, 60000) -- todo: add timeout
+
+  return result
 end
 
 return M
