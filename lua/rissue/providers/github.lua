@@ -231,7 +231,10 @@ end
 ---@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
 local function get_issues(info, token, opts)
   ---@type rissue.Query[]
-  local endpoints = opts.settings.endpoints.issues or default_settings.endpoints.issues
+  local endpoints = opts.settings
+      and opts.settings.endpoints
+      and opts.settings.endpoints.issues
+    or default_settings.endpoints.issues
   local base_endpoint = get_api_endpoint(info)
 
   local headers = {}
