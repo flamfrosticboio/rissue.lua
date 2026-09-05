@@ -22,11 +22,13 @@
 ---@field settings S | table
 ---@field request? T | table
 
+--- Warning: May raise errors
 ---@alias rissue.provider_info.GetIssues<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]?, string?
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]
 
+--- Warning: May raise errors
 ---@alias rissue.provider_info.GetMergeRequests<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]?, string?
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]
 
 ---@alias rissue.provider_info.Supports<T, S, I>
 ---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
@@ -36,9 +38,7 @@
 ---@field version string
 ---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
 ---@field version_code integer
----Second return is an error string
 ---@field get_issues rissue.provider_info.GetIssues<any, any, any>
----Second return is an error string
 ---@field get_merge_requests rissue.provider_info.GetMergeRequests<any, any, any>
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
 ---The second return is where there are additional information to relay to provider info
