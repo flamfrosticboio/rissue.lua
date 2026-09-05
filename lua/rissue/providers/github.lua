@@ -254,7 +254,7 @@ local function get_issues(info, token, opts)
     local endpoint = base_endpoint .. query.endpoint
 
     if not query.param.q then
-      error("Query has no 'q' passed on query.param", 0)
+      return nil, "Query has no 'q' passed on query.param"
     end
 
     query.param.q = fmt(query.param.q, {
