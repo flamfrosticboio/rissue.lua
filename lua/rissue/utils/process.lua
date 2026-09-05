@@ -234,6 +234,19 @@ function Process:run()
   self._handle = handle
   self._stderr_pipe = pipe_stderr
   self._stdout_pipe = pipe_stdout
+
+  if log.level_enabled(log.levels.debug) then
+    log.log(
+      "\nRunning process: "
+        .. M.construct_command_line_string(self._opts.cmd, self._opts.args)
+        .. (self._opts.cwd and ("\n\tOn cwd: " .. self._opts.cwd) or "")
+        .. (
+          self._opts.env and ("\n\tWith env: " .. table.concat(self._opts.env, " "))
+          or ""
+        ),
+      log.levels.debug
+    )
+  end
 end
 
 function Process:get_code()
