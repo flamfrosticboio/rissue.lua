@@ -18,6 +18,7 @@ local curl = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
 local log = require("rissue.utils.log")
+local table_op = require("rissue.utils.table_op")
 local time = require("rissue.utils.time")
 
 --- !TYPES
@@ -229,6 +230,8 @@ end
 
 ---@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
 local function get_issues(info, token, opts)
+  -- todo: fix tests proxy not working on support with /api/v3
+
   ---@type rissue.Query[]
   local endpoints = opts.settings
       and opts.settings.endpoints
@@ -241,6 +244,7 @@ local function get_issues(info, token, opts)
     headers[#headers + 1] = api_ver_template .. info.additional_info.api_version
   end
 
+  ---@type table<string, rissue.issue>
   local issues = {}
 
   for _, query in ipairs(endpoints) do
@@ -281,13 +285,10 @@ local function get_issues(info, token, opts)
           error("Invalid response sent by server", 0)
         end
 
-        local buf = {}
         for _, item in ipairs(raw_items) do
           local issue = into_issue(item)
-          buf[#buf + 1] = issue
+          issues[issue.id] = issue
         end
-
-        return buf
       end)
 
       if not ok then
@@ -300,7 +301,7 @@ local function get_issues(info, token, opts)
     end
   end
 
-  return issues
+  return table_op.set_into_list(issues)
 end
 
 ---@type rissue.provider_info.GetMergeRequests<rissue.Github.get_merge_requests.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
