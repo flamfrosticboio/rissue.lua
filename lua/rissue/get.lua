@@ -18,30 +18,39 @@ local M = {}
 
 local config = require("rissue.config")
 local env = require("rissue.env")
+local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 
 ---@param info rissue.ProviderInfo
 ---@param opts table? Settings that are based on provider
+---@return rissue.issue[]? results
+---@return string? errors
 function M.get_issues(info, opts)
   local provider = config.providers[info.name]
   if not provider then
-    error("Could not find appropriate provider: " .. info.name)
+    return nil, "Could not find provider: " .. info.name
   end
 
-  local result = nil
+  local done = false
+  local result, err = nil, nil
 
   coroutine.wrap(function()
-    result = provider.get_issues(info, env.get_token(provider.provider_name), {
+    result, err = provider.get_issues(info, env.get_token(provider.provider_name), {
       settings = config.options.provider_options[provider.provider_name] or {},
       request = opts,
     })
+    done = true
   end)()
 
   process.wait(function()
-    return result ~= nil
+    return done
   end, 60000) -- todo: add timeout
 
-  return result
+  if not result then
+    log.error("Failed to get issues: " .. err)
+  end
+
+  return result, err
 end
 
 return M
