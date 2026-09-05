@@ -69,9 +69,29 @@ local function test_version(name, specfile, opts)
     it("issues ok", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local _, issues = get.get_issues(info_shared)
-      -- todo: write compare here
-      print(require("inspect")(issues))
+      local issues, err = get.get_issues(info_shared)
+      assert(issues, err)
+      assert.same({
+        {
+          author = {
+            username = "Nick3C",
+            web_url = "https://github.com/Nick3C",
+          },
+          body = "...",
+          created_at = 1247429441,
+          id = 132,
+          is_open = true,
+          labels = {
+            {
+              color = "ff0000",
+              name = "bug",
+            },
+          },
+          title = "Line Number Indexes Beyond 20 Not Displayed",
+          url = "https://api.github.com/repos/batterseapower/pinyin-toolkit/issues/132",
+          web_url = "https://github.com/batterseapower/pinyin-toolkit/issues/132",
+        },
+      }, issues)
     end)
   end)
 end
