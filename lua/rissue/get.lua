@@ -18,6 +18,7 @@ local M = {}
 
 local config = require("rissue.config")
 local env = require("rissue.env")
+local process = require("rissue.utils.process")
 
 ---@param info rissue.ProviderInfo
 ---@param opts table? Settings that are based on provider
@@ -27,10 +28,18 @@ function M.get_issues(info, opts)
     error("Could not find appropriate provider: " .. info.name)
   end
 
-  return provider.get_issues(info, env.get_token(provider.provider_name), {
-    settings = config.options.provider_options[provider.provider_name] or {},
-    request = opts,
-  })
+  local result = nil
+
+  coroutine.wrap(function()
+    result = provider.get_issues(info, env.get_token(provider.provider_name), {
+      settings = config.options.provider_options[provider.provider_name] or {},
+      request = opts,
+    })
+  end)()
+
+  process.wait(function()
+    return result ~= nil
+  end, 60000) -- todo: add timeout
 end
 
 return M
