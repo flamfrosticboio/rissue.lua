@@ -14,7 +14,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 
 local M = {}
@@ -223,7 +222,6 @@ end
 ---@return integer exit_code
 function M.request(url, opts)
   local args = M.construct(url, opts)
-  log.debug("Running: " .. process.construct_command_line_string("curl", args))
   return M.raw(args, opts.cwd, opts.env)
 end
 
