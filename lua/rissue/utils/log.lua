@@ -64,12 +64,13 @@ local log_name = {
   [M.levels.off] = "",
 }
 
+--- Logs to logger.
+---
+--- Warning: Does not filter logging based on current log level.
+---          Wrap it with `M.level_enabled()` instead.
 ---@param msg string
 ---@param level 0 | 1 | 2 | 3 | 4 | 5
 function M.log(msg, level)
-  if level < M.log_level then
-    return
-  end
   local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
   M._logger(("[%s][%s]: %s"):format(time, log_name[level], msg), level)
 end
@@ -81,26 +82,41 @@ end
 
 ---@param msg string
 function M.info(msg)
+  if not M.level_enabled(M.levels.info) then
+    return
+  end
   M.log(msg, M.levels.info)
 end
 
 ---@param msg string
 function M.warn(msg)
+  if not M.level_enabled(M.levels.warn) then
+    return
+  end
   M.log(msg, M.levels.warn)
 end
 
 ---@param msg string
 function M.error(msg)
+  if not M.level_enabled(M.levels.error) then
+    return
+  end
   M.log(msg, M.levels.error)
 end
 
 ---@param msg string
 function M.trace(msg)
+  if not M.level_enabled(M.levels.trace) then
+    return
+  end
   M.log(msg, M.levels.trace)
 end
 
 ---@param msg string
 function M.debug(msg)
+  if not M.level_enabled(M.levels.debug) then
+    return
+  end
   M.log(msg, M.levels.debug)
 end
 

@@ -25,33 +25,36 @@ Theoretical support for ghes: 3.0
 
 <!-- !SETTINGS -->
 ```lua
+---@type rissue.Github.Settings
 local default_settings = {
-  ---@type rissue.Query[]
   endpoints = {
-    {
-      endpoint = "/search/issues",
-      param = {
-        q = "repo:{owner}/{repo} type:issue is:open label:security,critical",
-        sort = "interactions",
-        order = "desc",
+    issues = {
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} type:issue is:open label:security,critical",
+          sort = "interactions",
+          order = "desc",
+        },
+      },
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} type:issue is:open label:blocker,P0",
+          sort = "interactions",
+          order = "desc",
+        },
+      },
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} type:issue is:open",
+          sort = "interactions",
+          order = "desc",
+        },
       },
     },
-    {
-      endpoint = "/search/issues",
-      param = {
-        q = "repo:{owner}/{repo} type:issue is:open label:blocker,P0",
-        sort = "interactions",
-        order = "desc",
-      },
-    },
-    {
-      endpoint = "/search/issues",
-      param = {
-        q = "repo:{owner}/{repo} type:issue is:open",
-        sort = "interactions",
-        order = "desc",
-      },
-    },
+    merge_requests = {},
   },
 }
 ```
@@ -80,9 +83,6 @@ local default_settings = {
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
 ---@field api_version rissue.Github.SupportedApiVersions?
 
----@class rissue.Github.Opts
----@field endpoints string[]
-
 ---@class rissue.Github.Settings
 --- Required field on param in each query: `q`
 --- `q` can be used as template string.
@@ -92,7 +92,11 @@ local default_settings = {
 --- - `{repo}` - Repository name
 ---
 --- See default settings for examples.
----@field endpoints rissue.Query[]
+---@field endpoints rissue.Github.opts.Endpoints
+
+---@class rissue.Github.opts.Endpoints
+---@field issues rissue.Query[]
+---@field merge_requests rissue.Query[]
 ```
 <!-- /!TYPES -->
 

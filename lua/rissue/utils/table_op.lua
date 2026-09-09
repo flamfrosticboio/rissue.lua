@@ -140,4 +140,15 @@ function M.list_extend(dest, source)
   end
 end
 
+---@generic T
+---@param set table<unknown, T>
+---@return T[]
+function M.set_into_list(set)
+  local result = {}
+  for _, v in pairs(set) do
+    result[#result + 1] = v
+  end
+  return result
+end
+
 return M

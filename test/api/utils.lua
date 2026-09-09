@@ -155,6 +155,7 @@ end
 ---@field port integer
 ---@field target_port integer
 ---@field name string
+---@field accept_rewrite string
 
 ---@param opts __rissue.with_proxy.Opts
 ---@return rissue.utils.Process
@@ -169,6 +170,7 @@ local function run_proxy(opts)
       TARGET_PORT = tostring(opts.target_port),
       PREFIX = tostring(opts.prefix),
       PATH = os.getenv("PATH"),
+      ACCEPT_REWRITE = opts.accept_rewrite,
     },
   })
 
