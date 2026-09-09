@@ -216,6 +216,7 @@ local function into_issue(raw)
     is_open = raw.state == "open",
     title = raw.title,
     web_url = raw.html_url,
+    body = raw.body,
     id = raw.number,
     url = raw.url,
     author = {
@@ -230,8 +231,13 @@ end
 
 ---@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
 local function get_issues(info, token, opts)
+  -- todo: fix tests proxy not working on support with /api/v3
+
   ---@type rissue.Query[]
-  local endpoints = opts.settings.endpoints.issues or default_settings.endpoints.issues
+  local endpoints = opts.settings
+      and opts.settings.endpoints
+      and opts.settings.endpoints.issues
+    or default_settings.endpoints.issues
   local base_endpoint = get_api_endpoint(info)
 
   local headers = {}
@@ -239,6 +245,7 @@ local function get_issues(info, token, opts)
     headers[#headers + 1] = api_ver_template .. info.additional_info.api_version
   end
 
+  ---@type table<string, rissue.issue>
   local issues = {}
 
   for _, query in ipairs(endpoints) do
@@ -251,7 +258,7 @@ local function get_issues(info, token, opts)
     local endpoint = base_endpoint .. query.endpoint
 
     if not query.param.q then
-      error("Query has no 'q' passed on query.param", 0)
+      return nil, "Query has no 'q' passed on query.param"
     end
 
     query.param.q = fmt(query.param.q, {
@@ -268,37 +275,34 @@ local function get_issues(info, token, opts)
     })
 
     if exit_code == 0 then
-      local ok, decoded_result = pcall(function()
-        local decoded, err = json.decode(result)
-        if not decoded then
-          error(err, 0)
+      local ok, err = pcall(function()
+        local decoded_result, decode_error = json.decode(result)
+        if not decoded_result then
+          error(decode_error, 0)
         end
-        return decoded
+
+        local raw_items = unmap_result(decoded_result)
+        if not raw_items then
+          error("Invalid response sent by server", 0)
+        end
+
+        for _, item in ipairs(raw_items) do
+          local issue = into_issue(item)
+          issues[issue.id] = issue
+        end
       end)
-      if ok then
-        local unmap_ok, issues_current = pcall(function()
-          local items = unmap_result(decoded_result)
-          local _issues = {}
-          if items then
-            for _, item in ipairs(items) do
-              local issue = into_issue(item)
-              _issues[#_issues + 1] = issue
-            end
-          end
-          return _issues
-        end)
-        if not unmap_ok then
-          log.warn("Failed to construct response: " .. issues_current)
-        else
-          table_op.list_extend(issues, issues_current)
-        end
-      else
-        log.warn("Failed to decode a response: " .. decoded_result)
+
+      if not ok then
+        assert(
+          type(err) == "string",
+          "[bug]: failed but error provided is not a string"
+        )
+        log.error(err or "An unknown error occurred when decoding response into issue")
       end
     end
   end
 
-  return issues
+  return table_op.set_into_list(issues)
 end
 
 ---@type rissue.provider_info.GetMergeRequests<rissue.Github.get_merge_requests.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>

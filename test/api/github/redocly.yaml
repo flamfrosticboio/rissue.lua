@@ -9,3 +9,4 @@ decorators:
       - issues
       - pulls
       - meta
+      - search

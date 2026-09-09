@@ -14,7 +14,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 
 local M = {}
@@ -103,6 +102,16 @@ function M.construct(url, opts)
   args[#args + 1] = "-X"
   args[#args + 1] = opts.method
 
+  if opts.accept then
+    args[#args + 1] = "-H"
+    args[#args + 1] = "Accept: " .. opts.accept
+  end
+
+  if opts.content_type then
+    args[#args + 1] = "-H"
+    args[#args + 1] = "Content-Type: " .. opts.content_type
+  end
+
   if opts.headers then
     for _, header in ipairs(opts.headers) do
       args[#args + 1] = "-H"
@@ -184,6 +193,12 @@ function M.construct(url, opts)
     end
   end
 
+  if opts.raw_args then
+    for _, arg in ipairs(opts.raw_args) do
+      args[#args + 1] = arg
+    end
+  end
+
   return args
 end
 
@@ -194,29 +209,26 @@ end
 ---@return string result_or_err
 ---@return integer exit_code
 function M.raw(args, cwd, env)
-  local co, is_main = coroutine.running()
-  if is_main or not co then
-    error("Cannot run 'curl.request()' on a non-coroutine environment")
+  local result, err = process.run_co({
+    cmd = "curl",
+    args = args,
+    cwd = cwd,
+    env = env,
+  })
+
+  -- might cause bugs
+  if not result then
+    error(err)
   end
 
-  local p = process.spawn_err({ cmd = "curl", args = args, cwd = cwd, env = env })
-  p:register_event("on_exit", function()
-    coroutine.resume(co)
-  end)
-
-  p:run()
-
-  coroutine.yield()
-
-  local code = p:get_code()
-  if code ~= 0 then
-    local stderr = p:get_stderr()
+  if result.return_code ~= 0 then
+    local stderr = result.stderr
     if stderr == "" then
-      stderr = p:get_stdout()
+      stderr = result.stdout
     end
-    return stderr, code
+    return stderr, result.return_code
   end
-  return p:get_stdout(), code
+  return result.stdout, result.return_code
 end
 
 --- Runs curl in exclusive coroutine mode.
@@ -226,7 +238,6 @@ end
 ---@return integer exit_code
 function M.request(url, opts)
   local args = M.construct(url, opts)
-  log.debug("Running: " .. process.construct_command_line_string("curl", args))
   return M.raw(args, opts.cwd, opts.env)
 end
 
