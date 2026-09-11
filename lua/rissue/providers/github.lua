@@ -231,8 +231,6 @@ end
 
 ---@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
 local function get_issues(info, token, opts)
-  -- todo: fix tests proxy not working on support with /api/v3
-
   ---@type rissue.Query[]
   local endpoints = opts.settings
       and opts.settings.endpoints
