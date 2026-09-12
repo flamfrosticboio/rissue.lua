@@ -446,6 +446,21 @@ describe("curl", function()
       check_if_present(res, "-H")
       check_if_present(res, "Content-Type: application/json")
     end)
+
+    it("--dump-header include_result_headers passed ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        include_result_headers = true,
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--dump-header")
+      local idx = list_find(res, "--dump-header")
+      local temp = res[idx + 1]
+      assert.is_not_nil(temp, "Did not pass any temp name after --dump-header")
+    end)
   end)
 
   describe("post", function()
