@@ -1,3 +1,4 @@
 .no_lazydev
 .tmp
 .test_setup/
+.env
