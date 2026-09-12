@@ -141,12 +141,13 @@ end
 ---@return boolean
 ---@return string? result
 local function check(url, opts)
-  local result, exit_code = curl.request(url, opts)
-  if exit_code ~= 0 then
-    log.warn(("Failed to fetch endpoint '%s': %s"):format(url, result))
+  local result, err = curl.request(url, opts)
+  if not result then
+    log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
   end
 
-  return exit_code == 0 and result:match("verifiable_password_authentication"), result
+  return not not (result and result.content:match("verifiable_password_authentication")),
+    result and result.content
 end
 
 ---@type rissue.provider_info.Supports<rissue.Github.supports.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
@@ -266,17 +267,18 @@ local function get_issues(info, token, opts)
       repo = info.repo,
     })
 
-    local result, exit_code = curl.request(endpoint, {
+    local fetch_result, fetch_err = curl.request(endpoint, {
       auth = token,
       accept = accept_type,
       data_type = "urlencode",
       data = query.param,
       method = "GET",
+      include_result_headers = true,
     })
 
-    if exit_code == 0 then
+    if fetch_result then
       local ok, err = pcall(function()
-        local decoded_result, decode_error = json.decode(result)
+        local decoded_result, decode_error = json.decode(fetch_result.content)
         if not decoded_result then
           error(decode_error, 0)
         end
@@ -299,6 +301,8 @@ local function get_issues(info, token, opts)
         )
         log.error(err or "An unknown error occurred when decoding response into issue")
       end
+    else
+      log.warn("Failed to fetch an endpoint: " .. (fetch_err or "unhandled error"))
     end
   end
 

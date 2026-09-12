@@ -15,7 +15,6 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local config = require("rissue.config")
-local osinfo = require("rissue.utils.osinfo")
 
 local M = {}
 
@@ -46,11 +45,16 @@ local function load_env(path)
   return env
 end
 
+local sep = package.config:sub(1, 1)
+local function path_join(...)
+  return table.concat({ ... }, sep)
+end
+
 --- Default: cwd='.'
 ---@param env_filename string
 ---@param cwd          string?
 function M.setup(env_filename, cwd)
-  local env_path = (cwd or ".") .. osinfo.separator .. env_filename
+  local env_path = path_join(cwd or ".", env_filename)
   M.env = load_env(env_path)
 end
 

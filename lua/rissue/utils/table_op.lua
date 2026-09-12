@@ -119,8 +119,9 @@ end
 ---@return any|nil, integer
 function M.find(list, value_to_find)
   if type(value_to_find) ~= "function" then
+    local orig = value_to_find
     value_to_find = function(v)
-      return v == value_to_find
+      return v == orig
     end
   end
   for i, item in ipairs(list) do
