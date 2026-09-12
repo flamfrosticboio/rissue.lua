@@ -14,7 +14,10 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+local file = require("rissue.utils.file")
+local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
+local table_op = require("rissue.utils.table_op")
 
 local M = {}
 
@@ -33,6 +36,13 @@ local M = {}
 ---@field urlencode string
 ---@field form string
 ---@field form_string string
+
+---@class rissue.utils.curl.Result
+---@field exitcode integer
+---@field content string
+---@field err string
+--- Available if --dump-header was passed
+---@field headers? string[]
 
 ---@class rissue.utils.curl.Opts
 --- Default: GET
@@ -72,6 +82,9 @@ local M = {}
 ---@field data? string | table<string, any>
 ---@field cwd? string
 ---@field env? string[]|table<string, string?>
+--- Lists and parses the received headers from the server.
+--- Provides `headers` in the `results`
+---@field include_result_headers? boolean
 
 ---@type __rissue.curl.DataTypeMap
 local _data_type_arg = {
@@ -83,7 +96,7 @@ local _data_type_arg = {
   form_string = "--form-string",
 }
 
---- construct the command line arguments based on curl opts
+-- Construct the command line arguments based on curl opts
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
 ---@return string[] args
@@ -193,6 +206,11 @@ function M.construct(url, opts)
     end
   end
 
+  if opts.include_result_headers then
+    args[#args + 1] = "--dump-header"
+    args[#args + 1] = os.tmpname()
+  end
+
   if opts.raw_args then
     for _, arg in ipairs(opts.raw_args) do
       args[#args + 1] = arg
@@ -202,12 +220,28 @@ function M.construct(url, opts)
   return args
 end
 
---- Curls rawly with args (in coroutine mode)
+---@param raw string
+local function parse_received_headers(raw)
+  local res = {}
+  for name, value in raw:gmatch("\n(%S-):[ \t]*([^\r\n]*)") do
+    name = name:lower()
+    if res[name] then
+      res[name] = res[name] .. ", " .. value -- merge duplicates per RFC 9110
+    else
+      res[name] = value
+    end
+  end
+  return res
+end
+
+--- Run curl with specified args.
+---
+--- Note: must be in coroutine mode
 ---@param args string[]
 ---@param cwd? string
 ---@param env? string[]|table<string,string?>
----@return string result_or_err
----@return integer exit_code
+---@return rissue.utils.curl.Result? result
+---@return string? error
 function M.raw(args, cwd, env)
   local result, err = process.run_co({
     cmd = "curl",
@@ -218,24 +252,54 @@ function M.raw(args, cwd, env)
 
   -- might cause bugs
   if not result then
-    error(err)
+    return nil, err or "unhandled error"
   end
 
-  if result.return_code ~= 0 then
-    local stderr = result.stderr
-    if stderr == "" then
-      stderr = result.stdout
+  local headers = nil
+  if result.return_code == 0 then
+    local _, idx = table_op.find(args, "--dump-header")
+    if idx > 0 then
+      local headers_file = args[idx + 1]
+
+      if not headers_file then
+        return nil, "[Bug]: Passed --dump-header without filename"
+      end
+
+      local output, read_file_err = file.read_file(headers_file) -- Warning: raises error
+      if not output then
+        return nil,
+          read_file_err or "unhandled error during tempfile read with --dump-header"
+      end
+
+      local delete_ok, delete_err = file.delete_file(headers_file)
+      if not delete_ok then
+        -- just do nothing for a while since its not a critical bug
+        log.warn(
+          "Failed to delete tmpfile when --dump-header was used: "
+            .. (delete_err or "unhandled error")
+        )
+      end
+
+      headers = parse_received_headers(output)
     end
-    return stderr, result.return_code
   end
-  return result.stdout, result.return_code
+
+  ---@type rissue.utils.curl.Result
+  local res = {
+    exitcode = result.return_code,
+    content = result.stdout,
+    err = result.stderr,
+    headers = headers,
+  }
+
+  return res, nil
 end
 
 --- Runs curl in exclusive coroutine mode.
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
----@return string result_or_err
----@return integer exit_code
+---@return rissue.utils.curl.Result? result
+---@return string? error
 function M.request(url, opts)
   local args = M.construct(url, opts)
   return M.raw(args, opts.cwd, opts.env)
@@ -245,8 +309,8 @@ end
 ---@param url string
 ---@param data string | table<string, string?>
 ---@param opts rissue.utils.curl.Opts?
----@return string result_or_err
----@return integer exit_code
+---@return rissue.utils.curl.Result? result
+---@return string? error
 function M.post(url, data, opts)
   opts = opts or {}
   opts.method = "POST"
