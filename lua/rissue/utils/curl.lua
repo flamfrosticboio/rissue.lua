@@ -42,7 +42,7 @@ local M = {}
 ---@field content string
 ---@field err string
 --- Available if --dump-header was passed
----@field headers? string[]
+---@field headers? table<string, string>
 
 ---@class rissue.utils.curl.Opts
 --- Default: GET
