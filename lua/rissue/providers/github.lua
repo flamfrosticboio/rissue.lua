@@ -280,7 +280,7 @@ local function get_issues(info, token, opts)
     if fetch_result then
       local ok, err = pcall(function()
         local decoded_result, decode_error = json.decode(fetch_result.content)
-        if not decoded_result then
+        if decode_error then
           error(decode_error, 0)
         end
 
