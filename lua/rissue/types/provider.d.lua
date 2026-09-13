@@ -16,7 +16,7 @@
 
 ---@meta
 
----@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
+---@alias rissue.ProviderName string The name of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
 ---@class (exact) rissue.provider_spec.called.Opts<T, S>
 ---@field settings S | table
@@ -33,7 +33,7 @@
 ---@alias rissue.provider_info.Supports<T, S, I>
 ---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
 
----@class (exact) rissue.provider_spec
+---@class (exact) rissue.Provider
 ---@field provider_name  string
 ---@field version string
 ---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)

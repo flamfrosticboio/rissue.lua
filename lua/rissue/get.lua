@@ -26,6 +26,7 @@ local process = require("rissue.utils.process")
 ---@return rissue.issue[]? results
 ---@return string? errors
 function M.get_issues(info, opts)
+  ---@type rissue.Provider?
   local provider = config.providers[info.name]
   if not provider then
     return nil, "Could not find provider: " .. info.name

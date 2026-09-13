@@ -38,11 +38,11 @@ config.options = {
   },
 }
 
----@type table<rissue.provider, rissue.provider_spec>
+---@type table<rissue.ProviderName, rissue.Provider>
 config.providers = { github = require("rissue.providers.github") }
 
 ---@param obj any
----@return rissue.provider_spec
+---@return rissue.Provider
 local function is_provider_spec(obj)
   local ok, err = assert_op.check_structure("rissue.provider_spec", obj, {
     provider_name = "string",
@@ -72,7 +72,7 @@ function config.setup(opts)
           if not is_provider_spec(mod) then
             return
           end
-          ---@cast mod rissue.provider_spec
+          ---@cast mod rissue.Provider
           config.providers[mod.provider_name] = mod
         end)
 
