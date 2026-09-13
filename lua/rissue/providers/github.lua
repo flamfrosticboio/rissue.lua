@@ -320,4 +320,5 @@ return {
   supports = supports,
   get_merge_requests = get_merge_requests,
   get_issues = get_issues,
+  settings = default_settings,
 }

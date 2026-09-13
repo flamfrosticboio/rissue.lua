@@ -43,6 +43,9 @@
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
 ---The second return is where there are additional information to relay to provider info
 ---@field supports rissue.provider_info.Supports
+--- Default settings of the provider. Used for merging settings at `get.issue()`
+--- and other related operations.
+---@field settings table<any, any>
 
 ---@class rissue.ProviderInfo<T>
 ---@field domain string
