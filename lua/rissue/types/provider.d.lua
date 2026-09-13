@@ -18,20 +18,16 @@
 
 ---@alias rissue.ProviderName string The name of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
----@class (exact) rissue.provider_spec.called.Opts<T, S>
----@field settings S | table
----@field request? T | table
+--- Second return is for errors
+---@alias rissue.provider_info.GetIssues<I, S>
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.issue[]?, string?
 
 --- Second return is for errors
----@alias rissue.provider_info.GetIssues<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]?, string?
+---@alias rissue.provider_info.GetMergeRequests<I, S>
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.pr[]?, string?
 
---- Second return is for errors
----@alias rissue.provider_info.GetMergeRequests<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]?, string?
-
----@alias rissue.provider_info.Supports<T, S, I>
----| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
+---@alias rissue.provider_info.Supports<I, S>
+---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: S): boolean, table?
 
 ---@class (exact) rissue.Provider
 ---@field name rissue.ProviderName
