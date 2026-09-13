@@ -73,7 +73,7 @@ function config.setup(opts)
             return
           end
           ---@cast mod rissue.Provider
-          config.providers[mod.provider_name] = mod
+          config.providers[mod.name] = mod
         end)
 
         if not load_ok then

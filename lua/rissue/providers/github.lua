@@ -314,7 +314,7 @@ local function get_merge_requests(_info, _token, _opts) end
 
 ---@type rissue.Provider
 return {
-  provider_name = "github",
+  name = "github",
   version = "0.1",
   version_code = 1000,
   supports = supports,

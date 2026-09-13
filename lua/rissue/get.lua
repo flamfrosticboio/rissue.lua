@@ -36,8 +36,8 @@ function M.get_issues(info, opts)
   local result, err = nil, nil
 
   coroutine.wrap(function()
-    result, err = provider.get_issues(info, env.get_token(provider.provider_name), {
-      settings = config.options.provider_options[provider.provider_name] or {},
+    result, err = provider.get_issues(info, env.get_token(provider.name), {
+      settings = config.options.provider_options[provider.name] or {},
       request = opts,
     })
     done = true

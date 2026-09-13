@@ -34,7 +34,7 @@
 ---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
 
 ---@class (exact) rissue.Provider
----@field provider_name  string
+---@field name rissue.ProviderName
 ---@field version string
 ---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
 ---@field version_code integer
