@@ -27,15 +27,30 @@ local time = require("rissue.utils.time")
 
 --- Additional options when checking provider support
 ---@class rissue.Github.supports.Opts
----@field api_version rissue.Github.SupportedApiVersions | false
+---@field api_version? rissue.Github.SupportedApiVersions | false
 
 --- Additional options when checking provider support
 ---@class rissue.Github.get_merge_requests.Opts
----@field api_version rissue.Github.SupportedApiVersions | false
+---@field api_version? rissue.Github.SupportedApiVersions | false
+--- Limits how many items will be fetched and rendered
+--- Note: This does not guarantee the output size of the result to be exactly `max_items`
+---       and may have more items than requested
+---@field max_items? integer
+--- Enables the use of parallel fetching
+---@field use_parallel_fetching? boolean
+--- The number of items to fetch per page
+---@field items_per_page integer
 
 --- Additional options when checking provider support
 ---@class rissue.Github.get_issues.Opts
----@field api_version rissue.Github.SupportedApiVersions | false
+---@field api_version? rissue.Github.SupportedApiVersions | false
+--- Limits how many items will be fetched and rendered
+--- Note: This does not guarantee the output size of the result to be exactly `max_items`
+---       and may have more items than requested
+---@field max_items? integer
+--- Enables the use of parallel fetching
+---@field use_parallel_fetching? boolean
+---@field items_per_page integer
 
 ---@class rissue.Github.supports.AdditionalInfo
 ---@field ghes string? The Github Enterprise Version (3.x)
@@ -52,6 +67,15 @@ local time = require("rissue.utils.time")
 ---
 --- See default settings for examples.
 ---@field endpoints rissue.Github.opts.Endpoints
+--- The threshold to switch to parallel fetching when multiple endpoints are provided
+---@field fetch_threshold integer
+--- Limits how many items will be fetched and rendered.
+--- Note: This does not guarantee the output size of the result to be exactly `max_items`
+---       and may have more items than requested
+---@field max_items integer
+---@field items_per_page integer
+
+---@class (partial) rissue.Github.Settings.Opts: rissue.Github.Settings
 
 ---@class rissue.Github.opts.Endpoints
 ---@field issues rissue.Query[]
@@ -92,6 +116,9 @@ local default_settings = {
     },
     merge_requests = {},
   },
+  max_items = 1000,
+  fetch_threshold = 50,
+  items_per_page = 100, -- 100 max
 }
 
 --- /!SETTINGS
@@ -150,7 +177,7 @@ local function check(url, opts)
     result and result.content
 end
 
----@type rissue.provider_info.Supports<rissue.Github.supports.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider_info.Supports<rissue.Github.supports.Opts, rissue.Github.Settings.Opts, rissue.Github.supports.AdditionalInfo>
 local function supports(info, token, opts)
   local base = info.curl_protocol .. "://" .. info.domain
 
@@ -233,49 +260,48 @@ local function into_issue(raw)
   }
 end
 
----@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
-local function get_issues(info, token, opts)
-  ---@type rissue.Query[]
-  local endpoints = opts.settings
-      and opts.settings.endpoints
-      and opts.settings.endpoints.issues
-    or default_settings.endpoints.issues
-  local base_endpoint = get_api_endpoint(info)
-
-  local headers = {}
-  if info.additional_info and info.additional_info.api_version then
-    headers[#headers + 1] = api_ver_template .. info.additional_info.api_version
+---@param link_header_raw string
+---@return table<string, string>
+local function parse_link_header(link_header_raw)
+  local links = {}
+  for pointer, name in link_header_raw:gmatch('<(%S+)>;%s*rel="(%S+)"') do
+    links[name] = pointer
   end
+  return links
+end
 
-  ---@type table<string, rissue.issue>
-  local issues = {}
+---@param endpoint string
+---@param query rissue.Query
+---@param token string?
+---A buffer of issues/merge_requests to be placed
+---@param buffer table<integer, any>
+---@param settings rissue.Github.Settings
+local function fetch_paging(endpoint, query, token, buffer, settings)
+  local use_endpoint_raw = false
 
-  for _, query in ipairs(endpoints) do
-    --- todo: add switch to parallel fetching on each query endpoint if limits are threshold (default=50)
-    --- If link header is present, we just use that until there is no more rel=next.
-    --- NOTE: Sometimes, there will be validation failed because you have more than 5 boolean operators (AND, OR, NOT)
-    --- NOTE : There is incomplete_results on the /search pagination field
-
-    ---@type string
-    local endpoint = base_endpoint .. query.endpoint
-
-    if not query.param.q then
-      return nil, "Query has no 'q' passed on query.param"
+  while true do
+    if table_op.count(buffer) > settings.max_items then
+      break
     end
 
-    query.param.q = fmt(query.param.q, {
-      owner = info.owner,
-      repo = info.repo,
-    })
-
-    local fetch_result, fetch_err = curl.request(endpoint, {
+    ---@type rissue.utils.curl.Opts
+    local request_settings = {
       auth = token,
       accept = accept_type,
-      data_type = "urlencode",
-      data = query.param,
       method = "GET",
       include_result_headers = true,
-    })
+    }
+
+    -- the link header provides an api link to the next page
+    -- if use_endpoint_raw is true, expect endpoint to point to
+    -- this api link of the next page
+    if not use_endpoint_raw then
+      query.param.page = "1"
+      request_settings.data = query.param
+      request_settings.data_type = "urlencode"
+    end
+
+    local fetch_result, fetch_err = curl.request(endpoint, request_settings)
 
     if fetch_result then
       local ok, err = pcall(function()
@@ -291,26 +317,118 @@ local function get_issues(info, token, opts)
 
         for _, item in ipairs(raw_items) do
           local issue = into_issue(item)
-          issues[issue.id] = issue
+          buffer[issue.id] = issue
         end
       end)
 
       if not ok then
-        assert(
-          type(err) == "string",
-          "[bug]: failed but error provided is not a string"
-        )
         log.error(err or "An unknown error occurred when decoding response into issue")
+        break
+      end
+
+      if not fetch_result.headers.link then
+        break
+      end
+
+      local link_headers = parse_link_header(fetch_result.headers.link)
+      if link_headers.next then
+        use_endpoint_raw = true
+        endpoint = link_headers.next
       end
     else
       log.warn("Failed to fetch an endpoint: " .. (fetch_err or "unhandled error"))
     end
   end
-
-  return table_op.set_into_list(issues)
 end
 
----@type rissue.provider_info.GetMergeRequests<rissue.Github.get_merge_requests.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
+---@param info rissue.ProviderInfo
+---@param token string?
+---@param base_endpoint string
+---@param endpoints rissue.Query[]
+---@param settings rissue.Github.Settings
+local function fetch_sequential(info, token, base_endpoint, endpoints, settings)
+  --- A Set
+  local results = {}
+
+  for _, query in ipairs(endpoints) do
+    --- todo: add switch to parallel fetching on each query endpoint if limits are threshold (default=50)
+    --- If link header is present, we just use that until there is no more rel=next.
+    --- NOTE: Sometimes, there will be validation failed because you have more than 5 boolean operators (AND, OR, NOT)
+    --- NOTE : There is incomplete_results on the /search pagination field
+
+    if table_op.count(results) > settings.max_items then
+      break
+    end
+
+    ---@type string
+    local endpoint = base_endpoint .. query.endpoint
+
+    if not query.param.q then
+      return nil, "Query has no 'q' passed on query.param"
+    end
+
+    query.param.q = fmt(query.param.q, {
+      owner = info.owner,
+      repo = info.repo,
+    })
+
+    query.param.per_page = tostring(settings.items_per_page)
+
+    fetch_paging(endpoint, query, token, results, settings)
+  end
+
+  return table_op.set_into_list(results)
+end
+
+---@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings.Opts, rissue.Github.supports.AdditionalInfo>
+local function get_issues(info, token, opts)
+  ---@type rissue.Github.Settings
+  local settings = {
+    max_items = (opts.request and opts.request.max_items)
+      or (opts.settings and opts.settings.max_items)
+      or default_settings.max_items,
+    endpoints = {
+      issues = opts.settings
+          and opts.settings.endpoints
+          and opts.settings.endpoints.issues
+        or default_settings.endpoints.issues,
+      merge_requests = opts.settings
+          and opts.settings.endpoints
+          and opts.settings.endpoints.merge_requests
+        or default_settings.endpoints.merge_requests,
+    },
+    fetch_threshold = opts.settings and opts.settings.fetch_threshold
+      or default_settings.fetch_threshold,
+    items_per_page = opts.settings and opts.settings.items_per_page
+      or opts.settings and opts.settings.items_per_page
+      or default_settings.items_per_page,
+  }
+
+  local base_endpoint = get_api_endpoint(info)
+
+  local headers = {}
+  if info.additional_info and info.additional_info.api_version then
+    headers[#headers + 1] = api_ver_template .. info.additional_info.api_version
+  end
+
+  if
+    opts.request.use_parallel_fetching == true
+    or opts.request.use_parallel_fetching ~= false
+      and settings.max_items >= settings.fetch_threshold
+  then
+    return nil, "Not implemented"
+  else
+    return fetch_sequential(
+      info,
+      token,
+      base_endpoint,
+      settings.endpoints.issues,
+      settings
+    )
+  end
+end
+
+---@type rissue.provider_info.GetMergeRequests<rissue.Github.get_merge_requests.Opts, rissue.Github.Settings.Opts, rissue.Github.supports.AdditionalInfo>
 local function get_merge_requests(_info, _token, _opts) end
 
 ---@type rissue.provider_spec
