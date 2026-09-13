@@ -192,6 +192,9 @@ end
 ---@param result any
 ---@return any[]?
 local function unmap_result(result)
+  if type(result) ~= "table" then
+    return nil
+  end
   -- If the result was a kind of search (search/issues)
   if type(result.items) == "table" and type(result.total_count) == "number" then
     return result.items
