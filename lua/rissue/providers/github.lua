@@ -137,9 +137,6 @@ local function from_range(range, target)
   end
 end
 
----@class rissue.Provider.Opts: table
----@field custom_fetch_endpoints string[]
-
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 local function get_api_endpoint(info)
   return info.protocol
@@ -216,6 +213,7 @@ end
 ---@param result any
 ---@return any[]?
 local function unmap_result(result)
+  --- todo: add errors
   -- If the result was a kind of search (search/issues)
   if type(result.items) == "table" and type(result.total_count) == "number" then
     return result.items
@@ -254,25 +252,29 @@ local function into_issue(raw)
   }
 end
 
+---@class __rissue.Github.FetchPagingOpts
+---@field endpoint string
+---@field query rissue.Query
+---@field token string?
+---@field buffer table<integer, any>
+---@field settings rissue.Github.Settings
+---@field mapper fun(item: any): any
+
 --- Fetches the items where the endpoint is a paging.
 --- Stops fetching other pages when the buffer size reaches the target size.
 --- The buffer would may be larger than the target size.
----@param endpoint string
----@param query rissue.Query
----@param token string?
----@param buffer table<integer, any>
----@param settings rissue.Github.Settings
-local function fetch_paging(endpoint, query, token, buffer, settings)
+---@param opts __rissue.Github.FetchPagingOpts
+local function fetch_paging(opts)
   local use_endpoint_raw = false
 
   while true do
-    if table_op.count(buffer) > settings.max_items then
+    if table_op.count(opts.buffer) > opts.settings.max_items then
       break
     end
 
     ---@type rissue.utils.curl.Opts
-    local request_settings = {
-      auth = token,
+    local curl_opts = {
+      auth = opts.token,
       accept = accept_type,
       method = "GET",
       include_result_headers = true,
@@ -282,16 +284,16 @@ local function fetch_paging(endpoint, query, token, buffer, settings)
     -- if use_endpoint_raw is true, expect endpoint to point to
     -- this api link of the next page
     if not use_endpoint_raw then
-      query.param.page = "1"
-      request_settings.data = query.param
-      request_settings.data_type = "urlencode"
+      opts.query.param.page = "1"
+      curl_opts.data = opts.query.param
+      curl_opts.data_type = "urlencode"
     end
 
-    local fetch_result, fetch_err = curl.request(endpoint, request_settings)
+    local result, fetch_err = curl.request(opts.endpoint, curl_opts)
 
-    if fetch_result then
+    if result then
       local ok, err = pcall(function()
-        local decoded_result, decode_error = json.decode(fetch_result.content)
+        local decoded_result, decode_error = json.decode(result.content)
         if decode_error then
           error(decode_error, 0)
         end
@@ -302,8 +304,8 @@ local function fetch_paging(endpoint, query, token, buffer, settings)
         end
 
         for _, item in ipairs(raw_items) do
-          local issue = into_issue(item)
-          buffer[issue.id] = issue
+          local issue = opts.mapper(item)
+          opts.buffer[issue.id] = issue
         end
       end)
 
@@ -312,14 +314,14 @@ local function fetch_paging(endpoint, query, token, buffer, settings)
         break
       end
 
-      if not fetch_result.headers.link then
+      if not result.headers.link then
         break
       end
 
-      local link_headers = parse_link_header(fetch_result.headers.link)
+      local link_headers = parse_link_header(result.headers.link)
       if link_headers.next then
         use_endpoint_raw = true
-        endpoint = link_headers.next
+        opts.endpoint = link_headers.next
       end
     else
       log.warn("Failed to fetch an endpoint: " .. (fetch_err or "unhandled error"))
@@ -360,7 +362,14 @@ local function fetch_sequential(info, token, base_endpoint, endpoints, settings)
 
     query.param.per_page = tostring(settings.items_per_page)
 
-    fetch_paging(endpoint, query, token, results, settings)
+    fetch_paging({
+      buffer = results,
+      endpoint = endpoint,
+      query = query,
+      token = token,
+      settings = settings,
+      mapper = into_issue,
+    })
   end
 
   return table_op.set_into_list(results)
