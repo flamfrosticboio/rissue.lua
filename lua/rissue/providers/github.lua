@@ -225,6 +225,9 @@ local function unmap_result(result)
 
   -- If the result was a kind of search (search/issues)
   if type(result.items) == "table" and type(result.total_count) == "number" then
+    if result.incomplete_results == true then
+      return result.items, "response has incomplete results"
+    end
     return result.items
   elseif table_op.is_list(result) then
     return result
@@ -318,6 +321,10 @@ local function fetch_paging(opts)
               .. (unmapping_error or "unhandled error"),
             0
           )
+        end
+
+        if raw_items and unmapping_error then
+          log.warn("Warning: " .. unmapping_error)
         end
 
         for _, item in ipairs(raw_items) do
