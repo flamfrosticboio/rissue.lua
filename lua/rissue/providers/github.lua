@@ -211,13 +211,26 @@ local function parse_link_header(link_header_raw)
 end
 
 ---@param result any
----@return any[]?
+---@return any[]? results
+---@return string? errors
 local function unmap_result(result)
-  --- todo: add errors
+  if type(result) ~= "table" then
+    return nil, "not a table"
+  end
+
+  if type(result.status) == "string" then
+    return nil,
+      ("%s: %s"):format(result.status, (result.message or "no message provided"))
+  end
+
   -- If the result was a kind of search (search/issues)
   if type(result.items) == "table" and type(result.total_count) == "number" then
     return result.items
+  elseif table_op.is_list(result) then
+    return result
   end
+
+  return nil, "unknown pattern"
 end
 
 ---@param raw table
@@ -298,9 +311,13 @@ local function fetch_paging(opts)
           error(decode_error, 0)
         end
 
-        local raw_items = unmap_result(decoded_result)
+        local raw_items, unmapping_error = unmap_result(decoded_result)
         if not raw_items then
-          error("Invalid response sent by server", 0)
+          error(
+            "Error occurred when decoding result: "
+              .. (unmapping_error or "unhandled error"),
+            0
+          )
         end
 
         for _, item in ipairs(raw_items) do
