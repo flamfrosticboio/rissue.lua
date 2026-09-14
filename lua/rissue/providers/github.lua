@@ -59,8 +59,10 @@ local time = require("rissue.utils.time")
 --- Override the api version to be used.
 --- Most commonly used when doing requests like `get.issues()` or `get.merge_requests()`
 ---
+--- Setting it to false removes the api_version header to be sent to the server.
+---
 --- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
----@field api_version rissue.Github.SupportedApiVersions?
+---@field api_version? rissue.Github.SupportedApiVersions | false
 
 --- /!TYPES
 
@@ -175,7 +177,7 @@ local function supports(info, token, opts)
 
       if type(opts.api_version) == "string" then
         additional_info.api_version = opts.api_version
-      else
+      elseif opts.api_version ~= false then
         additional_info.api_version = from_range(ghes_api_versions_range, version)
       end
     end
