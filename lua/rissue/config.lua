@@ -38,11 +38,11 @@ config.options = {
   },
 }
 
----@type table<rissue.provider, rissue.provider_spec>
+---@type table<rissue.ProviderName, rissue.Provider>
 config.providers = { github = require("rissue.providers.github") }
 
 ---@param obj any
----@return rissue.provider_spec
+---@return rissue.Provider
 local function is_provider_spec(obj)
   local ok, err = assert_op.check_structure("rissue.provider_spec", obj, {
     provider_name = "string",
@@ -72,8 +72,8 @@ function config.setup(opts)
           if not is_provider_spec(mod) then
             return
           end
-          ---@cast mod rissue.provider_spec
-          config.providers[mod.provider_name] = mod
+          ---@cast mod rissue.Provider
+          config.providers[mod.name] = mod
         end)
 
         if not load_ok then
@@ -87,6 +87,20 @@ function config.setup(opts)
   if _err_idx > 0 then
     return "Failed to setup rissue properly: \n\n" .. table.concat(errors, "\n")
   end
+end
+
+--- Utility function
+--- Merge settings with order (highest = priority):
+---   - request options
+---   - user defined settings
+---   - provider's default settings
+---@param provider rissue.Provider
+---@param request table?
+---@return table? merged_settings
+---@return string? error
+function config.merge_provider_settings(provider, request)
+  local settings = config.options.provider_options[provider.name]
+  return table_op.force_deep_extend(provider.settings, settings or {}, request or {})
 end
 
 return config

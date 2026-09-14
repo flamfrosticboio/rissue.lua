@@ -18,7 +18,7 @@
 ---@field additional_providers string[] List of lua filenames to import
 ---@field env_file string The name of the env file
 ---@field env rissue.config.Env
----@field endpoint_shortcuts table<rissue.provider, rissue.EndpointShortcut>
+---@field endpoint_shortcuts table<rissue.ProviderName, rissue.EndpointShortcut>
 --- List of options for a provider. See the provider's documentation for the
 --- list of options that is supported.
 ---@field provider_options table<string, table>

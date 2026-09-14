@@ -25,37 +25,14 @@ local time = require("rissue.utils.time")
 
 ---@alias rissue.Github.SupportedApiVersions "2026-03-10" | "2022-11-28"
 
---- Additional options when checking provider support
----@class rissue.Github.supports.Opts
----@field api_version? rissue.Github.SupportedApiVersions | false
-
---- Additional options when checking provider support
----@class rissue.Github.get_merge_requests.Opts
----@field api_version? rissue.Github.SupportedApiVersions | false
---- Limits how many items will be fetched and rendered
---- Note: This does not guarantee the output size of the result to be exactly `max_items`
----       and may have more items than requested
----@field max_items? integer
---- Enables the use of parallel fetching
----@field use_parallel_fetching? boolean
---- The number of items to fetch per page
----@field items_per_page integer
-
---- Additional options when checking provider support
----@class rissue.Github.get_issues.Opts
----@field api_version? rissue.Github.SupportedApiVersions | false
---- Limits how many items will be fetched and rendered
---- Note: This does not guarantee the output size of the result to be exactly `max_items`
----       and may have more items than requested
----@field max_items? integer
---- Enables the use of parallel fetching
----@field use_parallel_fetching? boolean
----@field items_per_page integer
-
 ---@class rissue.Github.supports.AdditionalInfo
 ---@field ghes string? The Github Enterprise Version (3.x)
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
 ---@field api_version rissue.Github.SupportedApiVersions?
+
+---@class rissue.Github.opts.Endpoints
+---@field issues rissue.Query[]
+---@field merge_requests rissue.Query[]
 
 ---@class rissue.Github.Settings
 --- Required field on param in each query: `q`
@@ -67,19 +44,27 @@ local time = require("rissue.utils.time")
 ---
 --- See default settings for examples.
 ---@field endpoints rissue.Github.opts.Endpoints
---- The threshold to switch to parallel fetching when multiple endpoints are provided
----@field fetch_threshold integer
+--- Override the api version to be used.
+--- Most commonly used when doing requests like `get.issues()` or `get.merge_requests()`
+---
+--- Setting it to false removes the api_version header to be sent to the server.
+---
+--- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
+---@field api_version? rissue.Github.SupportedApiVersions | false
 --- Limits how many items will be fetched and rendered.
 --- Note: This does not guarantee the output size of the result to be exactly `max_items`
 ---       and may have more items than requested
 ---@field max_items integer
+--- Defines how many items are fetched per page when performing pagination requests in github. Limit=100
 ---@field items_per_page integer
+--- Settings on the parallel fetching.
+--- When this option is `true`, it will be always enabled
+--- When this option is `false`, it will be always disabled (fallback to fetching sequentially).
+--- When this option is an integer, it will act as a threshold comparing `max_items` ``(max_items >= threshold)``
+---@field parallel_fetching boolean | integer
 
----@class (partial) rissue.Github.Settings.Opts: rissue.Github.Settings
-
----@class rissue.Github.opts.Endpoints
----@field issues rissue.Query[]
----@field merge_requests rissue.Query[]
+--- Partial version of rissue.Github.Settings
+---@class (partial) rissue.Github.Opts: rissue.Github.Settings
 
 --- /!TYPES
 
@@ -116,9 +101,9 @@ local default_settings = {
     },
     merge_requests = {},
   },
-  max_items = 1000,
-  fetch_threshold = 50,
-  items_per_page = 100, -- 100 max
+  parallel_fetching = 50,
+  max_items = 100,
+  items_per_page = 100,
 }
 
 --- /!SETTINGS
@@ -177,7 +162,7 @@ local function check(url, opts)
     result and result.content
 end
 
----@type rissue.provider_info.Supports<rissue.Github.supports.Opts, rissue.Github.Settings.Opts, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider.Supports<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function supports(info, token, opts)
   local base = info.curl_protocol .. "://" .. info.domain
 
@@ -195,12 +180,9 @@ local function supports(info, token, opts)
       additional_info.ghes = major .. "." .. minor
       additional_info.ghes_code = version
 
-      if opts.request then
-        if type(opts.request.api_version) == "string" then
-          additional_info.api_version = opts.request.api_version
-        end
-        -- do nothing if api_version is false or any other types
-      else
+      if type(opts.api_version) == "string" then
+        additional_info.api_version = opts.api_version
+      elseif opts.api_version ~= false then
         additional_info.api_version = from_range(ghes_api_versions_range, version)
       end
     end
@@ -216,12 +198,24 @@ local function supports(info, token, opts)
   return false
 end
 
+--- Parses github's link header into a table.
+--- Common or to be expected:
+--- - `next` - `link?`
+--- - `last` - `link?`
+--- - `first` - `link?`
+---@param link_header_raw string
+---@return table<string, string>
+local function parse_link_header(link_header_raw)
+  local links = {}
+  for pointer, name in link_header_raw:gmatch('<(%S+)>;%s*rel="(%S+)"') do
+    links[name] = pointer
+  end
+  return links
+end
+
 ---@param result any
 ---@return any[]?
 local function unmap_result(result)
-  if type(result) ~= "table" then
-    return nil
-  end
   -- If the result was a kind of search (search/issues)
   if type(result.items) == "table" and type(result.total_count) == "number" then
     return result.items
@@ -260,20 +254,12 @@ local function into_issue(raw)
   }
 end
 
----@param link_header_raw string
----@return table<string, string>
-local function parse_link_header(link_header_raw)
-  local links = {}
-  for pointer, name in link_header_raw:gmatch('<(%S+)>;%s*rel="(%S+)"') do
-    links[name] = pointer
-  end
-  return links
-end
-
+--- Fetches the items where the endpoint is a paging.
+--- Stops fetching other pages when the buffer size reaches the target size.
+--- The buffer would may be larger than the target size.
 ---@param endpoint string
 ---@param query rissue.Query
 ---@param token string?
----A buffer of issues/merge_requests to be placed
 ---@param buffer table<integer, any>
 ---@param settings rissue.Github.Settings
 local function fetch_paging(endpoint, query, token, buffer, settings)
@@ -341,13 +327,13 @@ local function fetch_paging(endpoint, query, token, buffer, settings)
   end
 end
 
+--- Fetches the endpoints in sequential synchronous order
 ---@param info rissue.ProviderInfo
 ---@param token string?
 ---@param base_endpoint string
 ---@param endpoints rissue.Query[]
 ---@param settings rissue.Github.Settings
 local function fetch_sequential(info, token, base_endpoint, endpoints, settings)
-  --- A Set
   local results = {}
 
   for _, query in ipairs(endpoints) do
@@ -380,29 +366,9 @@ local function fetch_sequential(info, token, base_endpoint, endpoints, settings)
   return table_op.set_into_list(results)
 end
 
----@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings.Opts, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_issues(info, token, opts)
-  ---@type rissue.Github.Settings
-  local settings = {
-    max_items = (opts.request and opts.request.max_items)
-      or (opts.settings and opts.settings.max_items)
-      or default_settings.max_items,
-    endpoints = {
-      issues = opts.settings
-          and opts.settings.endpoints
-          and opts.settings.endpoints.issues
-        or default_settings.endpoints.issues,
-      merge_requests = opts.settings
-          and opts.settings.endpoints
-          and opts.settings.endpoints.merge_requests
-        or default_settings.endpoints.merge_requests,
-    },
-    fetch_threshold = opts.settings and opts.settings.fetch_threshold
-      or default_settings.fetch_threshold,
-    items_per_page = opts.settings and opts.settings.items_per_page
-      or opts.settings and opts.settings.items_per_page
-      or default_settings.items_per_page,
-  }
+  -- todo: fix tests proxy not working on support with /api/v3
 
   local base_endpoint = get_api_endpoint(info)
 
@@ -411,32 +377,28 @@ local function get_issues(info, token, opts)
     headers[#headers + 1] = api_ver_template .. info.additional_info.api_version
   end
 
+  local use_parallel_fetching = opts.parallel_fetching
   if
-    opts.request.use_parallel_fetching == true
-    or opts.request.use_parallel_fetching ~= false
-      and settings.max_items >= settings.fetch_threshold
+    use_parallel_fetching == true
+    or type(use_parallel_fetching) == "number"
+      and opts.max_items >= use_parallel_fetching
   then
-    return nil, "Not implemented"
+    return nil, "Not yet implemented"
   else
-    return fetch_sequential(
-      info,
-      token,
-      base_endpoint,
-      settings.endpoints.issues,
-      settings
-    )
+    return fetch_sequential(info, token, base_endpoint, opts.endpoints.issues, opts)
   end
 end
 
----@type rissue.provider_info.GetMergeRequests<rissue.Github.get_merge_requests.Opts, rissue.Github.Settings.Opts, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider.GetMergeRequests<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_merge_requests(_info, _token, _opts) end
 
----@type rissue.provider_spec
+---@type rissue.Provider
 return {
-  provider_name = "github",
+  name = "github",
   version = "0.1",
   version_code = 1000,
   supports = supports,
   get_merge_requests = get_merge_requests,
   get_issues = get_issues,
+  settings = default_settings,
 }
