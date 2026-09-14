@@ -56,7 +56,7 @@ jobs:
         id: cache-test-dependencies
         uses: actions/cache@v6
         with:
-          path: ~/.luarocks
+          path: .luarocks
           key: luarocks-${{ hashFiles('**/*.rockspec') }}
 
       - name: Setup Test Dependencies
