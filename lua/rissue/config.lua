@@ -89,4 +89,18 @@ function config.setup(opts)
   end
 end
 
+--- Utility function
+--- Merge settings with order (highest = priority):
+---   - request options
+---   - user defined settings
+---   - provider's default settings
+---@param provider rissue.Provider
+---@param request table?
+---@return table? merged_settings
+---@return string? error
+function config.merge_provider_settings(provider, request)
+  local settings = config.options.provider_options[provider.name]
+  return table_op.force_deep_extend(provider.settings, settings or {}, request or {})
+end
+
 return config

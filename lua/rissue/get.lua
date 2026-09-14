@@ -20,18 +20,6 @@ local config = require("rissue.config")
 local env = require("rissue.env")
 local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
-local table_op = require("rissue.utils.table_op")
-
---- Merge settings with order (highest = priority):
----   - request options
----   - user defined settings
----   - provider's default settings
----@param provider rissue.Provider
----@param request table?
----@param settings table?
-local function merge_settings(provider, settings, request)
-  return table_op.force_deep_extend(provider.settings, settings or {}, request or {})
-end
 
 ---@param info rissue.ProviderInfo
 ---@param opts table? Settings that are based on provider
@@ -51,7 +39,7 @@ function M.get_issues(info, opts)
     result, err = provider.get_issues(
       info,
       env.get_token(provider.name),
-      merge_settings(provider, config.options.provider_options[provider.name], opts)
+      config.merge_provider_settings(provider, opts)
     )
     done = true
   end)()
