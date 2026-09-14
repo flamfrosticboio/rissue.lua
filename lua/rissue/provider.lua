@@ -93,8 +93,11 @@ local function get_provider_info_unsafe(remote_url, request_opts, level)
 
     local token = env.get_token(provider_name)
     local thread = coroutine.create(function()
-      supported, additional_info =
-        provider.supports(remote_info, token, { request = request_opts })
+      supported, additional_info = provider.supports(
+        remote_info,
+        token,
+        config.merge_provider_settings(provider, request_opts)
+      )
       finished = true
     end)
     local co_ok, co_error = coroutine.resume(thread)
