@@ -83,6 +83,10 @@ local default_settings = {
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
 ---@field api_version rissue.Github.SupportedApiVersions?
 
+---@class rissue.Github.opts.Endpoints
+---@field issues rissue.Query[]
+---@field merge_requests rissue.Query[]
+
 ---@class rissue.Github.Settings
 --- Required field on param in each query: `q`
 --- `q` can be used as template string.
@@ -93,10 +97,11 @@ local default_settings = {
 ---
 --- See default settings for examples.
 ---@field endpoints rissue.Github.opts.Endpoints
-
----@class rissue.Github.opts.Endpoints
----@field issues rissue.Query[]
----@field merge_requests rissue.Query[]
+--- Override the api version to be used.
+--- Most commonly used when doing requests like `get.issues()` or `get.merge_requests()`
+---
+--- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
+---@field api_version rissue.Github.SupportedApiVersions?
 ```
 <!-- /!TYPES -->
 
