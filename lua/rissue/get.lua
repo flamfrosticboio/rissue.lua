@@ -26,6 +26,7 @@ local process = require("rissue.utils.process")
 ---@return rissue.issue[]? results
 ---@return string? errors
 function M.get_issues(info, opts)
+  ---@type rissue.Provider?
   local provider = config.providers[info.name]
   if not provider then
     return nil, "Could not find provider: " .. info.name
@@ -35,10 +36,11 @@ function M.get_issues(info, opts)
   local result, err = nil, nil
 
   coroutine.wrap(function()
-    result, err = provider.get_issues(info, env.get_token(provider.provider_name), {
-      settings = config.options.provider_options[provider.provider_name] or {},
-      request = opts,
-    })
+    result, err = provider.get_issues(
+      info,
+      env.get_token(provider.name),
+      config.merge_provider_settings(provider, opts)
+    )
     done = true
   end)()
 

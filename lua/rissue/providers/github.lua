@@ -42,6 +42,10 @@ local time = require("rissue.utils.time")
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
 ---@field api_version rissue.Github.SupportedApiVersions?
 
+---@class rissue.Github.opts.Endpoints
+---@field issues rissue.Query[]
+---@field merge_requests rissue.Query[]
+
 ---@class rissue.Github.Settings
 --- Required field on param in each query: `q`
 --- `q` can be used as template string.
@@ -52,10 +56,13 @@ local time = require("rissue.utils.time")
 ---
 --- See default settings for examples.
 ---@field endpoints rissue.Github.opts.Endpoints
-
----@class rissue.Github.opts.Endpoints
----@field issues rissue.Query[]
----@field merge_requests rissue.Query[]
+--- Override the api version to be used.
+--- Most commonly used when doing requests like `get.issues()` or `get.merge_requests()`
+---
+--- Setting it to false removes the api_version header to be sent to the server.
+---
+--- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
+---@field api_version? rissue.Github.SupportedApiVersions | false
 
 --- /!TYPES
 
@@ -150,7 +157,7 @@ local function check(url, opts)
     result and result.content
 end
 
----@type rissue.provider_info.Supports<rissue.Github.supports.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider.Supports<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function supports(info, token, opts)
   local base = info.curl_protocol .. "://" .. info.domain
 
@@ -168,12 +175,9 @@ local function supports(info, token, opts)
       additional_info.ghes = major .. "." .. minor
       additional_info.ghes_code = version
 
-      if opts.request then
-        if type(opts.request.api_version) == "string" then
-          additional_info.api_version = opts.request.api_version
-        end
-        -- do nothing if api_version is false or any other types
-      else
+      if type(opts.api_version) == "string" then
+        additional_info.api_version = opts.api_version
+      elseif opts.api_version ~= false then
         additional_info.api_version = from_range(ghes_api_versions_range, version)
       end
     end
@@ -230,15 +234,12 @@ local function into_issue(raw)
   }
 end
 
----@type rissue.provider_info.GetIssues<rissue.Github.get_issues.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_issues(info, token, opts)
   -- todo: fix tests proxy not working on support with /api/v3
 
   ---@type rissue.Query[]
-  local endpoints = opts.settings
-      and opts.settings.endpoints
-      and opts.settings.endpoints.issues
-    or default_settings.endpoints.issues
+  local endpoints = opts.endpoints.issues
   local base_endpoint = get_api_endpoint(info)
 
   local headers = {}
@@ -309,15 +310,16 @@ local function get_issues(info, token, opts)
   return table_op.set_into_list(issues)
 end
 
----@type rissue.provider_info.GetMergeRequests<rissue.Github.get_merge_requests.Opts, rissue.Github.Settings, rissue.Github.supports.AdditionalInfo>
+---@type rissue.provider.GetMergeRequests<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_merge_requests(_info, _token, _opts) end
 
----@type rissue.provider_spec
+---@type rissue.Provider
 return {
-  provider_name = "github",
+  name = "github",
   version = "0.1",
   version_code = 1000,
   supports = supports,
   get_merge_requests = get_merge_requests,
   get_issues = get_issues,
+  settings = default_settings,
 }

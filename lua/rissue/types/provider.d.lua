@@ -14,35 +14,32 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@meta
-
----@alias rissue.provider string A type of provider (e.g. "github", "gitlab", "forgejo", "gitea")
-
----@class (exact) rissue.provider_spec.called.Opts<T, S>
----@field settings S | table
----@field request? T | table
+---@alias rissue.ProviderName string The name of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
 --- Second return is for errors
----@alias rissue.provider_info.GetIssues<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.issue[]?, string?
+---@alias rissue.provider.GetIssues<I, S>
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.issue[]?, string?
 
 --- Second return is for errors
----@alias rissue.provider_info.GetMergeRequests<T, S, I>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): rissue.pr[]?, string?
+---@alias rissue.provider.GetMergeRequests<I, S>
+---| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.pr[]?, string?
 
----@alias rissue.provider_info.Supports<T, S, I>
----| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: rissue.provider_spec.called.Opts<T, S>): boolean, table?
+---@alias rissue.provider.Supports<I, S>
+---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: S): boolean, table?
 
----@class (exact) rissue.provider_spec
----@field provider_name  string
+---@class (exact) rissue.Provider
+---@field name rissue.ProviderName
 ---@field version string
 ---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
 ---@field version_code integer
----@field get_issues rissue.provider_info.GetIssues<any, any, any>
----@field get_merge_requests rissue.provider_info.GetMergeRequests<any, any, any>
+---@field get_issues rissue.provider.GetIssues<any, any, any>
+---@field get_merge_requests rissue.provider.GetMergeRequests<any, any, any>
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
 ---The second return is where there are additional information to relay to provider info
----@field supports rissue.provider_info.Supports
+---@field supports rissue.provider.Supports
+--- Default settings of the provider. Used for merging settings at `get.issue()`
+--- and other related operations.
+---@field settings table<any, any>
 
 ---@class rissue.ProviderInfo<T>
 ---@field domain string

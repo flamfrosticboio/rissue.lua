@@ -64,7 +64,7 @@ function M.get(name)
   return M.env[name] or os.getenv(name)
 end
 
----@param provider rissue.provider
+---@param provider rissue.ProviderName
 ---@return string?
 function M.get_token(provider)
   return M.get(config.options.env.provider_prefix .. provider:upper())
