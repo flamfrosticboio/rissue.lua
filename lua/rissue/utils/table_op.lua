@@ -43,6 +43,11 @@ function M.shallow_key_merge_overwrite(dest, source)
   end
 end
 
+--- Creates a copy of a table with deeply merged items.
+---
+--- Similar rules to `vim.tbl_extend()` where:
+--- - If the right table is a pure list (with `table_op.is_list()`), then overwrite it.
+--- - Merge recursively on each table.
 ---@param ... table
 ---@return table
 function M.force_deep_extend(...)
