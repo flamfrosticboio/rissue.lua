@@ -61,7 +61,11 @@ function M.force_deep_extend(...)
       else
         if type(v) == "table" then
           if M.is_list(v) then
-            dst[k] = v
+            local copy = {}
+            for i, item in ipairs(v) do
+              copy[i] = (type(item) == "table") and M.force_deep_extend(item) or item
+            end
+            dst[k] = copy
           else
             local copy = {}
             merge(copy, v)
