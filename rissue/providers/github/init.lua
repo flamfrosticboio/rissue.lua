@@ -73,8 +73,9 @@ local function unmap_result(result)
 end
 
 ---@param raw table
+---@param settings rissue.Github.Settings
 ---@return rissue.issue
-local function into_issue(raw)
+local function into_issue(raw, settings)
   ---@type rissue.label[]
   local labels = {}
 
@@ -101,6 +102,7 @@ local function into_issue(raw)
     },
     created_at = time.iso_to_timestamp_utc(raw.created_at),
     labels = labels,
+    raw = settings.store_raw and raw or nil,
   }
 end
 
@@ -110,7 +112,7 @@ end
 ---@field token string?
 ---@field buffer table<integer, any>
 ---@field settings rissue.Github.Settings
----@field mapper fun(item: any): any
+---@field mapper fun(item: any, settings: rissue.Github.Settings): any
 
 --- Fetches the items where the endpoint is a paging.
 --- Stops fetching other pages when the buffer size reaches the target size.
@@ -166,7 +168,7 @@ local function fetch_paging(opts)
         end
 
         for _, item in ipairs(raw_items) do
-          local issue = opts.mapper(item)
+          local issue = opts.mapper(item, opts.settings)
           opts.buffer[issue.id] = issue
         end
       end)

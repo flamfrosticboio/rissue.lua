@@ -69,6 +69,8 @@
 --- --- Results to: "Accept: application/vnd.github.raw+json" if media_type is `json`
 --- ```
 ---@field media_type rissue.Github.MediaType
+--- Store the raw response from the server to the original parsed response
+---@field store_raw boolean
 
 --- Partial version of rissue.Github.Settings
 ---@class (partial) rissue.Github.Opts: rissue.Github.Settings

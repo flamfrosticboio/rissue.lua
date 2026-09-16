@@ -54,6 +54,7 @@ M.default = {
   max_items = 100,
   items_per_page = 100,
   media_type = "raw",
+  store_raw = false,
 }
 
 --- /!SETTINGS
