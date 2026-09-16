@@ -91,7 +91,7 @@ local function into_issue(raw)
     is_open = raw.state == "open",
     title = raw.title,
     web_url = raw.html_url,
-    body = raw.body,
+    body = raw.body or raw.body_html or raw.body_text,
     id = raw.number,
     url = raw.url,
     author = {
