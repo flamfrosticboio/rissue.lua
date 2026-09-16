@@ -53,6 +53,7 @@ M.default = {
   parallel_fetching = 50,
   max_items = 100,
   items_per_page = 100,
+  media_type = "raw",
 }
 
 --- /!SETTINGS
@@ -70,8 +71,6 @@ M.ghes_api_version_range = {
 }
 
 --- /!TECHNICAL:GITHUB_GHES_RANGE
-
-M.json_accept_type = "application/vnd.github.raw+json"
 
 --- To be concatenated with api version from `rissue.Github.SupportedApiVersions`
 --- Example:

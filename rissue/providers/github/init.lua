@@ -127,7 +127,9 @@ local function fetch_paging(opts)
     ---@type rissue.utils.curl.Opts
     local curl_opts = {
       auth = opts.token,
-      accept = config.accept_type,
+      accept = ("Accept: application/vnd.github.%s+json"):format(
+        opts.settings.media_type
+      ),
       method = "GET",
       include_result_headers = true,
     }

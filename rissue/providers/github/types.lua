@@ -18,6 +18,11 @@
 
 ---@alias rissue.Github.ApiVersion "2026-03-10" | "2022-11-28"
 
+---@alias rissue.Github.MediaType
+---| "raw" # Enables `body` in the response
+---| "text" # Enables `body_text` in the response
+---| "html" # Enables `body_html` in the response
+
 ---@class rissue.Github.supports.AdditionalInfo
 ---@field ghes string? The Github Enterprise Version (3.x)
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
@@ -55,6 +60,15 @@
 --- When this option is `false`, it will be always disabled (fallback to fetching sequentially).
 --- When this option is an integer, it will act as a threshold comparing `max_items` ``(max_items >= threshold)``
 ---@field parallel_fetching boolean | integer
+--- The type of media to request from issues and pull requests.
+---
+--- What would be sent to the server:
+--- ```lua
+--- --- Curl headers
+--- headers[#headers + 1] = ("Accept: application/vnd.github.%s+json"):format(media_type)
+--- --- Results to: "Accept: application/vnd.github.raw+json" if media_type is `json`
+--- ```
+---@field media_type rissue.Github.MediaType
 
 --- Partial version of rissue.Github.Settings
 ---@class (partial) rissue.Github.Opts: rissue.Github.Settings
