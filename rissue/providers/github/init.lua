@@ -14,128 +14,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+local config = require("rissue.providers.github.config")
 local curl = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
 local log = require("rissue.utils.log")
+local supports = require("rissue.providers.github.supports")
 local table_op = require("rissue.utils.table_op")
 local time = require("rissue.utils.time")
-
---- !TYPES
-
----@alias rissue.Github.SupportedApiVersions "2026-03-10" | "2022-11-28"
-
----@class rissue.Github.supports.AdditionalInfo
----@field ghes string? The Github Enterprise Version (3.x)
----@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
----@field api_version rissue.Github.SupportedApiVersions?
-
----@class rissue.Github.opts.Endpoints
----@field issues rissue.Query[]
----@field merge_requests rissue.Query[]
-
----@class rissue.Github.Settings
---- Required field on param in each query: `q`
---- `q` can be used as template string.
----
---- Supported template strings for `q`:
---- - `{owner}` - Repository owner
---- - `{repo}` - Repository name
----
---- See default settings for examples.
----@field endpoints rissue.Github.opts.Endpoints
---- Override the api version to be used.
---- Most commonly used when doing requests like `get.issues()` or `get.merge_requests()`
----
---- Setting it to false removes the api_version header to be sent to the server.
----
---- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
----@field api_version? rissue.Github.SupportedApiVersions | false
---- Limits how many items will be fetched and rendered.
---- Note: This does not guarantee the output size of the result to be exactly `max_items`
----       and may have more items than requested
----@field max_items integer
---- Defines how many items are fetched per page when performing pagination requests in github. Limit=100
----@field items_per_page integer
---- Settings on the parallel fetching.
---- When this option is `true`, it will be always enabled
---- When this option is `false`, it will be always disabled (fallback to fetching sequentially).
---- When this option is an integer, it will act as a threshold comparing `max_items` ``(max_items >= threshold)``
----@field parallel_fetching boolean | integer
-
---- Partial version of rissue.Github.Settings
----@class (partial) rissue.Github.Opts: rissue.Github.Settings
-
---- /!TYPES
-
---- !SETTINGS
-
----@type rissue.Github.Settings
-local default_settings = {
-  endpoints = {
-    issues = {
-      {
-        endpoint = "/search/issues",
-        param = {
-          q = "repo:{owner}/{repo} type:issue is:open label:security,critical",
-          sort = "interactions",
-          order = "desc",
-        },
-      },
-      {
-        endpoint = "/search/issues",
-        param = {
-          q = "repo:{owner}/{repo} type:issue is:open label:blocker,P0",
-          sort = "interactions",
-          order = "desc",
-        },
-      },
-      {
-        endpoint = "/search/issues",
-        param = {
-          q = "repo:{owner}/{repo} type:issue is:open",
-          sort = "interactions",
-          order = "desc",
-        },
-      },
-    },
-    merge_requests = {},
-  },
-  parallel_fetching = 50,
-  max_items = 100,
-  items_per_page = 100,
-}
-
---- /!SETTINGS
-
---- !TECHNICAL:GITHUB_GHES_RANGE
-
---- Api version will be chosen by the table below
---- uses (abbb scheme) (a = major; b = minor)
-
-local ghes_latest = 03022
----@type {[1]: integer, [2]: integer, [3]: string}[]
-local ghes_api_versions_range = {
-  { 03009, 03020, "2022-11-28" }, -- ghes 3.9-3.20
-  { 03021, ghes_latest, "2026-03-10" }, -- ghes 3.21+
-}
-
---- /!TECHNICAL:GITHUB_GHES_RANGE
-
-local accept_type = "application/vnd.github.raw+json"
-local api_ver_template = "X-GitHub-Api-Version: "
-
----@generic T
----@param range {[1]: integer, [2]: integer, [3]: T}[]
----@param target integer
----@return T?
-local function from_range(range, target)
-  for _, val in ipairs(range) do
-    if val[1] <= target and val[2] >= target then
-      return val[3]
-    end
-  end
-end
 
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 local function get_api_endpoint(info)
@@ -143,56 +29,6 @@ local function get_api_endpoint(info)
     .. "://"
     .. info.domain
     .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
-end
-
----@param url string
----@param opts rissue.utils.curl.Opts
----@return boolean
----@return string? result
-local function check(url, opts)
-  local result, err = curl.request(url, opts)
-  if not result then
-    log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
-  end
-
-  return not not (result and result.content:match("verifiable_password_authentication")),
-    result and result.content
-end
-
----@type rissue.provider.Supports<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
-local function supports(info, token, opts)
-  local base = info.curl_protocol .. "://" .. info.domain
-
-  ---@type rissue.utils.curl.Opts
-  local settings = { auth = token, accept = "application/json", method = "GET" }
-
-  -- ghes version
-  local is_ghes, ghes_output = check(base .. "/api/v3/meta", settings)
-  if is_ghes then
-    ---@type rissue.Github.supports.AdditionalInfo
-    local additional_info = {}
-    if ghes_output then
-      local major, minor = ghes_output:match('"installed_version":%s*"(%d+)%.(%d+)')
-      local version = tonumber(major) * 1000 + tonumber(minor)
-      additional_info.ghes = major .. "." .. minor
-      additional_info.ghes_code = version
-
-      if type(opts.api_version) == "string" then
-        additional_info.api_version = opts.api_version
-      elseif opts.api_version ~= false then
-        additional_info.api_version = from_range(ghes_api_versions_range, version)
-      end
-    end
-    return true, additional_info
-  end
-
-  -- ghec or api.github.com version (when checking with url failed)
-  -- examples includes: domain proxy, GHEC with Data Residency
-  local res = check(base .. "/meta", settings)
-  if res then
-    return res, { api_version = "2026-03-10" } --[[@as rissue.Github.supports.AdditionalInfo]]
-  end
-  return false
 end
 
 --- Parses github's link header into a table.
@@ -291,7 +127,7 @@ local function fetch_paging(opts)
     ---@type rissue.utils.curl.Opts
     local curl_opts = {
       auth = opts.token,
-      accept = accept_type,
+      accept = config.accept_type,
       method = "GET",
       include_result_headers = true,
     }
@@ -407,7 +243,7 @@ local function get_issues(info, token, opts)
 
   local headers = {}
   if info.additional_info and info.additional_info.api_version then
-    headers[#headers + 1] = api_ver_template .. info.additional_info.api_version
+    headers[#headers + 1] = config.api_ver_template .. info.additional_info.api_version
   end
 
   local use_parallel_fetching = opts.parallel_fetching
@@ -430,8 +266,8 @@ return {
   name = "github",
   version = "0.1",
   version_code = 1000,
-  supports = supports,
+  supports = supports.main,
   get_merge_requests = get_merge_requests,
   get_issues = get_issues,
-  settings = default_settings,
+  settings = config.default,
 }
