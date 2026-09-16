@@ -16,12 +16,12 @@
 
 --- !TYPES
 
----@alias rissue.Github.SupportedApiVersions "2026-03-10" | "2022-11-28"
+---@alias rissue.Github.ApiVersion "2026-03-10" | "2022-11-28"
 
 ---@class rissue.Github.supports.AdditionalInfo
 ---@field ghes string? The Github Enterprise Version (3.x)
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
----@field api_version rissue.Github.SupportedApiVersions?
+---@field api_version rissue.Github.ApiVersion?
 
 ---@class rissue.Github.opts.Endpoints
 ---@field issues rissue.Query[]
@@ -43,7 +43,7 @@
 --- Setting it to false removes the api_version header to be sent to the server.
 ---
 --- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
----@field api_version? rissue.Github.SupportedApiVersions | false
+---@field api_version? rissue.Github.ApiVersion | false
 --- Limits how many items will be fetched and rendered.
 --- Note: This does not guarantee the output size of the result to be exactly `max_items`
 ---       and may have more items than requested
