@@ -111,7 +111,7 @@ function M.construct(url, opts)
   local args = {}
 
   args[#args + 1] = url
-  args[#args + 1] = "-s"
+  args[#args + 1] = "-sS"
   args[#args + 1] = "-X"
   args[#args + 1] = opts.method
 
