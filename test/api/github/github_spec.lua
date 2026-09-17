@@ -46,14 +46,12 @@ local function test_version(name, specfile, opts)
     local info_shared = nil
 
     it("found provider", function()
-      local ok, info = provider.get_provider_info(
+      local info, err = provider.get_provider_info(
         "http://" .. domain .. "/owner/repo.git",
         opts.request_opts
       )
-      if not ok then
-        error(info)
-      end
-
+      assert(not err, err)
+      assert.is_not_nil(info)
       assert.same({
         domain = domain,
         name = "github",

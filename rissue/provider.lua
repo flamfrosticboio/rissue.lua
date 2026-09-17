@@ -53,17 +53,16 @@ function M.remote_info(remote_url)
   end
 end
 
----@async
+--- Gets the provider info based on the remote url.
+--- May trigger api requests to the url.
 ---@param remote_url string
----@param request_opts table?
----@param level integer
----@return rissue.ProviderInfo
----@return string? warnings
-local function get_provider_info_unsafe(remote_url, request_opts, level)
-  level = level and (2 + level) or 2
+---@param opts table? Additional request options passed to provider
+---@return rissue.ProviderInfo? info
+---@return string? error
+function M.get_provider_info(remote_url, opts)
   local remote_info = M.remote_info(remote_url)
   if not remote_info then
-    error("Could not parse remote url", level)
+    return nil, "Could not parse remote url"
   end
   remote_url = remote_info.full_url
 
@@ -92,20 +91,19 @@ local function get_provider_info_unsafe(remote_url, request_opts, level)
     local finished = false
 
     local token = env.get_token(provider_name)
+
     local thread = coroutine.create(function()
       supported, additional_info = provider.supports(
         remote_info,
         token,
-        config.merge_provider_settings(provider, request_opts)
+        config.merge_provider_settings(provider, opts)
       )
       finished = true
     end)
     local co_ok, co_error = coroutine.resume(thread)
     if not co_ok then
-      error(co_error)
+      log.warn(("Failed to process for %s: %s"):format(provider_name, co_error))
     end
-
-    -- todo: make this compatible inside coroutine
 
     local success, err = process.wait(function()
       return finished
@@ -128,19 +126,7 @@ local function get_provider_info_unsafe(remote_url, request_opts, level)
     end
   end
 
-  error("No identifiable git provider", 0)
-end
-
---- Gets the provider info based on the remote url.
---- May trigger api requests to the url.
----@async
----@param remote_url string
----@param req_opts table? Additional request options passed to provider
----@return boolean success
----@return rissue.ProviderInfo | string
-function M.get_provider_info(remote_url, req_opts)
-  local ok, info = pcall(get_provider_info_unsafe, remote_url, req_opts, 1)
-  return ok, info
+  return nil, "No identifiable git provider"
 end
 
 return M
