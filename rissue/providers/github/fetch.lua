@@ -34,19 +34,11 @@ local function construct_base_endpoint(info)
     .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
 end
 
---- Parses github's link header into a table.
---- Common or to be expected:
---- - `next` - `link?`
---- - `last` - `link?`
---- - `first` - `link?`
+--- Gets the next url from link header
 ---@param link_header_raw string
----@return table<string, string>
-local function parse_link_header(link_header_raw)
-  local links = {}
-  for pointer, name in link_header_raw:gmatch('<(%S+)>;%s*rel="(%S+)"') do
-    links[name] = pointer
-  end
-  return links
+---@return string?
+local function get_next_from_link_header(link_header_raw)
+  return link_header_raw:match('<(%S+)>;%s*rel="next"')
 end
 
 ---@class __rissue.Github.unmap.Result
@@ -126,7 +118,7 @@ end
 
 ---@class __rissue.Github.fetch_page.Result
 ---@field contents __rissue.Github.unmap.Result
----@field link_headers table<string, string>?
+---@field next_url string?
 
 ---@param opts __rissue.Github.fetch_page.Opts
 ---@return __rissue.Github.fetch_page.Result? result
@@ -162,8 +154,9 @@ local function try_fetch_page(opts)
 
     return {
       contents = res,
-      link_headers = response.headers.link and parse_link_header(response.headers.link)
-        or nil,
+      next_url = response.headers.link and get_next_from_link_header(
+        response.headers.link
+      ) or nil,
     } --[[@as __rissue.Github.fetch_page.Result]]
   else
     if log.level_enabled(log.levels.error) then
@@ -242,9 +235,9 @@ function M.try_fetch(info, queries, opts)
           buffer[opts.key(parsed)] = parsed
         end
 
-        if fetch_result.link_headers and fetch_result.link_headers.next then
+        if fetch_result.next_url then
           query = {
-            endpoint = fetch_result.link_headers.next,
+            endpoint = fetch_result.next_url,
             param = {},
           }
         else
