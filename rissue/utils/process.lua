@@ -53,6 +53,24 @@ local uv = require("luv") ---@type uv
 local Process = {}
 Process.__index = Process
 
+local wait_co_err = nil ---@type string?
+
+---@param co thread
+local function safe_co_resume(co)
+  local ok, err = coroutine.resume(co)
+  if not ok then
+    wait_co_err = err
+    log.error(err or "unknown error")
+    local _, stop_err = M.try_stop_current_wait()
+    if stop_err then
+      log.error(
+        "Failed to send stop signal to current wait thread: "
+          .. (stop_err or "unknown error")
+      )
+    end
+  end
+end
+
 ---@param events fun()[]
 local function run_all_events(events)
   for _, event in ipairs(events) do
@@ -363,10 +381,7 @@ function M.run_co(command_opts, opts)
   end
 
   p:register_event("on_exit", function()
-    local ok, resume_err = coroutine.resume(co)
-    if not ok then
-      error(debug.traceback(co, resume_err), 0)
-    end
+    safe_co_resume(co)
   end)
 
   if opts and opts.print_output then
@@ -457,7 +472,7 @@ function M.try_delay(milliseconds)
 
   if not is_main and co then
     local start_ok, start_err = timer:start(milliseconds, 0, function()
-      coroutine.resume(co)
+      safe_co_resume(co)
     end)
     if not start_ok then
       close_handle(timer)
@@ -506,6 +521,7 @@ end
 ---@param timeout integer  Pass -1 to disable timeout
 ---@param interval integer?
 ---@return boolean success Returns false when timeout is reached
+---@return string? error
 function M.wait(condition, timeout, interval)
   local function wait()
     if condition() then
@@ -522,7 +538,7 @@ function M.wait(condition, timeout, interval)
       local timeout_timer_err
       timeout_timer, timeout_timer_err = uv.new_timer()
       if not timeout_timer then
-        error(timeout_timer_err)
+        return false, timeout_timer_err
       end
       timeout_timer:start(timeout, 0, function()
         timed_out = true
@@ -534,7 +550,7 @@ function M.wait(condition, timeout, interval)
       local interval_timer_err
       interval_timer, interval_timer_err = uv.new_timer()
       if not interval_timer then
-        error(interval_timer_err)
+        return false, interval_timer_err
       end
       interval_timer:start(interval, interval, function() end)
     end
@@ -543,7 +559,10 @@ function M.wait(condition, timeout, interval)
       if timed_out or force_stop_waiting then
         try_stop_timer(timeout_timer)
         try_stop_timer(interval_timer)
-        return false
+        return false,
+          timed_out and "timeout reached"
+            or force_stop_waiting and wait_co_err
+            or "unknown error"
       end
       uv.run("once")
     end
@@ -555,10 +574,10 @@ function M.wait(condition, timeout, interval)
   end
 
   waiting = true
-  local res = wait()
+  local res, err = wait()
   waiting = false
   force_stop_waiting = false
-  return res
+  return res, err
 end
 
 ---@param arg string
