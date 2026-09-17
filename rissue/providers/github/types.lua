@@ -71,6 +71,8 @@
 ---@field media_type rissue.Github.MediaType
 --- Store the raw response from the server to the original parsed response
 ---@field store_raw boolean
+--- The delay between fetching
+---@field fetch_delay integer
 
 --- Partial version of rissue.Github.Settings
 ---@class (partial) rissue.Github.Opts: rissue.Github.Settings

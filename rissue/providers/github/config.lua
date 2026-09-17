@@ -55,6 +55,7 @@ M.default = {
   items_per_page = 100,
   media_type = "raw",
   store_raw = false,
+  fetch_delay = 1000,
 }
 
 --- /!SETTINGS
