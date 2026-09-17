@@ -5,7 +5,7 @@
     },
     "workspace": {
         "library": [
-            "../lua",
+            "..",
             "../.types/addons/busted/library",
             "../.types/addons/luassert/library",
             "../.types/addons/luv/library"
