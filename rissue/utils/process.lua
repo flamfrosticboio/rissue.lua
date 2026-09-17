@@ -481,54 +481,84 @@ function M.try_delay(milliseconds)
   return true
 end
 
+local waiting = false
+local force_stop_waiting = false
+
+--- Stops the current `process.wait`
+--- @return boolean success
+--- @return string? error
+function M.try_stop_current_wait()
+  if waiting then
+    force_stop_waiting = true
+    local timer, err = uv.new_timer()
+    if not timer then
+      return false, err
+    end
+    timer:start(0, 0, function()
+      try_stop_timer(timer)
+    end)
+    return true
+  end
+  return false
+end
+
 ---@param condition fun(): boolean
 ---@param timeout integer  Pass -1 to disable timeout
 ---@param interval integer?
 ---@return boolean success Returns false when timeout is reached
 function M.wait(condition, timeout, interval)
-  if condition() then
+  local function wait()
+    if condition() then
+      return true
+    end
+
+    ---@type uv.uv_timer_t?
+    local timeout_timer
+    ---@type uv.uv_timer_t?
+    local interval_timer
+
+    local timed_out = false
+    if timeout and timeout > 0 then
+      local timeout_timer_err
+      timeout_timer, timeout_timer_err = uv.new_timer()
+      if not timeout_timer then
+        error(timeout_timer_err)
+      end
+      timeout_timer:start(timeout, 0, function()
+        timed_out = true
+      end)
+    end
+
+    if interval then
+      -- to trigger and escape uv.run('once')
+      local interval_timer_err
+      interval_timer, interval_timer_err = uv.new_timer()
+      if not interval_timer then
+        error(interval_timer_err)
+      end
+      interval_timer:start(interval, interval, function() end)
+    end
+
+    while not condition() do
+      if timed_out or force_stop_waiting then
+        try_stop_timer(timeout_timer)
+        try_stop_timer(interval_timer)
+        return false
+      end
+      uv.run("once")
+    end
+
+    try_stop_timer(timeout_timer)
+    try_stop_timer(interval_timer)
+
     return true
   end
 
-  ---@type uv.uv_timer_t?
-  local timeout_timer
-  ---@type uv.uv_timer_t?
-  local interval_timer
-
-  local timed_out = false
-  if timeout and timeout > 0 then
-    local timeout_timer_err
-    timeout_timer, timeout_timer_err = uv.new_timer()
-    if not timeout_timer then
-      error(timeout_timer_err)
-    end
-    timeout_timer:start(timeout, 0, function()
-      timed_out = true
-    end)
-  end
-
-  if interval then
-    -- to trigger and escape uv.run('once')
-    local interval_timer_err
-    interval_timer, interval_timer_err = uv.new_timer()
-    if not interval_timer then
-      error(interval_timer_err)
-    end
-    interval_timer:start(interval, interval, function() end)
-  end
-
-  while not condition() do
-    if timed_out then
-      try_stop_timer(timeout_timer)
-      try_stop_timer(interval_timer)
-      return false
-    end
-    uv.run("once")
-  end
-
-  try_stop_timer(timeout_timer)
-  try_stop_timer(interval_timer)
-  return true
+  waiting = true
+  local res = wait()
+  waiting = false
+  force_stop_waiting = false
+  return res
 end
 
 ---@param arg string
