@@ -60,7 +60,6 @@ local function safe_co_resume(co)
   local ok, err = coroutine.resume(co)
   if not ok then
     wait_co_err = err
-    log.error(err or "unknown error")
     local _, stop_err = M.try_stop_current_wait()
     if stop_err then
       log.error(
