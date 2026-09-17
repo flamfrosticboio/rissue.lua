@@ -171,6 +171,14 @@ local function try_fetch_page(opts)
   end
 end
 
+---@param delay integer Delay in milliseconds
+local function delay_with_warning(delay)
+  local delay_ok, delay_err = process.try_delay(delay)
+  if not delay_ok then
+    log.warn("Failed to delay: " .. (delay_err or "unknown error"))
+  end
+end
+
 ---@class __rissue.Github.fetch.Opts<T, K>
 ---@field token string?
 ---@field parser fun(raw: any, settings: rissue.Github.Settings): T
@@ -230,9 +238,15 @@ function M.try_fetch(info, queries, opts)
       })
 
       if fetch_result then
-        for _, item in ipairs(fetch_result.contents.items) do
-          local parsed = opts.parser(item, opts.settings)
-          buffer[opts.key(parsed)] = parsed
+        local ok, err = pcall(function()
+          for _, item in ipairs(fetch_result.contents.items) do
+            local parsed = opts.parser(item, opts.settings)
+            buffer[opts.key(parsed)] = parsed
+          end
+        end)
+
+        if not ok then
+          log.error("Failed to parse: " .. err)
         end
 
         if fetch_result.next_url then
@@ -241,14 +255,14 @@ function M.try_fetch(info, queries, opts)
             param = {},
           }
         else
-          process.try_delay(opts.settings.fetch_delay)
+          delay_with_warning(opts.settings.fetch_delay)
           break
         end
       else
         log.error("Failed to fetch: " .. (fetch_err or "unknown error"))
       end
 
-      process.try_delay(opts.settings.fetch_delay)
+      delay_with_warning(opts.settings.fetch_delay)
     end
   end
 
