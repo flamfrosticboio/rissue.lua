@@ -44,12 +44,16 @@ function M.get_issues(info, opts)
     done = true
   end)()
 
-  process.wait(function()
+  local _, wait_err = process.wait(function()
     return done
   end, 60000) -- todo: add timeout
 
+  if wait_err then
+    log.error("Failed to process: " .. wait_err)
+  end
+
   if not result then
-    log.error("Failed to get issues: " .. err)
+    log.error("Failed to get issues: " .. (err or "unhandled error"))
   end
 
   return result, err

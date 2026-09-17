@@ -43,6 +43,11 @@ function M.shallow_key_merge_overwrite(dest, source)
   end
 end
 
+--- Creates a copy of a table with deeply merged items.
+---
+--- Similar rules to `vim.tbl_extend()` where:
+--- - If the right table is a pure list (with `table_op.is_list()`), then overwrite it.
+--- - Merge recursively on each table.
 ---@param ... table
 ---@return table
 function M.force_deep_extend(...)
@@ -56,7 +61,11 @@ function M.force_deep_extend(...)
       else
         if type(v) == "table" then
           if M.is_list(v) then
-            dst[k] = v
+            local copy = {}
+            for i, item in ipairs(v) do
+              copy[i] = (type(item) == "table") and M.force_deep_extend(item) or item
+            end
+            dst[k] = copy
           else
             local copy = {}
             merge(copy, v)

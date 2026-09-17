@@ -40,16 +40,12 @@ describe("`force_extend()`", function()
     }, t)
   end)
 
-  it("list gets shallow copy", function()
+  it("list gets cloned and is separate", function()
     local t1 = { x = { 1, 2, 3 } }
     local t = table_op.force_deep_extend({ y = true }, t1)
 
-    -- should expect equal pointers
-    assert.equal(t1.x, t.x)
-
-    -- should expect different pointers
-    local t2 = { 1, 2, 3 }
-    assert.are_not.equal(t2, t.x)
+    assert.same(t1.x, t.x)
+    assert.are_not_equal(t1.x, t.x)
   end)
 
   it("force overwrites", function()

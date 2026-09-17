@@ -23,6 +23,9 @@
 ---@field author     rissue.user
 ---@field created_at rissue.timestamp
 ---@field labels     rissue.label[]
+---Raw response from server (if supported and enabled)
+---See your current git provider's settings on this option.
+---@field raw        table?
 
 ---@class (exact) rissue.label
 ---@field name        string

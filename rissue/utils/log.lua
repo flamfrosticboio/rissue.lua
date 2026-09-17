@@ -44,6 +44,14 @@ end
 
 ---@class rissue.log.levels: __rissue.log._levels<integer>
 
+---@alias rissue.log.level
+---| 0 trace
+---| 1 debug
+---| 2 info
+---| 3 warn
+---| 4 error
+---| 5 off
+
 ---@type rissue.log.levels
 M.levels = {
   trace = 0,
@@ -69,13 +77,14 @@ local log_name = {
 --- Warning: Does not filter logging based on current log level.
 ---          Wrap it with `M.level_enabled()` instead.
 ---@param msg string
----@param level 0 | 1 | 2 | 3 | 4 | 5
+---@param level rissue.log.level
 function M.log(msg, level)
   local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
   M._logger(("[%s][%s]: %s"):format(time, log_name[level], msg), level)
 end
 
----@param level 0 | 1 | 2 | 3 | 4 | 5
+--- Checks if the specified level is enabled
+---@param level rissue.log.level
 function M.level_enabled(level)
   return level >= M.log_level
 end
@@ -118,6 +127,31 @@ function M.debug(msg)
     return
   end
   M.log(msg, M.levels.debug)
+end
+
+---@class rissue.utils.log.log_func.Opts
+---@field prefix string?
+---@field suffix string?
+
+--- Returns a fixed logger function. Usually used on xpcalls
+---@param level rissue.log.level
+---@param opts rissue.utils.log.log_func.Opts?
+function M.log_func(level, opts)
+  return function(err)
+    if M.level_enabled(level) then
+      local message = err
+      if opts then
+        if opts.prefix then
+          message = opts.prefix .. message
+        end
+        if opts.suffix then
+          message = message .. opts.suffix
+        end
+      end
+
+      M.log(message, level)
+    end
+  end
 end
 
 return M

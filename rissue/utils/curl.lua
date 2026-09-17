@@ -42,7 +42,7 @@ local M = {}
 ---@field content string
 ---@field err string
 --- Available if --dump-header was passed
----@field headers? string[]
+---@field headers? table<string, string>
 
 ---@class rissue.utils.curl.Opts
 --- Default: GET
@@ -111,7 +111,7 @@ function M.construct(url, opts)
   local args = {}
 
   args[#args + 1] = url
-  args[#args + 1] = "-s"
+  args[#args + 1] = "-sS"
   args[#args + 1] = "-X"
   args[#args + 1] = opts.method
 

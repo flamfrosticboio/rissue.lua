@@ -53,6 +53,23 @@ local uv = require("luv") ---@type uv
 local Process = {}
 Process.__index = Process
 
+local wait_co_err = nil ---@type string?
+
+---@param co thread
+local function safe_co_resume(co)
+  local ok, err = coroutine.resume(co)
+  if not ok then
+    wait_co_err = err
+    local _, stop_err = M.try_stop_current_wait()
+    if stop_err then
+      log.error(
+        "Failed to send stop signal to current wait thread: "
+          .. (stop_err or "unknown error")
+      )
+    end
+  end
+end
+
 ---@param events fun()[]
 local function run_all_events(events)
   for _, event in ipairs(events) do
@@ -269,7 +286,7 @@ end
 function Process:get_last_stdout(strip_newline)
   local line = self._stdout_raw[#self._stdout_raw]
   if strip_newline then
-    line = line:gsub("[\r\n]+$", "")
+    line = line:match("^%s*(.-)%s*$")
   end
   return line
 end
@@ -280,7 +297,7 @@ end
 function Process:get_last_stderr(strip_newline)
   local line = self._stderr_raw[#self._stderr_raw]
   if strip_newline then
-    line = line:gsub("[\r\n]+$", "")
+    line = line:match("^%s*(.-)%s*$")
   end
   return line
 end
@@ -363,10 +380,7 @@ function M.run_co(command_opts, opts)
   end
 
   p:register_event("on_exit", function()
-    local ok, resume_err = coroutine.resume(co)
-    if not ok then
-      error(debug.traceback(co, resume_err), 0)
-    end
+    safe_co_resume(co)
   end)
 
   if opts and opts.print_output then
@@ -441,54 +455,128 @@ local function try_stop_timer(timer)
   end
 end
 
+--- Delays the coroutine/main thread execution by number of milliseconds
+---
+--- If not in coroutine mode, it uses `process.wait()` instead
+---@param milliseconds integer
+---@return boolean success
+---@return string? error
+function M.try_delay(milliseconds)
+  local timer, timer_err = uv.new_timer()
+  if not timer then
+    return false, timer_err
+  end
+
+  local co, is_main = coroutine.running()
+
+  if not is_main and co then
+    local start_ok, start_err = timer:start(milliseconds, 0, function()
+      safe_co_resume(co)
+    end)
+    if not start_ok then
+      close_handle(timer)
+      return false, start_err
+    end
+    coroutine.yield()
+  else
+    local done = false
+    local start_ok, start_err = timer:start(milliseconds, 0, function()
+      done = true
+    end)
+    if not start_ok then
+      close_handle(timer)
+      return false, start_err
+    end
+    M.wait(function()
+      return done
+    end, -1)
+  end
+
+  return true
+end
+
+local waiting = false
+local force_stop_waiting = false
+
+--- Stops the current `process.wait`
+--- @return boolean success
+--- @return string? error
+function M.try_stop_current_wait()
+  if waiting then
+    force_stop_waiting = true
+    local timer, err = uv.new_timer()
+    if not timer then
+      return false, err
+    end
+    timer:start(0, 0, function()
+      try_stop_timer(timer)
+    end)
+    return true
+  end
+  return false
+end
+
 ---@param condition fun(): boolean
 ---@param timeout integer  Pass -1 to disable timeout
 ---@param interval integer?
 ---@return boolean success Returns false when timeout is reached
+---@return string? error
 function M.wait(condition, timeout, interval)
-  if condition() then
+  local function wait()
+    if condition() then
+      return true
+    end
+
+    ---@type uv.uv_timer_t?
+    local timeout_timer
+    ---@type uv.uv_timer_t?
+    local interval_timer
+
+    local timed_out = false
+    if timeout and timeout > 0 then
+      local timeout_timer_err
+      timeout_timer, timeout_timer_err = uv.new_timer()
+      if not timeout_timer then
+        return false, timeout_timer_err
+      end
+      timeout_timer:start(timeout, 0, function()
+        timed_out = true
+      end)
+    end
+
+    if interval then
+      -- to trigger and escape uv.run('once')
+      local interval_timer_err
+      interval_timer, interval_timer_err = uv.new_timer()
+      if not interval_timer then
+        return false, interval_timer_err
+      end
+      interval_timer:start(interval, interval, function() end)
+    end
+
+    while not condition() do
+      if timed_out or force_stop_waiting then
+        try_stop_timer(timeout_timer)
+        try_stop_timer(interval_timer)
+        return false,
+          timed_out and "timeout reached"
+            or force_stop_waiting and wait_co_err
+            or "unknown error"
+      end
+      uv.run("once")
+    end
+
+    try_stop_timer(timeout_timer)
+    try_stop_timer(interval_timer)
+
     return true
   end
 
-  ---@type uv.uv_timer_t?
-  local timeout_timer
-  ---@type uv.uv_timer_t?
-  local interval_timer
-
-  local timed_out = false
-  if timeout and timeout > 0 then
-    local timeout_timer_err
-    timeout_timer, timeout_timer_err = uv.new_timer()
-    if not timeout_timer then
-      error(timeout_timer_err)
-    end
-    timeout_timer:start(timeout, 0, function()
-      timed_out = true
-    end)
-  end
-
-  if interval then
-    -- to trigger and escape uv.run('once')
-    local interval_timer_err
-    interval_timer, interval_timer_err = uv.new_timer()
-    if not interval_timer then
-      error(interval_timer_err)
-    end
-    interval_timer:start(interval, interval, function() end)
-  end
-
-  while not condition() do
-    if timed_out then
-      try_stop_timer(timeout_timer)
-      try_stop_timer(interval_timer)
-      return false
-    end
-    uv.run("once")
-  end
-
-  try_stop_timer(timeout_timer)
-  try_stop_timer(interval_timer)
-  return true
+  waiting = true
+  local res, err = wait()
+  waiting = false
+  force_stop_waiting = false
+  return res, err
 end
 
 ---@param arg string
