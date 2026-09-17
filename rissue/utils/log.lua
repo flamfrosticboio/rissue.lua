@@ -129,4 +129,29 @@ function M.debug(msg)
   M.log(msg, M.levels.debug)
 end
 
+---@class rissue.utils.log.log_func.Opts
+---@field prefix string?
+---@field suffix string?
+
+--- Returns a fixed logger function. Usually used on xpcalls
+---@param level rissue.log.level
+---@param opts rissue.utils.log.log_func.Opts?
+function M.log_func(level, opts)
+  return function(err)
+    if M.level_enabled(level) then
+      local message = err
+      if opts then
+        if opts.prefix then
+          message = opts.prefix .. message
+        end
+        if opts.suffix then
+          message = message .. opts.suffix
+        end
+      end
+
+      M.log(message, level)
+    end
+  end
+end
+
 return M
