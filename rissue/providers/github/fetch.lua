@@ -220,7 +220,7 @@ function M.try_fetch(info, queries, opts)
 
   for _, query in ipairs(queries) do
     if not query.param.q then
-      error("'q' is not passed on query: " .. query.endpoint, 0)
+      return nil, "'q' is not passed on query: " .. query.endpoint
     end
 
     query = prepare_page({
@@ -238,16 +238,12 @@ function M.try_fetch(info, queries, opts)
       })
 
       if fetch_result then
-        local ok, err = pcall(function()
+        xpcall(function()
           for _, item in ipairs(fetch_result.contents.items) do
             local parsed = opts.parser(item, opts.settings)
             buffer[opts.key(parsed)] = parsed
           end
-        end)
-
-        if not ok then
-          log.error("Failed to parse: " .. err)
-        end
+        end, log.log_func(log.levels.error, { prefix = "Failed to parse: " }))
 
         if fetch_result.next_url then
           query = {
