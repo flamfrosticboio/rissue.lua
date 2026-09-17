@@ -441,6 +441,46 @@ local function try_stop_timer(timer)
   end
 end
 
+--- Delays the coroutine/main thread execution by number of milliseconds
+---
+--- If not in coroutine mode, it uses `process.wait()` instead
+---@param milliseconds integer
+---@return boolean success
+---@return string? error
+function M.try_delay(milliseconds)
+  local timer, timer_err = uv.new_timer()
+  if not timer then
+    return false, timer_err
+  end
+
+  local co, is_main = coroutine.running()
+
+  if not is_main and co then
+    local start_ok, start_err = timer:start(milliseconds, 0, function()
+      coroutine.resume(co)
+    end)
+    if not start_ok then
+      close_handle(timer)
+      return false, start_err
+    end
+    coroutine.yield()
+  else
+    local done = false
+    local start_ok, start_err = timer:start(milliseconds, 0, function()
+      done = true
+    end)
+    if not start_ok then
+      close_handle(timer)
+      return false, start_err
+    end
+    M.wait(function()
+      return done
+    end, -1)
+  end
+
+  return true
+end
+
 ---@param condition fun(): boolean
 ---@param timeout integer  Pass -1 to disable timeout
 ---@param interval integer?
