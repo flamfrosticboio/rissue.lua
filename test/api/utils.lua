@@ -185,14 +185,20 @@ local function run_proxy(opts)
     end
   end)
 
+  p:register_event("on_exit", function()
+    if p:get_code() ~= 0 then
+      error(p:get_last_stderr(true), 0)
+    end
+  end)
+
   p:run()
 
-  local ok = cmd.wait(function()
+  local ok, wait_err = cmd.wait(function()
     return is_running
   end, timeout)
 
   if not ok then
-    error("timeout reached")
+    error(wait_err)
   end
 
   return p
