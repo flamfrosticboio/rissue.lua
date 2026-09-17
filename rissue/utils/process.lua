@@ -286,7 +286,7 @@ end
 function Process:get_last_stdout(strip_newline)
   local line = self._stdout_raw[#self._stdout_raw]
   if strip_newline then
-    line = line:gsub("[\r\n]+$", "")
+    line = line:match("^%s*(.-)%s*$")
   end
   return line
 end
@@ -297,7 +297,7 @@ end
 function Process:get_last_stderr(strip_newline)
   local line = self._stderr_raw[#self._stderr_raw]
   if strip_newline then
-    line = line:gsub("[\r\n]+$", "")
+    line = line:match("^%s*(.-)%s*$")
   end
   return line
 end
