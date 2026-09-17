@@ -107,11 +107,11 @@ local function get_provider_info_unsafe(remote_url, request_opts, level)
 
     -- todo: make this compatible inside coroutine
 
-    local success = process.wait(function()
+    local success, err = process.wait(function()
       return finished
     end, 60000) -- todo: add timeout in settings
     if not success then
-      log.warn("provider check timeout on " .. provider)
+      log.warn(("Failed to process for %s: %s"):format(provider_name, err))
     end
 
     if supported then
