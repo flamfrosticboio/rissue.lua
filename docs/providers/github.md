@@ -23,7 +23,8 @@ Theoretical support for ghes: 3.0
 
 ## Settings
 
-<!-- !SETTINGS -->
+<!-- &SETTINGS -->
+
 ```lua
 ---@type rissue.Github.Settings
 local default_settings = {
@@ -58,11 +59,13 @@ local default_settings = {
   },
 }
 ```
-<!-- /!SETTINGS -->
+
+<!-- /SETTINGS -->
 
 ## Types
 
-<!-- !TYPES -->
+<!-- &TYPES -->
+
 ```lua
 ---@alias rissue.Github.SupportedApiVersions "2026-03-10" | "2022-11-28"
 
@@ -103,14 +106,16 @@ local default_settings = {
 --- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
 ---@field api_version rissue.Github.SupportedApiVersions?
 ```
-<!-- /!TYPES -->
+
+<!-- /TYPES -->
 
 ## Technical
 
 - On supported versions of ghes, the highest api version will be used.
 
 Implementation:
-<!-- !TECHNICAL:GITHUB_GHES_RANGE -->
+<!-- &TECHNICAL:GITHUB_GHES_RANGE -->
+
 ```lua
 --- Api version will be chosen by the table below
 --- uses (abbb scheme) (a = major; b = minor)
@@ -122,4 +127,5 @@ local ghes_api_versions_range = {
   { 03021, ghes_latest, "2026-03-10" }, -- ghes 3.21+
 }
 ```
-<!-- /!TECHNICAL:GITHUB_GHES_RANGE -->
+
+<!-- /TECHNICAL:GITHUB_GHES_RANGE -->

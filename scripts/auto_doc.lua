@@ -78,8 +78,8 @@ local function extract_blocks(content)
   local blocks = {}
   for name in content:gmatch("%-%-%-%s*!(%S-)\n") do
     assert(type(name) == "string", "Name is not a string")
-    local start_pat = "%-%-%-%s*!" .. name .. "\n"
-    local end_pat = "%-%-%-%s*/!" .. name .. "\n"
+    local start_pat = "%-%-%-%s*&" .. name .. "\n"
+    local end_pat = "%-%-%-%s*/" .. name .. "\n"
     local pat = start_pat .. "(.-)" .. end_pat
 
     ---@type string?
@@ -96,14 +96,14 @@ end
 ---@param blocks table<string, string>
 local function apply_blocks(content, blocks)
   for name, body in pairs(blocks) do
-    local start_pat = "<!%-%-%s*!" .. name .. "%s*%-%->"
-    local end_pat = "<!%-%-%s*/!" .. name .. "%s*%-%->"
+    local start_pat = "<!%-%-%s*&" .. name .. "%s*%-%->"
+    local end_pat = "<!%-%-%s*/" .. name .. "%s*%-%->"
     local pat = start_pat .. "(.-)" .. end_pat
-    local replacement = "<!-- !"
+    local replacement = "<!-- &"
       .. name
       .. " -->\n```lua\n"
       .. body
-      .. "\n```\n<!-- /!"
+      .. "\n```\n<!-- /"
       .. name
       .. " -->"
     content = content:gsub(pat, replacement)

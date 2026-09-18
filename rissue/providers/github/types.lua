@@ -14,7 +14,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
---- !TYPES
+--- &TYPES
 
 ---@alias rissue.Github.ApiVersion "2026-03-10" | "2022-11-28"
 
@@ -72,4 +72,4 @@
 --- Partial version of rissue.Github.Settings
 ---@class (partial) rissue.Github.Opts: rissue.Github.Settings
 
---- /!TYPES
+--- /TYPES
