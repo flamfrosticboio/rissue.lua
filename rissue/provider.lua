@@ -42,14 +42,16 @@ function M.remote_info(remote_url)
     repo = path:match("([^/]+)$")
     owner = path:match("^(.+)/[^/]+$")
 
-    ---@type rissue.RemoteInfo
-    return {
-      curl_protocol = protocol,
-      domain = domain,
-      repo = repo,
-      owner = owner,
-      full_url = remote_url,
-    }
+    if repo and owner then
+      ---@type rissue.RemoteInfo
+      return {
+        curl_protocol = protocol,
+        domain = domain,
+        repo = repo,
+        owner = owner,
+        full_url = remote_url,
+      }
+    end
   end
 end
 
