@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -21,14 +21,23 @@ describe("`check_structure()`", function()
     local test_a = { a = "hello", b = 20, c = true }
     ---@type rissue.utils.check_structure.Structure
     local structure_a = { a = "string", b = "number", c = "boolean" }
-    local res =
-      assert_op.check_structure("rissue._tests.stub", test_a, structure_a, "simple")
+    local res = assert_op.check_structure(
+      "rissue._tests.stub",
+      test_a,
+      structure_a,
+      "simple"
+    )
 
     assert.is_true(res)
 
     ---@type rissue.utils.check_structure.Structure
     local structure_b = { a = "string", b = "string", c = "boolean" }
-    res = assert_op.check_structure("rissue._tests.stub", test_a, structure_b, "simple")
+    res = assert_op.check_structure(
+      "rissue._tests.stub",
+      test_a,
+      structure_b,
+      "simple"
+    )
     assert.is_false(res)
   end)
 
@@ -57,7 +66,12 @@ describe("`check_structure()`", function()
     }
 
     assert.is_false(
-      assert_op.check_structure("rissue._tests.stub", test, structure_false, "list")
+      assert_op.check_structure(
+        "rissue._tests.stub",
+        test,
+        structure_false,
+        "list"
+      )
     )
   end)
 
@@ -68,13 +82,23 @@ describe("`check_structure()`", function()
     local structure = { a = { b = "string", c = { d = "boolean" } } }
 
     assert.is_true(
-      assert_op.check_structure("rissue._tests.stub", test, structure, "complex")
+      assert_op.check_structure(
+        "rissue._tests.stub",
+        test,
+        structure,
+        "complex"
+      )
     )
 
     ---@type rissue.utils.check_structure.Structure
     local structure_false = { a = { b = "string", c = { d = "number" } } }
     assert.is_false(
-      assert_op.check_structure("rissue._tests.stub", test, structure_false, "complex")
+      assert_op.check_structure(
+        "rissue._tests.stub",
+        test,
+        structure_false,
+        "complex"
+      )
     )
   end)
 
@@ -94,10 +118,20 @@ describe("`check_structure()`", function()
     }
 
     assert.is_true(
-      assert_op.check_structure("rissue._tests.stub", test, structure_a, "compound")
+      assert_op.check_structure(
+        "rissue._tests.stub",
+        test,
+        structure_a,
+        "compound"
+      )
     )
     assert.is_false(
-      assert_op.check_structure("rissue._tests.stub", test, structure_false, "compound")
+      assert_op.check_structure(
+        "rissue._tests.stub",
+        test,
+        structure_false,
+        "compound"
+      )
     )
   end)
 end)

@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -129,7 +129,9 @@ while true do
     break
   end
 
-  local doc_file_path = "docs/providers/" .. strip_lua_file_extension(name) .. ".md"
+  local doc_file_path = "docs/providers/"
+    .. strip_lua_file_extension(name)
+    .. ".md"
   local impl_file_path = providers_dir .. "/" .. name
   local doc_contents = read_file(doc_file_path)
   if ftype == "directory" then

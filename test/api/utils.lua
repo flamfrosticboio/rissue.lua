@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -99,7 +99,9 @@ local function run_mock_server(filepath, port_offset, id, callback)
       return is_closed
     end, close_timeout)
     if not ok then
-      print("Warning: Failed to kill process gracefully. Attempting to force kill...")
+      print(
+        "Warning: Failed to kill process gracefully. Attempting to force kill..."
+      )
       p:close(nil, "sigkill")
       if not cmd.wait(function()
         return is_closed

@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -31,7 +31,10 @@ local function construct_base_endpoint(info)
   return info.protocol
     .. "://"
     .. info.domain
-    .. (info.additional_info and info.additional_info.ghes == true and "/api/v3" or "")
+    .. (
+      info.additional_info and info.additional_info.ghes == true and "/api/v3"
+      or ""
+    )
 end
 
 --- Gets the next url from link header
@@ -55,7 +58,10 @@ local function unmap(result)
 
   if type(result.status) == "string" then
     return nil,
-      ("%s: %s"):format(result.status, (result.message or "no message provided"))
+      ("%s: %s"):format(
+        result.status,
+        (result.message or "no message provided")
+      )
   end
 
   -- If the result was a kind of search (search/issues)
@@ -200,13 +206,16 @@ function M.try_fetch(info, queries, opts)
   local base = construct_base_endpoint(info)
   local headers = {}
   if info.additional_info and info.additional_info.api_version then
-    headers[#headers + 1] = config.api_ver_template .. info.additional_info.api_version
+    headers[#headers + 1] = config.api_ver_template
+      .. info.additional_info.api_version
   end
 
   ---@type rissue.utils.curl.Opts
   local curl_opts_reusable = {
     headers = headers,
-    accept = ("application/vnd.github.%s+json"):format(opts.settings.media_type),
+    accept = ("application/vnd.github.%s+json"):format(
+      opts.settings.media_type
+    ),
     method = "GET",
     auth = opts.token,
     fail_fast = true,
@@ -243,7 +252,10 @@ function M.try_fetch(info, queries, opts)
             local parsed = opts.parser(item, opts.settings)
             buffer[opts.key(parsed)] = parsed
           end
-        end, log.log_func(log.levels.error, { prefix = "Failed to parse: " }))
+        end, log.log_func(
+          log.levels.error,
+          { prefix = "Failed to parse: " }
+        ))
 
         if fetch_result.next_url then
           query = {

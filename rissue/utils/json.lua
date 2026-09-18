@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -225,7 +225,9 @@ local function load(tbl)
         -- exit early since we are done
         return
       else
-        log.warn(("Error when loading json backend '%s': %s"):format(config.name, err))
+        log.warn(
+          ("Error when loading json backend '%s': %s"):format(config.name, err)
+        )
       end
     end
   end
@@ -237,7 +239,9 @@ local function load(tbl)
         -- exit early since we are done
         return
       else
-        log.warn(("Error when loading json backend '%s': %s"):format(config.name, err))
+        log.warn(
+          ("Error when loading json backend '%s': %s"):format(config.name, err)
+        )
       end
     end
   end

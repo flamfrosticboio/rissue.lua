@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,9 @@ local function check(url, opts)
     log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
   end
 
-  return not not (result and result.content:match("verifiable_password_authentication")),
+  return not not (result and result.content:match(
+    "verifiable_password_authentication"
+  )),
     result and result.content
 end
 
@@ -59,7 +61,8 @@ function M.main(info, token, opts)
     ---@type rissue.Github.supports.AdditionalInfo
     local additional_info = {}
     if ghes_output then
-      local major, minor = ghes_output:match('"installed_version":%s*"(%d+)%.(%d+)')
+      local major, minor =
+        ghes_output:match('"installed_version":%s*"(%d+)%.(%d+)')
       local version = tonumber(major) * 1000 + tonumber(minor)
       additional_info.ghes = major .. "." .. minor
       additional_info.ghes_code = version
@@ -67,7 +70,8 @@ function M.main(info, token, opts)
       if type(opts.api_version) == "string" then
         additional_info.api_version = opts.api_version
       elseif opts.api_version ~= false then
-        additional_info.api_version = from_range(config.ghes_api_version_range, version)
+        additional_info.api_version =
+          from_range(config.ghes_api_version_range, version)
       end
     end
     return true, additional_info

@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,10 @@ local table_op = require("rissue.utils.table_op")
 
 describe("`force_extend()`", function()
   it("extends", function()
-    local t = table_op.force_deep_extend({ hello = "welcome" }, { hello = "hola" })
+    local t = table_op.force_deep_extend(
+      { hello = "welcome" },
+      { hello = "hola" }
+    )
     assert.equal("hola", t.hello)
   end)
 

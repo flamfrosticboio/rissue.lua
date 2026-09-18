@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -177,7 +177,8 @@ function M.construct(url, opts)
     end
 
     if
-      opts.data_type == "urlencode" and (opts.method == "GET" or opts.method == "HEAD")
+      opts.data_type == "urlencode"
+      and (opts.method == "GET" or opts.method == "HEAD")
     then
       --- Make urlencode be placed on url when method=GET is used
       args[#args + 1] = "-G"
@@ -197,7 +198,9 @@ function M.construct(url, opts)
       elseif opts.data_type == "form_literal" then
         error("Cannot use 'form_literal' if the data is pure string")
       elseif opts.data_type == "urlencode" then
-        error("Cannot use option 'urlencode' on pure string. Pass a table instead")
+        error(
+          "Cannot use option 'urlencode' on pure string. Pass a table instead"
+        )
       end
 
       local arg_key = _data_type_arg[d_type]
@@ -268,7 +271,8 @@ function M.raw(args, cwd, env)
       local output, read_file_err = file.read_file(headers_file) -- Warning: raises error
       if not output then
         return nil,
-          read_file_err or "unhandled error during tempfile read with --dump-header"
+          read_file_err
+            or "unhandled error during tempfile read with --dump-header"
       end
 
       local delete_ok, delete_err = file.delete_file(headers_file)

@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -100,7 +100,11 @@ end
 ---@return string? error
 function config.merge_provider_settings(provider, request)
   local settings = config.options.provider_options[provider.name]
-  return table_op.force_deep_extend(provider.settings, settings or {}, request or {})
+  return table_op.force_deep_extend(
+    provider.settings,
+    settings or {},
+    request or {}
+  )
 end
 
 return config

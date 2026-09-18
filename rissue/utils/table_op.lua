@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -56,14 +56,19 @@ function M.force_deep_extend(...)
 
   local function merge(dst, src)
     for k, v in pairs(src) do
-      if type(v) == "table" and type(dst[k]) == "table" and not M.is_list(v) then
+      if
+        type(v) == "table"
+        and type(dst[k]) == "table"
+        and not M.is_list(v)
+      then
         merge(dst[k], v)
       else
         if type(v) == "table" then
           if M.is_list(v) then
             local copy = {}
             for i, item in ipairs(v) do
-              copy[i] = (type(item) == "table") and M.force_deep_extend(item) or item
+              copy[i] = (type(item) == "table") and M.force_deep_extend(item)
+                or item
             end
             dst[k] = copy
           else

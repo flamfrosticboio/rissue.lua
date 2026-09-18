@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -94,7 +94,8 @@ describe("cmd", function()
       local contents = nil
       local co
       co = coroutine.create(function()
-        local p, spawn_err = cmd.spawn({ cmd = "echo", args = { "Hello World" } })
+        local p, spawn_err =
+          cmd.spawn({ cmd = "echo", args = { "Hello World" } })
         assert(p ~= nil, spawn_err)
         p:register_event("on_exit", function()
           coroutine.resume(co)
@@ -242,7 +243,8 @@ describe("cmd", function()
     end)
 
     it("disable on unknown binary", function()
-      local p, spawn_err = cmd.spawn({ cmd = "someRandomBinary29924", args = {} })
+      local p, spawn_err =
+        cmd.spawn({ cmd = "someRandomBinary29924", args = {} })
       assert(p ~= nil, spawn_err)
       ---@cast p rissue.utils.Process
       local run_ok, msg = pcall(function()

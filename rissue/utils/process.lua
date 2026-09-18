@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -258,7 +258,8 @@ function Process:run()
         .. M.construct_command_line_string(self._opts.cmd, self._opts.args)
         .. (self._opts.cwd and ("\n\tOn cwd: " .. self._opts.cwd) or "")
         .. (
-          self._opts.env and ("\n\tWith env: " .. table.concat(self._opts.env, " "))
+          self._opts.env
+            and ("\n\tWith env: " .. table.concat(self._opts.env, " "))
           or ""
         ),
       log.levels.debug
