@@ -53,7 +53,8 @@
 --- Note: This does not guarantee the output size of the result to be exactly `max_items`
 ---       and may have more items than requested
 ---@field max_items integer
---- Defines how many items are fetched per page when performing pagination requests in github. Limit=100
+--- Defines how many items are fetched per page when performing pagination requests in
+--- github. Limit=100
 ---@field items_per_page integer
 --- The type of media to request from issues and pull requests.
 ---
