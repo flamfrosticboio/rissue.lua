@@ -24,7 +24,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: "0.31.0"
-          args: rissue/ --config .selene.toml
+          args: src/ --config .selene.toml
 
       - name: Lint Tests
         uses: NTBBloodbath/selene-action@v1.0.0
