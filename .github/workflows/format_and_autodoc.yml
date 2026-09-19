@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Format check
         uses: JohnnyMorganz/stylua-action@v5
@@ -21,13 +23,15 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: 'chore(format): auto format with stylua'
-          file_pattern: '*.lua'
+          file_pattern: '**/*.lua'
           push_options: ''
 
   docs:
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
 
       - name: Setup Dependencies
         run: |
@@ -48,5 +52,5 @@ jobs:
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: 'docs: auto doc with auto_doc script'
-          file_pattern: '*.md'
+          file_pattern: 'docs/**/*.md'
           push_options: ''
