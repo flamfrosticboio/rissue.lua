@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -76,10 +76,11 @@ end
 ---@return table<string, string> mapped_blocks
 local function extract_blocks(content)
   local blocks = {}
-  for name in content:gmatch("%-%-%-%s*!(%S-)\n") do
+
+  for name in content:gmatch("%-%-%-%s*&(%S-)\n") do
     assert(type(name) == "string", "Name is not a string")
-    local start_pat = "%-%-%-%s*!" .. name .. "\n"
-    local end_pat = "%-%-%-%s*/!" .. name .. "\n"
+    local start_pat = "%-%-%-%s*&" .. name .. "\n"
+    local end_pat = "%-%-%-%s*/" .. name .. "\n"
     local pat = start_pat .. "(.-)" .. end_pat
 
     ---@type string?
@@ -92,18 +93,23 @@ local function extract_blocks(content)
   return blocks
 end
 
+---@param filepath string
+local function strip_lua_file_extension(filepath)
+  return filepath:gsub("%.lua$", "")
+end
+
 ---@param content string
 ---@param blocks table<string, string>
 local function apply_blocks(content, blocks)
   for name, body in pairs(blocks) do
-    local start_pat = "<!%-%-%s*!" .. name .. "%s*%-%->"
-    local end_pat = "<!%-%-%s*/!" .. name .. "%s*%-%->"
+    local start_pat = "<!%-%-%s*&" .. name .. "%s*%-%->"
+    local end_pat = "<!%-%-%s*/" .. name .. "%s*%-%->"
     local pat = start_pat .. "(.-)" .. end_pat
-    local replacement = "<!-- !"
+    local replacement = "<!-- &"
       .. name
       .. " -->\n```lua\n"
       .. body
-      .. "\n```\n<!-- /!"
+      .. "\n```\n<!-- /"
       .. name
       .. " -->"
     content = content:gsub(pat, replacement)
@@ -112,22 +118,79 @@ local function apply_blocks(content, blocks)
   return content
 end
 
-local providers_dir = "lua/rissue/providers"
+local is_windows = package.config:sub(1, 1) == "\\"
+local function shell_quote(s)
+  if is_windows then
+    return '"' .. s:gsub('"', '\\"') .. '"'
+  end
+  return "'" .. s:gsub("'", "'\\''") .. "'"
+end
+
+---@param path string
+local function run_formatter(path)
+  os.execute("npx prettier --config .prettierrc --write " .. shell_quote(path))
+end
+
+local providers_dir = "src/rissue/providers"
 local fd, err = uv.fs_scandir(providers_dir)
 if not fd then
   error(err)
 end
+
 while true do
-  local name = uv.fs_scandir_next(fd)
+  local name, ftype = uv.fs_scandir_next(fd)
   if not name then
     break
   end
-  local doc_file_path = "docs/providers/" .. name:match("^(.-).lua$") .. ".md"
-  local impl_file_path = providers_dir .. "/" .. name
-  local doc_file = read_file(doc_file_path)
-  local impl_file = read_file(impl_file_path)
-  local blocks = extract_blocks(impl_file)
-  local new_content = apply_blocks(doc_file, blocks)
 
-  write_file(doc_file_path, new_content)
+  local doc_file_path = "docs/providers/"
+    .. strip_lua_file_extension(name)
+    .. ".md"
+  local impl_file_path = providers_dir .. "/" .. name
+  local doc_contents = read_file(doc_file_path)
+  local original = doc_contents
+  if ftype == "directory" then
+    local ifd, ifd_err = uv.fs_scandir(impl_file_path)
+    if not ifd then
+      error(ifd_err)
+    end
+    while true do
+      local impl_fname, impl_ftype = uv.fs_scandir_next(ifd)
+      if not impl_fname then
+        break
+      end
+
+      local impl_fpath = impl_file_path .. "/" .. impl_fname
+
+      if impl_ftype == "file" then
+        local impl_contents = read_file(impl_fpath)
+        local blocks = extract_blocks(impl_contents)
+        doc_contents = apply_blocks(doc_contents, blocks)
+      else
+        print("Warning: Nested directory scanning is not yet supported")
+      end
+    end
+    write_file(doc_file_path, doc_contents)
+    run_formatter(doc_file_path)
+  elseif ftype == "file" then
+    local impl_file = read_file(impl_file_path)
+    local blocks = extract_blocks(impl_file)
+    doc_contents = apply_blocks(doc_contents, blocks)
+
+    write_file(doc_file_path, doc_contents)
+    run_formatter(doc_file_path)
+  else
+    error("Invalid filetype: " .. ftype)
+  end
+
+  local ci_status = os.getenv("FAIL_ON_WRITE")
+  doc_contents = read_file(doc_file_path) -- read again
+
+  if original ~= doc_contents then
+    print(doc_file_path .. " was updated")
+    if ci_status == "true" then
+      print("\nFiles were modified. Run 'git add --update .'")
+      os.exit(1)
+    end
+  end
 end

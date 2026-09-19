@@ -49,6 +49,13 @@ repos:
         types: [lua]
         stages: [pre-commit]
         pass_filenames: true
+      - id: autodoc
+        name: Run Autodoc
+        entry: env FAIL_ON_WRITE=true lua5.1 ./scripts/auto_doc.lua
+        language: system
+        types: [lua]
+        files: ^src/
+        stages: [pre-commit]
       - id: lint
         name: Lint lua files
         entry: selene --config .selene.toml

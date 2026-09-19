@@ -27,7 +27,7 @@ local exclude_cmd = os.getenv("TEST_STRICT") and "" or list_exclude_cmd()
 
 return {
   _all = {
-    lpath = "./?.lua;./?/init.lua;./test/?.lua;./test/?/init.lua",
+    lpath = "./src/?.lua;./src/?/init.lua;./test/?.lua;./test/?/init.lua",
     ROOT = { "test" },
     ["exclude-tags"] = "api,"
       .. (is_windows and "unix" or "windows")

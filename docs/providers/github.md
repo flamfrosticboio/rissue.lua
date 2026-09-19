@@ -12,21 +12,23 @@ Github versions that the provider supports:
 - ghec (Github Enterprise Cloud) (2026-03-10)
 - ghes 3.10-3.22 (Github Enterprise Server) (2026-03-10 and 2022-11-28)
 
-Minimum active support for ghes: 3.10
+Minimum active support for ghes: 3.16
 
 Theoretical support for ghes: 3.0
 
-> [!NOTE] Support for ghes versions lower than the minimum active support
-> There is has no active maintenance for versions lower than the active support,
-> but is sometimes compatible from the theoretical support. For compatibility, versions
-> starting at ghes 3.0 will be tested.
+> [!NOTE]
+> **Support for ghes versions below 3.16**
+> There is has no active maintenance for versions lower than 3.16, but is
+> ensured compatibility starting from 3.0.
 
 ## Settings
 
-<!-- !SETTINGS -->
+<!-- &SETTINGS -->
+
 ```lua
+--- Default settings
 ---@type rissue.Github.Settings
-local default_settings = {
+M.default = {
   endpoints = {
     issues = {
       {
@@ -56,32 +58,32 @@ local default_settings = {
     },
     merge_requests = {},
   },
+  max_items = 100,
+  items_per_page = 100,
+  media_type = "raw",
+  store_raw = false,
+  fetch_delay = 1000,
 }
 ```
-<!-- /!SETTINGS -->
+
+<!-- /SETTINGS -->
 
 ## Types
 
-<!-- !TYPES -->
-```lua
----@alias rissue.Github.SupportedApiVersions "2026-03-10" | "2022-11-28"
+<!-- &TYPES -->
 
---- Additional options when checking provider support
----@class rissue.Github.supports.Opts
----@field api_version rissue.Github.SupportedApiVersions | false
+````lua
+---@alias rissue.Github.ApiVersion "2026-03-10" | "2022-11-28"
 
---- Additional options when checking provider support
----@class rissue.Github.get_merge_requests.Opts
----@field api_version rissue.Github.SupportedApiVersions | false
-
---- Additional options when checking provider support
----@class rissue.Github.get_issues.Opts
----@field api_version rissue.Github.SupportedApiVersions | false
+---@alias rissue.Github.MediaType
+---| "raw" # Enables `body` in the response
+---| "text" # Enables `body_text` in the response
+---| "html" # Enables `body_html` in the response
 
 ---@class rissue.Github.supports.AdditionalInfo
 ---@field ghes string? The Github Enterprise Version (3.x)
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
----@field api_version rissue.Github.SupportedApiVersions?
+---@field api_version rissue.Github.ApiVersion?
 
 ---@class rissue.Github.opts.Endpoints
 ---@field issues rissue.Query[]
@@ -98,28 +100,60 @@ local default_settings = {
 --- See default settings for examples.
 ---@field endpoints rissue.Github.opts.Endpoints
 --- Override the api version to be used.
---- Most commonly used when doing requests like `get.issues()` or `get.merge_requests()`
+--- Most commonly used when doing requests like `get.issues()` or
+--- `get.merge_requests()`
+---
+--- Setting it to false removes the api_version header to be sent to the server.
 ---
 --- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
----@field api_version rissue.Github.SupportedApiVersions?
-```
-<!-- /!TYPES -->
+---@field api_version? rissue.Github.ApiVersion | false
+--- Limits how many items will be fetched and rendered.
+---
+--- Note: This does not guarantee the output size of the result to be exactly
+---       `max_items` and may have more items than requested
+---@field max_items integer
+--- Defines how many items are fetched per page when performing pagination
+--- requests in github. Limit=100 (enforced by github)
+---@field items_per_page integer
+--- The type of media to request from issues and pull requests.
+---
+--- Attaches a header to the requests:
+--- ```
+--- -H "Accept: application/vnd.github.<media_type>+json"
+--- ```
+---
+--- See more on [github docs](https://docs.github.com/en/).
+--- - [Issues](https://docs.github.com/en/rest/issues/issues)
+--- - [Pull Requests](https://docs.github.com/en/rest/pulls/pulls)
+---@field media_type rissue.Github.MediaType
+--- Store the raw response from the server in the results
+---@field store_raw boolean
+--- The delay between fetching in each endpoints/pages
+---@field fetch_delay integer
+
+--- Partial version of rissue.Github.Settings
+---@class (partial) rissue.Github.Opts: rissue.Github.Settings
+````
+
+<!-- /TYPES -->
 
 ## Technical
 
 - On supported versions of ghes, the highest api version will be used.
 
 Implementation:
-<!-- !TECHNICAL:GITHUB_GHES_RANGE -->
+<!-- &TECHNICAL:GITHUB_GHES_RANGE -->
+
 ```lua
+M.ghes_latest_version_code = 03022
+
 --- Api version will be chosen by the table below
 --- uses (abbb scheme) (a = major; b = minor)
-
-local ghes_latest = 03022
 ---@type {[1]: integer, [2]: integer, [3]: string}[]
-local ghes_api_versions_range = {
+M.ghes_api_version_range = {
   { 03009, 03020, "2022-11-28" }, -- ghes 3.9-3.20
-  { 03021, ghes_latest, "2026-03-10" }, -- ghes 3.21+
+  { 03021, M.ghes_latest_version_code, "2026-03-10" }, -- ghes 3.21+
 }
 ```
-<!-- /!TECHNICAL:GITHUB_GHES_RANGE -->
+
+<!-- /TECHNICAL:GITHUB_GHES_RANGE -->

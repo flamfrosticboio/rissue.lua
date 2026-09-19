@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -35,6 +35,18 @@ function M.new_id()
   _id_counter = _id_counter + 1
   return _id_counter
 end
+
+---@class __rissue.with_server.Opts
+---@field name string
+---@field specfile string
+---@field is_proxy boolean
+
+---@class __rissue.with_proxy.Opts
+---@field prefix string
+---@field port integer
+---@field target_port integer
+---@field name string
+---@field accept_rewrite string
 
 ---@param filepath string
 ---@param callback fun(err_msg: string|nil)
@@ -99,7 +111,9 @@ local function run_mock_server(filepath, port_offset, id, callback)
       return is_closed
     end, close_timeout)
     if not ok then
-      print("Warning: Failed to kill process gracefully. Attempting to force kill...")
+      print(
+        "Warning: Failed to kill process gracefully. Attempting to force kill..."
+      )
       p:close(nil, "sigkill")
       if not cmd.wait(function()
         return is_closed
@@ -144,18 +158,6 @@ local function run_mock_server(filepath, port_offset, id, callback)
 
   return start, close_func
 end
-
----@class __rissue.with_server.Opts
----@field name string
----@field specfile string
----@field is_proxy boolean
-
----@class __rissue.with_proxy.Opts
----@field prefix string
----@field port integer
----@field target_port integer
----@field name string
----@field accept_rewrite string
 
 ---@param opts __rissue.with_proxy.Opts
 ---@return rissue.utils.Process

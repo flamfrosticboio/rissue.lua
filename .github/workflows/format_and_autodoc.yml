@@ -1,0 +1,56 @@
+name: Autodoc
+on:
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Format check
+        uses: JohnnyMorganz/stylua-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "2.5.2"
+          args: --config-path ./.stylua.toml .
+
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'chore(format): auto format with stylua'
+          file_pattern: '**/*.lua'
+          push_options: ''
+
+  docs:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - run: luarocks install luv
+
+      - name: Run Autodoc
+        run: lua ./scripts/auto_doc.lua
+
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'docs: auto doc with auto_doc script'
+          file_pattern: 'docs/**/*.md'
+          push_options: ''

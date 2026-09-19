@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -101,7 +101,11 @@ function M.run_multiple(cmds, process_limit)
           cmd = command,
         }
 
-        fn.print_shell(command, ("[%d/%d][DONE]: "):format(finished, total), true)
+        fn.print_shell(
+          command,
+          ("[%d/%d][DONE]: "):format(finished, total),
+          true
+        )
       end)
 
       process:run()
@@ -169,7 +173,7 @@ local function handle_cache(cache)
     f:close()
     content = tonumber(content)
     if content and os.time() - content > cache.ttl then
-      local ok, err = fn.rmdir(cache.folder)
+      local ok, err = fn.rmdir(M.cwd .. "/" .. cache.folder)
       if not ok then
         print("Warning: failed to delete expired cached folder: " .. err)
       end

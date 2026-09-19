@@ -12,19 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Format check
-        uses: JohnnyMorganz/stylua-action@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          version: "2.5.2"
-          args: --config-path ./.stylua.toml --check .
-
       - name: Lint
         uses: NTBBloodbath/selene-action@v1.0.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: "0.31.0"
-          args: rissue/ --config .selene.toml
+          args: src/ --config .selene.toml
 
       - name: Lint Tests
         uses: NTBBloodbath/selene-action@v1.0.0
@@ -104,7 +97,7 @@ jobs:
 
       - name: Install Specs
         run: |
-          ./scripts/setup_test_api.sh
+          ./scripts/lua ./test/api/setup.lua
 
       - name: Save cache for '.test_setup'
         uses: actions/cache/save@v6

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export LUA_PATH="./src/?.lua;./src/?/init.lua;./test/?.lua;./test/?/init.lua;$LUA_PATH"
+lua5.1 "$@"

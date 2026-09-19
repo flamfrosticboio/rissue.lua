@@ -1,4 +1,4 @@
--- RIssue - Abstract implementation for getting issues and merge requests from git providers
+-- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
 -- This program is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@ local test_files = ".test_setup/github"
 
 ---@class __rissue.github.test_version
 ---@field is_proxy boolean?
----@field request_opts rissue.Github.supports.Opts?
+---@field request_opts rissue.Github.Opts?
 ---@field additional_info rissue.Github.supports.AdditionalInfo?
 
 ---@param name string
