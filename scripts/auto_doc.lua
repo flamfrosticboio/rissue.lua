@@ -184,8 +184,11 @@ while true do
   end
 
   local ci_status = os.getenv("FAIL_ON_WRITE")
-  if original ~= doc_contents and ci_status == "true" then
-    print("\nFiles were modified. Run 'git add --update .'")
-    os.exit(1)
+  if original ~= doc_contents then
+    print(doc_file_path .. " was written")
+    if ci_status == "true" then
+      print("\nFiles were modified. Run 'git add --update .'")
+      os.exit(1)
+    end
   end
 end
