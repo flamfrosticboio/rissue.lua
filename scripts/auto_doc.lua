@@ -118,6 +118,19 @@ local function apply_blocks(content, blocks)
   return content
 end
 
+local is_windows = package.config:sub(1, 1) == "\\"
+local function shell_quote(s)
+  if is_windows then
+    return '"' .. s:gsub('"', '\\"') .. '"'
+  end
+  return "'" .. s:gsub("'", "'\\''") .. "'"
+end
+
+---@param path string
+local function run_formatter(path)
+  os.execute("npx prettier --config .prettierrc --write " .. shell_quote(path))
+end
+
 local providers_dir = "src/rissue/providers"
 local fd, err = uv.fs_scandir(providers_dir)
 if not fd then
@@ -156,12 +169,14 @@ while true do
       end
     end
     write_file(doc_file_path, doc_contents)
+    run_formatter(doc_file_path)
   elseif ftype == "file" then
     local impl_file = read_file(impl_file_path)
     local blocks = extract_blocks(impl_file)
     local new_content = apply_blocks(doc_contents, blocks)
 
     write_file(doc_file_path, new_content)
+    run_formatter(doc_file_path)
   else
     error("Invalid filetype: " .. ftype)
   end
