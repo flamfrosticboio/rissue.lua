@@ -36,6 +36,18 @@ function M.new_id()
   return _id_counter
 end
 
+---@class __rissue.with_server.Opts
+---@field name string
+---@field specfile string
+---@field is_proxy boolean
+
+---@class __rissue.with_proxy.Opts
+---@field prefix string
+---@field port integer
+---@field target_port integer
+---@field name string
+---@field accept_rewrite string
+
 ---@param filepath string
 ---@param callback fun(err_msg: string|nil)
 ---@param port_offset integer
@@ -146,18 +158,6 @@ local function run_mock_server(filepath, port_offset, id, callback)
 
   return start, close_func
 end
-
----@class __rissue.with_server.Opts
----@field name string
----@field specfile string
----@field is_proxy boolean
-
----@class __rissue.with_proxy.Opts
----@field prefix string
----@field port integer
----@field target_port integer
----@field name string
----@field accept_rewrite string
 
 ---@param opts __rissue.with_proxy.Opts
 ---@return rissue.utils.Process

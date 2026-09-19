@@ -118,7 +118,7 @@ local function apply_blocks(content, blocks)
   return content
 end
 
-local providers_dir = "rissue/providers"
+local providers_dir = "src/rissue/providers"
 local fd, err = uv.fs_scandir(providers_dir)
 if not fd then
   error(err)
