@@ -97,7 +97,7 @@ jobs:
 
       - name: Install Specs
         run: |
-          ./scripts/setup_test_api.sh
+          ./scripts/lua ./test/api/setup.lua
 
       - name: Save cache for '.test_setup'
         uses: actions/cache/save@v6
