@@ -122,7 +122,7 @@ M.default = {
 --- -H "Accept: application/vnd.github.<media_type>+json"
 --- ```
 ---
---- See more on github docs. Specifically on:
+--- See more on [github docs](https://docs.github.com/en/).
 --- - [Issues](https://docs.github.com/en/rest/issues/issues)
 --- - [Pull Requests](https://docs.github.com/en/rest/pulls/pulls)
 ---@field media_type rissue.Github.MediaType
