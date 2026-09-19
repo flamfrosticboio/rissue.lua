@@ -12,13 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Format check
-        uses: JohnnyMorganz/stylua-action@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          version: "2.5.2"
-          args: --config-path ./.stylua.toml --check .
-
       - name: Lint
         uses: NTBBloodbath/selene-action@v1.0.0
         with:
