@@ -32,11 +32,12 @@ On windows, install it with your preferred way (winget, website, choco, etc.)
 
 ## Developing
 
-### Required Tools
-
 - [precommit](https://github.com/pre-commit/pre-commit) or
   [prek](https://github.com/j178/prek) (better)
-  (install on `hook` types `precommit` and `commit-msg`)
+
+  Install it with your preferred package manager.
+
+  Afterwards, install precommit/prek in this project.
 
   ```bash
   # If using precommit
@@ -46,15 +47,28 @@ On windows, install it with your preferred way (winget, website, choco, etc.)
   prek install
   ```
 
-- [emmylua_analyzer_rust](https://github.com/EmmyLuaLs/emmylua-analyzer-rust)
-  (lsp, format, checker)
+- [luals](https://luals.github.io) (language server)
 
-  Needed binaries from `emmylua_analyzer_rust`
+  Install it with in your preferred IDE and use it.
+
+- [stylua](https://github.com/JohnnyMorganz/StyLua) (formatter)
+
+  Install it as a tool with your preferred package manager.
+
+  Alternatively, you can install it with cargo:
 
   ```bash
-  cargo install emmylua_ls          # Language server
-  cargo install emmylua_formatter   # Code formatter
-  cargo install emmylua_check       # Static analyzer / linter
+  cargo install stylua
+  ```
+
+- [selene](https://github.com/JohnnyMorganz/StyLua) (linter)
+
+  Install it as a tool with your preferred package manager.
+
+  Alternatively, you can install it with cargo:
+
+  ```bash
+  cargo install selene
   ```
 
 - [busted](https://github.com/lunarmodules/busted)
@@ -69,12 +83,10 @@ On windows, install it with your preferred way (winget, website, choco, etc.)
   (markdown format)
 
   Install node (preferably with the latest LTS version) with your preferred
-  package manager
+  package manager.
 
-### Setup Development Tools
+  Afterwards, install all node_modules needed:
 
-Setup development tools such as prettier by running the command below:
-
-```bash
-npm install
-```
+  ```bash
+  npm install
+  ```
