@@ -51,7 +51,7 @@ repos:
         pass_filenames: true
       - id: autodoc
         name: Run Autodoc
-        entry: lua5.1 ./scripts/auto_doc.lua
+        entry: env FAIL_ON_WRITE=true lua5.1 ./scripts/auto_doc.lua
         language: system
         types: [lua]
         files: ^src/

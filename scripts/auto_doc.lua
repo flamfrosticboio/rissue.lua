@@ -136,6 +136,7 @@ local fd, err = uv.fs_scandir(providers_dir)
 if not fd then
   error(err)
 end
+
 while true do
   local name, ftype = uv.fs_scandir_next(fd)
   if not name then
@@ -147,6 +148,7 @@ while true do
     .. ".md"
   local impl_file_path = providers_dir .. "/" .. name
   local doc_contents = read_file(doc_file_path)
+  local original = doc_contents
   if ftype == "directory" then
     local ifd, ifd_err = uv.fs_scandir(impl_file_path)
     if not ifd then
@@ -173,16 +175,17 @@ while true do
   elseif ftype == "file" then
     local impl_file = read_file(impl_file_path)
     local blocks = extract_blocks(impl_file)
-    local new_content = apply_blocks(doc_contents, blocks)
+    doc_contents = apply_blocks(doc_contents, blocks)
 
-    write_file(doc_file_path, new_content)
+    write_file(doc_file_path, doc_contents)
     run_formatter(doc_file_path)
   else
     error("Invalid filetype: " .. ftype)
   end
 
-  print(
-    "\nIf running on precommit/prek and any files were written, run "
-      .. "'git add --update .'"
-  )
+  local ci_status = os.getenv("FAIL_ON_WRITE")
+  if original ~= doc_contents and ci_status == "true" then
+    print("\nFiles were modified. Run 'git add --update .'")
+    os.exit(1)
+  end
 end
