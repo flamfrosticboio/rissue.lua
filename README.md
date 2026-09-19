@@ -64,3 +64,17 @@ On windows, install it with your preferred way (winget, website, choco, etc.)
   ```bash
   luarocks install busted
   ```
+
+- [node](https://nodejs.org/en) (specifically npm)
+  (markdown format)
+
+  Install node (preferably with the latest LTS version) with your preferred
+  package manager
+
+### Setup Development Tools
+
+Setup development tools such as prettier by running the command below:
+
+```bash
+npm install
+```
