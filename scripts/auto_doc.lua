@@ -180,4 +180,9 @@ while true do
   else
     error("Invalid filetype: " .. ftype)
   end
+
+  print(
+    "\nIf running on precommit/prek and any files were written, run "
+      .. "'git add --update .'"
+  )
 end
