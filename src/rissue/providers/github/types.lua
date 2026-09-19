@@ -43,31 +43,35 @@
 --- See default settings for examples.
 ---@field endpoints rissue.Github.opts.Endpoints
 --- Override the api version to be used.
---- Most commonly used when doing requests like `get.issues()` or `get.merge_requests()`
+--- Most commonly used when doing requests like `get.issues()` or
+--- `get.merge_requests()`
 ---
 --- Setting it to false removes the api_version header to be sent to the server.
 ---
 --- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
 ---@field api_version? rissue.Github.ApiVersion | false
 --- Limits how many items will be fetched and rendered.
---- Note: This does not guarantee the output size of the result to be exactly `max_items`
----       and may have more items than requested
+---
+--- Note: This does not guarantee the output size of the result to be exactly
+---       `max_items` and may have more items than requested
 ---@field max_items integer
---- Defines how many items are fetched per page when performing pagination requests in
---- github. Limit=100
+--- Defines how many items are fetched per page when performing pagination
+--- requests in github. Limit=100 (enforced by github)
 ---@field items_per_page integer
 --- The type of media to request from issues and pull requests.
 ---
---- What would be sent to the server:
---- ```lua
---- --- Curl headers
---- headers[#headers + 1] = ("Accept: application/vnd.github.%s+json"):format(media_type)
---- --- Results to: "Accept: application/vnd.github.raw+json" if media_type is `json`
+--- Attaches a header to the requests:
 --- ```
+--- -H "Accept: application/vnd.github.<media_type>+json"
+--- ```
+---
+--- See more on github docs. Specifically on:
+--- - [Issues](https://docs.github.com/en/rest/issues/issues)
+--- - [Pull Requests](https://docs.github.com/en/rest/pulls/pulls)
 ---@field media_type rissue.Github.MediaType
---- Store the raw response from the server to the original parsed response
+--- Store the raw response from the server in the results
 ---@field store_raw boolean
---- The delay between fetching
+--- The delay between fetching in each endpoints/pages
 ---@field fetch_delay integer
 
 --- Partial version of rissue.Github.Settings
