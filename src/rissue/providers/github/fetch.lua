@@ -152,7 +152,7 @@ local function try_fetch_page(opts)
     end)
 
     if not ok then
-      log.error("Failed to decode: " .. (res or "unknown error"))
+      return nil, res --[[@as string]] or "unknown error"
     end
 
     if not response.headers then
