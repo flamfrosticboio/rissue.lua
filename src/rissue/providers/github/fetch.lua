@@ -167,7 +167,9 @@ local function try_fetch_page(opts)
     } --[[@as __rissue.Github.fetch_page.Result]]
   else
     if log.level_enabled(log.levels.error) then
-      local message = "Failed to fetch: "
+      local message = "Failed to fetch on '"
+        .. opts.query.endpoint
+        .. "': "
         .. (response and response.err or fetch_err or "unknown error")
       if response and response.content ~= "" then
         message = message .. "\nServer responded: " .. response.content
