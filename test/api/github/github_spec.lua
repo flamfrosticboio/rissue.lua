@@ -105,7 +105,7 @@ local function test_version(name, specfile, opts)
       local issues, err = get.get_issues(info_shared, {
         endpoints = {
           issues = {
-            { endpoint = "/issues", param = { q = "type:issue" } },
+            { endpoint = "/issues", param = {} },
           },
           merge_requests = {},
         },
@@ -143,7 +143,7 @@ local function test_version(name, specfile, opts)
           issues = {
             {
               endpoint = "/repos/{owner}/{repo}/issues",
-              param = { q = "type:issue" },
+              param = {},
             },
           },
           merge_requests = {},
@@ -182,7 +182,7 @@ local function test_version(name, specfile, opts)
           issues = {
             {
               endpoint = "/user/issues",
-              param = { q = "type:issue" },
+              param = {},
             },
           },
           merge_requests = {},
