@@ -21,7 +21,6 @@
 ---| "open" pull request is open
 ---| "merged" pull request is closed and merged
 ---| "canceled" pull request is closed and not merged
----| "locked" pull request is locked
 
 ---@class (exact) rissue.pr: rissue.item.base
 ---@field state rissue.pr.State
