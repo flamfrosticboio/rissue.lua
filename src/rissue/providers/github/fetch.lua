@@ -64,7 +64,7 @@ local function unmap(result)
       )
   end
 
-  -- If the result was a kind of search (search/issues)
+  -- If the result was a kind of search ('/search/issues')
   if type(result.items) == "table" and type(result.total_count) == "number" then
     ---@type __rissue.Github.unmap.Result
     local res = {
@@ -76,7 +76,8 @@ local function unmap(result)
     end
     return res
   elseif table_op.is_list(result) then
-    return result
+    -- If the result was just normal
+    return { items = result }
   end
 
   return nil, "unknown pattern"
@@ -151,7 +152,7 @@ local function try_fetch_page(opts)
     end)
 
     if not ok then
-      log.error("Failed to decode: " .. (res or "unknown error"))
+      return nil, res --[[@as string]] or "unknown error"
     end
 
     if not response.headers then
@@ -166,7 +167,9 @@ local function try_fetch_page(opts)
     } --[[@as __rissue.Github.fetch_page.Result]]
   else
     if log.level_enabled(log.levels.error) then
-      local message = "Failed to fetch: "
+      local message = "Failed to fetch on '"
+        .. opts.query.endpoint
+        .. "': "
         .. (response and response.err or fetch_err or "unknown error")
       if response and response.content ~= "" then
         message = message .. "\nServer responded: " .. response.content
@@ -174,6 +177,8 @@ local function try_fetch_page(opts)
 
       log.log(message, log.levels.error)
     end
+
+    return nil, response and response.err or fetch_err
   end
 end
 
@@ -227,6 +232,17 @@ function M.try_fetch(info, queries, opts)
     repo = info.repo,
   }
 
+  local function is_full()
+    return table_op.count(buffer) >= opts.settings.max_items
+  end
+
+  local function parse_items(items)
+    for _, item in ipairs(items) do
+      local parsed = opts.parser(item, opts.settings)
+      buffer[opts.key(parsed)] = parsed
+    end
+  end
+
   for _, query in ipairs(queries) do
     if not query.param.q then
       return nil, "'q' is not passed on query: " .. query.endpoint
@@ -240,36 +256,29 @@ function M.try_fetch(info, queries, opts)
       page = 1,
     })
 
-    while table_op.count(buffer) < opts.settings.max_items do
-      local fetch_result, fetch_err = try_fetch_page({
+    while not is_full() do
+      local result, err = try_fetch_page({
         query = query,
         curl_opts = curl_opts_reusable,
       })
 
-      if fetch_result then
-        xpcall(function()
-          for _, item in ipairs(fetch_result.contents.items) do
-            local parsed = opts.parser(item, opts.settings)
-            buffer[opts.key(parsed)] = parsed
-          end
-        end, log.log_func(
-          log.levels.error,
-          { prefix = "Failed to parse: " }
-        ))
-
-        if fetch_result.next_url then
-          query = {
-            endpoint = fetch_result.next_url,
-            param = {},
-          }
-        else
-          delay_with_warning(opts.settings.fetch_delay)
-          break
-        end
-      else
-        log.error("Failed to fetch: " .. (fetch_err or "unknown error"))
+      if not result then
+        log.error("Failed to fetch: " .. (err or "unknown error"))
+        break
       end
 
+      xpcall(function()
+        parse_items(result.contents.items)
+      end, log.log_func(
+        log.levels.error,
+        { prefix = "Failed to parse: " }
+      ))
+
+      if not result.next_url or is_full() then
+        break
+      end
+
+      query = { endpoint = result.next_url, param = {} }
       delay_with_warning(opts.settings.fetch_delay)
     end
   end
