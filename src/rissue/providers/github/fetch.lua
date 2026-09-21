@@ -176,7 +176,7 @@ local function try_fetch_page(opts)
       log.log(message, log.levels.error)
     end
 
-    return nil, fetch_err
+    return nil, response and response.err or fetch_err
   end
 end
 
