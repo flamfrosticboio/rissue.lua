@@ -45,6 +45,11 @@ local function test_version(name, specfile, opts)
 
     local info_shared = nil
 
+    --- Notes:
+    --- Some endpoints here (such as '/search/issues') has a next link header
+    --- but points to invalid website because its generic. Any error statements
+    --- you would see in the response, just ignore them.
+
     it("found provider", function()
       local info, err = provider.get_provider_info(
         "http://" .. domain .. "/owner/repo.git",
