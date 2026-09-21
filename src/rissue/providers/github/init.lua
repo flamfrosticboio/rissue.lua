@@ -53,6 +53,52 @@ local function into_issue(raw, settings)
   }
 end
 
+---@param raw table
+---@return rissue.pr.State
+local function pr_state(raw)
+  if raw.state == "open" then
+    return "open"
+  end
+  if raw.merged or raw.merged_at ~= nil then
+    return "merged"
+  end
+  return "canceled"
+end
+
+---@param raw table
+---@param settings rissue.Github.Settings
+---@return rissue.pr
+local function into_merge_requests(raw, settings)
+  ---@type rissue.label[]
+  local labels = {}
+
+  for _, label in ipairs(raw.labels) do
+    labels[#labels + 1] = {
+      name = label.name,
+      color = label.color,
+      description = label.description,
+    }
+  end
+
+  ---@type rissue.pr
+  return {
+    state = pr_state(raw),
+    title = raw.title,
+    web_url = raw.html_url,
+    body = raw.body or raw.body_html or raw.body_text,
+    id = raw.number,
+    url = raw.url,
+    author = {
+      web_url = raw.user.html_url,
+      username = raw.user.login,
+      display_name = raw.user.name,
+    },
+    created_at = time.iso_to_timestamp_utc(raw.created_at),
+    labels = labels,
+    raw = settings.store_raw and raw or nil,
+  }
+end
+
 ---@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_issues(info, token, opts)
   return fetch.try_fetch(info, opts.endpoints.issues, {
@@ -66,7 +112,16 @@ local function get_issues(info, token, opts)
 end
 
 ---@type rissue.provider.GetMergeRequests<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
-local function get_merge_requests(_info, _token, _opts) end
+local function get_merge_requests(info, token, opts)
+  return fetch.try_fetch(info, opts.endpoints.merge_requests, {
+    parser = into_merge_requests,
+    key = function(item)
+      return item.id
+    end,
+    settings = opts,
+    token = token,
+  })
+end
 
 ---@type rissue.Provider
 return {

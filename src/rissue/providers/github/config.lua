@@ -26,7 +26,7 @@ M.default = {
       {
         endpoint = "/search/issues",
         param = {
-          q = "repo:{owner}/{repo} type:issue is:open label:security,critical",
+          q = "repo:{owner}/{repo} is:issue is:open label:security,critical",
           sort = "interactions",
           order = "desc",
         },
@@ -34,7 +34,7 @@ M.default = {
       {
         endpoint = "/search/issues",
         param = {
-          q = "repo:{owner}/{repo} type:issue is:open label:blocker,P0",
+          q = "repo:{owner}/{repo} is:issue is:open label:blocker,P0",
           sort = "interactions",
           order = "desc",
         },
@@ -42,13 +42,38 @@ M.default = {
       {
         endpoint = "/search/issues",
         param = {
-          q = "repo:{owner}/{repo} type:issue is:open",
+          q = "repo:{owner}/{repo} is:issue is:open",
           sort = "interactions",
           order = "desc",
         },
       },
     },
-    merge_requests = {},
+    merge_requests = {
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} is:pr is:open label:security,critical",
+          sort = "interactions",
+          order = "desc",
+        },
+      },
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} is:pr is:open label:blocker,P0",
+          sort = "interactions",
+          order = "desc",
+        },
+      },
+      {
+        endpoint = "/search/issues",
+        param = {
+          q = "repo:{owner}/{repo} is:pr is:open",
+          sort = "interactions",
+          order = "desc",
+        },
+      },
+    },
   },
   max_items = 100,
   items_per_page = 100,
