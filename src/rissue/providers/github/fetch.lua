@@ -76,7 +76,8 @@ local function unmap(result)
     end
     return res
   elseif table_op.is_list(result) then
-    return result
+    -- If the result was just normal
+    return { items = result }
   end
 
   return nil, "unknown pattern"
