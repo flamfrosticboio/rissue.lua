@@ -112,7 +112,7 @@ end
 local function prepare_page(opts)
   local endpoint = opts.base .. fmt(opts.query.endpoint, opts.fmt_opts)
   local param = table_op.force_deep_extend(opts.query.param)
-  param.q = fmt(param.q, opts.fmt_opts)
+  param.q = param.q and fmt(param.q, opts.fmt_opts)
   param.per_page = opts.fetch_opts.settings.items_per_page
   param.page = tostring(opts.page or 1)
 
@@ -244,10 +244,6 @@ function M.try_fetch(info, queries, opts)
   end
 
   for _, query in ipairs(queries) do
-    if not query.param.q then
-      return nil, "'q' is not passed on query: " .. query.endpoint
-    end
-
     query = prepare_page({
       base = base,
       fetch_opts = opts,
