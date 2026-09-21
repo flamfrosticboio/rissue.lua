@@ -265,7 +265,6 @@ local function test_version(name, specfile, opts)
         },
       } --[[@as rissue.Github.Opts]])
       assert(mr, err)
-      print(require("inspect")(mr[1].labels))
       assert.same({
         {
           author = {
