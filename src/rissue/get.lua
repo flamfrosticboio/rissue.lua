@@ -74,7 +74,8 @@ end
 ---@return rissue.pr[]? results
 ---@return string? errors
 function M.merge_requests(info, opts)
-  return get_issues_or_merge(info, opts, "get_merge_requests")
+  local res, err = get_issues_or_merge(info, opts, "get_merge_requests")
+  return res, err
 end
 
 return M
