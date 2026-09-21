@@ -64,8 +64,17 @@ end
 ---@param opts table? Settings that are based on provider
 ---@return rissue.issue[]? results
 ---@return string? errors
-function M.get_issues(info, opts)
+function M.issues(info, opts)
   local res, err = get_issues_or_merge(info, opts, "get_issues")
   return res, err
 end
+
+---@param info rissue.ProviderInfo
+---@param opts table? Settings that are based on provider
+---@return rissue.pr[]? results
+---@return string? errors
+function M.merge_requests(info, opts)
+  return get_issues_or_merge(info, opts, "get_merge_requests")
+end
+
 return M
