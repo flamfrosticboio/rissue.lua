@@ -64,10 +64,17 @@ local function test_version(name, specfile, opts)
       info_shared = info
     end)
 
-    it("issues ok", function()
+    it("issues ok at /search/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.get_issues(info_shared)
+      local issues, err = get.get_issues(info_shared, {
+        endpoints = {
+          issues = {
+            { endpoint = "/search/issues", param = { q = "type:issue" } },
+          },
+          merge_requests = {},
+        },
+      } --[[@as rissue.Github.Opts]])
       assert(issues, err)
       assert.same({
         {
@@ -88,6 +95,120 @@ local function test_version(name, specfile, opts)
           title = "Line Number Indexes Beyond 20 Not Displayed",
           url = "https://api.github.com/repos/batterseapower/pinyin-toolkit/issues/132",
           web_url = "https://github.com/batterseapower/pinyin-toolkit/issues/132",
+        },
+      }, issues)
+    end)
+
+    it("issues ok at /issues", function()
+      assert.is_not_nil(info_shared, "provider test was not ok")
+      ---@cast info_shared rissue.ProviderInfo
+      local issues, err = get.get_issues(info_shared, {
+        endpoints = {
+          issues = {
+            { endpoint = "/issues", param = { q = "type:issue" } },
+          },
+          merge_requests = {},
+        },
+      } --[[@as rissue.Github.Opts]])
+      assert(issues, err)
+      assert.same({
+        {
+          author = {
+            username = "octocat",
+            web_url = "https://github.com/octocat",
+          },
+          body = "I'm having a problem with this.",
+          created_at = 1303479228,
+          id = 1347,
+          is_open = true,
+          labels = {
+            {
+              color = "f29513",
+              name = "bug",
+              description = "Something isn't working",
+            },
+          },
+          title = "Found a bug",
+          url = "https://api.github.com/repos/octocat/Hello-World/issues/1347",
+          web_url = "https://github.com/octocat/Hello-World/issues/1347",
+        },
+      }, issues)
+    end)
+
+    it("issues ok at /repos/{owner}/{repo}/issues", function()
+      assert.is_not_nil(info_shared, "provider test was not ok")
+      ---@cast info_shared rissue.ProviderInfo
+      local issues, err = get.get_issues(info_shared, {
+        endpoints = {
+          issues = {
+            {
+              endpoint = "/repos/{owner}/{repo}/issues",
+              param = { q = "type:issue" },
+            },
+          },
+          merge_requests = {},
+        },
+      } --[[@as rissue.Github.Opts]])
+      assert(issues, err)
+      assert.same({
+        {
+          author = {
+            username = "octocat",
+            web_url = "https://github.com/octocat",
+          },
+          body = "I'm having a problem with this.",
+          created_at = 1303479228,
+          id = 1347,
+          is_open = true,
+          labels = {
+            {
+              color = "f29513",
+              name = "bug",
+              description = "Something isn't working",
+            },
+          },
+          title = "Found a bug",
+          url = "https://api.github.com/repos/octocat/Hello-World/issues/1347",
+          web_url = "https://github.com/octocat/Hello-World/issues/1347",
+        },
+      }, issues)
+    end)
+
+    it("issues ok at /user/issues", function()
+      assert.is_not_nil(info_shared, "provider test was not ok")
+      ---@cast info_shared rissue.ProviderInfo
+      local issues, err = get.get_issues(info_shared, {
+        endpoints = {
+          issues = {
+            {
+              endpoint = "/user/issues",
+              param = { q = "type:issue" },
+            },
+          },
+          merge_requests = {},
+        },
+      } --[[@as rissue.Github.Opts]])
+      assert(issues, err)
+      assert.same({
+        {
+          author = {
+            username = "octocat",
+            web_url = "https://github.com/octocat",
+          },
+          body = "I'm having a problem with this.",
+          created_at = 1303479228,
+          id = 1347,
+          is_open = true,
+          labels = {
+            {
+              color = "f29513",
+              name = "bug",
+              description = "Something isn't working",
+            },
+          },
+          title = "Found a bug",
+          url = "https://api.github.com/repos/octocat/Hello-World/issues/1347",
+          web_url = "https://github.com/octocat/Hello-World/issues/1347",
         },
       }, issues)
     end)
