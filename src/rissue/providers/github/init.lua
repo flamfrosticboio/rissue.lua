@@ -21,8 +21,8 @@ local time = require("rissue.utils.time")
 
 ---@param raw table
 ---@param settings rissue.Github.Settings
----@return rissue.issue
-local function into_issue(raw, settings)
+---@return rissue.item.base
+local function into_base(raw, settings)
   ---@type rissue.label[]
   local labels = {}
 
@@ -34,9 +34,8 @@ local function into_issue(raw, settings)
     }
   end
 
-  ---@type rissue.issue
+  ---@type rissue.item.base
   return {
-    is_open = raw.state == "open",
     title = raw.title,
     web_url = raw.html_url,
     body = raw.body or raw.body_html or raw.body_text,
@@ -51,6 +50,16 @@ local function into_issue(raw, settings)
     labels = labels,
     raw = settings.store_raw and raw or nil,
   }
+end
+
+---@param raw table
+---@param settings rissue.Github.Settings
+---@return rissue.issue
+local function into_issue(raw, settings)
+  local base = into_base(raw, settings)
+  ---@cast base rissue.issue
+  base.is_open = raw.state == "open"
+  return base
 end
 
 ---@param raw table
@@ -69,34 +78,10 @@ end
 ---@param settings rissue.Github.Settings
 ---@return rissue.pr
 local function into_merge_requests(raw, settings)
-  ---@type rissue.label[]
-  local labels = {}
-
-  for _, label in ipairs(raw.labels) do
-    labels[#labels + 1] = {
-      name = label.name,
-      color = label.color,
-      description = label.description,
-    }
-  end
-
-  ---@type rissue.pr
-  return {
-    state = pr_state(raw),
-    title = raw.title,
-    web_url = raw.html_url,
-    body = raw.body or raw.body_html or raw.body_text,
-    id = raw.number,
-    url = raw.url,
-    author = {
-      web_url = raw.user.html_url,
-      username = raw.user.login,
-      display_name = raw.user.name,
-    },
-    created_at = time.iso_to_timestamp_utc(raw.created_at),
-    labels = labels,
-    raw = settings.store_raw and raw or nil,
-  }
+  local base = into_base(raw, settings)
+  ---@cast base rissue.pr
+  base.state = pr_state(raw)
+  return base
 end
 
 ---@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
