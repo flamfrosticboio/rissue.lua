@@ -16,10 +16,11 @@
 
 ---@meta
 
+--- The state of the pull request
+---@alias rissue.pr.State
+---| "open" pull request is open
+---| "merged" pull request is closed and merged
+---| "canceled" pull request is closed and not merged
+
 ---@class (exact) rissue.pr: rissue.item.base
---- Meanings:
---- - open: open pr/mr
---- - merged: pr/mr is closed and merged
---- - canceled: pr/mr is closed and unmerged
---- - locked: pr/mr is locked
----@field state "open" | "merged" | "canceled" | "locked"
+---@field state rissue.pr.State

@@ -45,6 +45,11 @@ local function test_version(name, specfile, opts)
 
     local info_shared = nil
 
+    --- Notes:
+    --- Some endpoints here (such as '/search/issues') has a next link header
+    --- but points to invalid website because its generic. Any error statements
+    --- you would see in the response, just ignore them.
+
     it("found provider", function()
       local info, err = provider.get_provider_info(
         "http://" .. domain .. "/owner/repo.git",
@@ -67,7 +72,7 @@ local function test_version(name, specfile, opts)
     it("issues ok at /search/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.get_issues(info_shared, {
+      local issues, err = get.issues(info_shared, {
         endpoints = {
           issues = {
             { endpoint = "/search/issues", param = { q = "type:issue" } },
@@ -102,10 +107,10 @@ local function test_version(name, specfile, opts)
     it("issues ok at /issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.get_issues(info_shared, {
+      local issues, err = get.issues(info_shared, {
         endpoints = {
           issues = {
-            { endpoint = "/issues", param = { q = "type:issue" } },
+            { endpoint = "/issues", param = {} },
           },
           merge_requests = {},
         },
@@ -138,12 +143,12 @@ local function test_version(name, specfile, opts)
     it("issues ok at /repos/{owner}/{repo}/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.get_issues(info_shared, {
+      local issues, err = get.issues(info_shared, {
         endpoints = {
           issues = {
             {
               endpoint = "/repos/{owner}/{repo}/issues",
-              param = { q = "type:issue" },
+              param = {},
             },
           },
           merge_requests = {},
@@ -177,12 +182,12 @@ local function test_version(name, specfile, opts)
     it("issues ok at /user/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.get_issues(info_shared, {
+      local issues, err = get.issues(info_shared, {
         endpoints = {
           issues = {
             {
               endpoint = "/user/issues",
-              param = { q = "type:issue" },
+              param = {},
             },
           },
           merge_requests = {},
@@ -211,6 +216,77 @@ local function test_version(name, specfile, opts)
           web_url = "https://github.com/octocat/Hello-World/issues/1347",
         },
       }, issues)
+    end)
+
+    it("merge_requests ok at /search/issues", function()
+      assert.is_not_nil(info_shared, "provider test was not ok")
+      ---@cast info_shared rissue.ProviderInfo
+      local issues, err = get.merge_requests(info_shared, {
+        endpoints = {
+          issues = {},
+          merge_requests = {
+            { endpoint = "/search/issues", param = { q = "type:pr" } },
+          },
+        },
+      } --[[@as rissue.Github.Opts]])
+      assert(issues, err)
+      assert.same({
+        {
+          author = {
+            username = "Nick3C",
+            web_url = "https://github.com/Nick3C",
+          },
+          body = "...",
+          created_at = 1247429441,
+          id = 132,
+          state = "open",
+          labels = {
+            {
+              color = "ff0000",
+              name = "bug",
+            },
+          },
+          title = "Line Number Indexes Beyond 20 Not Displayed",
+          url = "https://api.github.com/repos/batterseapower/pinyin-toolkit/issues/132",
+          web_url = "https://github.com/batterseapower/pinyin-toolkit/issues/132",
+        },
+      }, issues)
+    end)
+
+    it("merge_requests ok at /repos/{owner}/{repo}/pulls", function()
+      assert.is_not_nil(info_shared, "provider test was not ok")
+      ---@cast info_shared rissue.ProviderInfo
+      local mr, err = get.merge_requests(info_shared, {
+        endpoints = {
+          issues = {},
+          merge_requests = {
+            { endpoint = "/repos/{owner}/{repo}/pulls", param = {} },
+          },
+        },
+      } --[[@as rissue.Github.Opts]])
+      assert(mr, err)
+      assert.same({
+        {
+          author = {
+            username = "octocat",
+            web_url = "https://github.com/octocat",
+          },
+          body = "Please pull these awesome changes in!",
+          created_at = 1296068472,
+          id = 1347,
+          state = "open",
+          labels = {
+            {
+              color = "f29513",
+              name = "bug",
+              description = "Something isn't working",
+            },
+          },
+          title = "Amazing new feature",
+          url = "https://api.github.com/repos/octocat/Hello-World/pulls/1347",
+          web_url = "https://github.com/octocat/Hello-World/pull/1347",
+        },
+      } --[=[@as rissue.pr[]]=], mr)
     end)
   end)
 end

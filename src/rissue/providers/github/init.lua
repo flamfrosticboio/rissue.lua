@@ -21,8 +21,8 @@ local time = require("rissue.utils.time")
 
 ---@param raw table
 ---@param settings rissue.Github.Settings
----@return rissue.issue
-local function into_issue(raw, settings)
+---@return rissue.item.base
+local function into_base(raw, settings)
   ---@type rissue.label[]
   local labels = {}
 
@@ -34,9 +34,8 @@ local function into_issue(raw, settings)
     }
   end
 
-  ---@type rissue.issue
+  ---@type rissue.item.base
   return {
-    is_open = raw.state == "open",
     title = raw.title,
     web_url = raw.html_url,
     body = raw.body or raw.body_html or raw.body_text,
@@ -53,6 +52,38 @@ local function into_issue(raw, settings)
   }
 end
 
+---@param raw table
+---@param settings rissue.Github.Settings
+---@return rissue.issue
+local function into_issue(raw, settings)
+  local base = into_base(raw, settings)
+  ---@cast base rissue.issue
+  base.is_open = raw.state == "open"
+  return base
+end
+
+---@param raw table
+---@return rissue.pr.State
+local function pr_state(raw)
+  if raw.state == "open" then
+    return "open"
+  end
+  if raw.merged or raw.merged_at ~= nil then
+    return "merged"
+  end
+  return "canceled"
+end
+
+---@param raw table
+---@param settings rissue.Github.Settings
+---@return rissue.pr
+local function into_merge_requests(raw, settings)
+  local base = into_base(raw, settings)
+  ---@cast base rissue.pr
+  base.state = pr_state(raw)
+  return base
+end
+
 ---@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_issues(info, token, opts)
   return fetch.try_fetch(info, opts.endpoints.issues, {
@@ -66,7 +97,16 @@ local function get_issues(info, token, opts)
 end
 
 ---@type rissue.provider.GetMergeRequests<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
-local function get_merge_requests(_info, _token, _opts) end
+local function get_merge_requests(info, token, opts)
+  return fetch.try_fetch(info, opts.endpoints.merge_requests, {
+    parser = into_merge_requests,
+    key = function(item)
+      return item.id
+    end,
+    settings = opts,
+    token = token,
+  })
+end
 
 ---@type rissue.Provider
 return {

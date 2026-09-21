@@ -18,14 +18,14 @@ local M = {}
 
 local config = require("rissue.config")
 local env = require("rissue.env")
-local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 
 ---@param info rissue.ProviderInfo
----@param opts table? Settings that are based on provider
----@return rissue.issue[]? results
+---@param opts table?
+---@param command "get_issues" | "get_merge_requests"
+---@return any[]? results
 ---@return string? errors
-function M.get_issues(info, opts)
+local function get_issues_or_merge(info, opts, command)
   ---@type rissue.Provider?
   local provider = config.providers[info.name]
   if not provider then
@@ -35,28 +35,47 @@ function M.get_issues(info, opts)
   local done = false
   local result, err = nil, nil
 
-  coroutine.wrap(function()
-    result, err = provider.get_issues(
+  local co = coroutine.create(function()
+    result, err = provider[command](
       info,
       env.get_token(provider.name),
       config.merge_provider_settings(provider, opts)
     )
     done = true
-  end)()
+  end)
+
+  local co_ok, co_err = coroutine.resume(co)
+  if not co_ok then
+    return nil, co_err
+  end
 
   local _, wait_err = process.wait(function()
     return done
   end, config.options.timeout)
 
   if wait_err then
-    log.error("Failed to process: " .. wait_err)
-  end
-
-  if not result then
-    log.error("Failed to get issues: " .. (err or "unhandled error"))
+    return nil, wait_err
   end
 
   return result, err
+end
+
+---@param info rissue.ProviderInfo
+---@param opts table? Settings that are based on provider
+---@return rissue.issue[]? results
+---@return string? errors
+function M.issues(info, opts)
+  local res, err = get_issues_or_merge(info, opts, "get_issues")
+  return res, err
+end
+
+---@param info rissue.ProviderInfo
+---@param opts table? Settings that are based on provider
+---@return rissue.pr[]? results
+---@return string? errors
+function M.merge_requests(info, opts)
+  local res, err = get_issues_or_merge(info, opts, "get_merge_requests")
+  return res, err
 end
 
 return M
