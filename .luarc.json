@@ -5,7 +5,7 @@
         "pathStrict": true
     },
     "workspace": {
-        "library": [".types/addons/luv/library"],
+        "library": [".types/addons/luv/library", "./src"],
         "ignoreDir": ["test"]
     }
 }
