@@ -109,7 +109,7 @@ function M.get_provider_info(remote_url, opts)
 
     local success, err = process.wait(function()
       return finished
-    end, 60000) -- todo: add timeout in settings
+    end, config.options.timeout)
     if not success then
       log.warn(("Failed to process for %s: %s"):format(provider_name, err))
     end

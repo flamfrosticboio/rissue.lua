@@ -46,7 +46,7 @@ function M.get_issues(info, opts)
 
   local _, wait_err = process.wait(function()
     return done
-  end, 60000) -- todo: add timeout
+  end, config.options.timeout)
 
   if wait_err then
     log.error("Failed to process: " .. wait_err)

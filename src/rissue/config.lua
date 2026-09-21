@@ -36,6 +36,7 @@ config.options = {
       } --[[@as rissue.Github.supports.AdditionalInfo]],
     },
   },
+  timeout = 60000,
 }
 
 ---@type table<rissue.ProviderName, rissue.Provider>

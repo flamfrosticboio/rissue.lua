@@ -22,6 +22,9 @@
 --- List of options for a provider. See the provider's documentation for the
 --- list of options that is supported.
 ---@field provider_options table<string, table>
+--- Specifies the timeout in milliseconds on operations such as `get.issues()`
+--- and `provider.get_provider_info()`
+---@field timeout integer
 
 ---@class rissue.EndpointShortcut
 --- List of patterns that can be used on `string:match()`
