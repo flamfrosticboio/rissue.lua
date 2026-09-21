@@ -30,7 +30,5 @@
 --- Additional info to pass to an endpoint shortcut
 ---@field additional_info table?
 
--- todo: add method: get provider endpoints
-
 ---@class (partial) rissue.Opts: rissue.Config
 ---@field env? rissue.opts.Env
