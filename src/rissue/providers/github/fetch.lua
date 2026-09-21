@@ -64,7 +64,7 @@ local function unmap(result)
       )
   end
 
-  -- If the result was a kind of search (search/issues)
+  -- If the result was a kind of search ('/search/issues')
   if type(result.items) == "table" and type(result.total_count) == "number" then
     ---@type __rissue.Github.unmap.Result
     local res = {
