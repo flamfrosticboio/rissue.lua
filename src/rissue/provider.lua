@@ -23,9 +23,7 @@ local process = require("rissue.utils.process")
 ---@class rissue.mod.Provider
 local provider = {}
 
---- Extracts the remote url to `rissue.RemoteInfo`.
----
---- Used internally in `provider.provider_info()`
+--- Extracts the remote url into usable information.
 ---@param remote_url string
 ---@return rissue.RemoteInfo?
 function provider.remote_info(remote_url)
@@ -62,16 +60,12 @@ end
 --- Gets the provider info based on the remote url.
 --- May trigger api requests to the url if no pattern was found from
 --- `config.options.endpoint_shortcuts`
----@param remote_url string Remote url
+---@param remote_info rissue.RemoteInfo
 ---@param opts table? Additional request options passed to provider
 ---@return rissue.ProviderInfo? info
 ---@return string? error
-function provider.provider_info(remote_url, opts)
-  local remote_info = provider.remote_info(remote_url)
-  if not remote_info then
-    return nil, "Could not parse remote url"
-  end
-  remote_url = remote_info.full_url
+function provider.provider_info(remote_info, opts)
+  local remote_url = remote_info.full_url
 
   -- known public hosting providers - no API call needed
   for provider_name, spec in pairs(config.options.endpoint_shortcuts) do

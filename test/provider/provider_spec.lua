@@ -79,9 +79,10 @@ describe("provider_info", function()
 
   it("matches custom", function()
     local url = "https://custom.com/flamfrosticboio/rissue.git"
-    local info, err = provider.provider_info(url)
-    assert(not err, err)
-    assert.is_not_nil(info)
+    local remote_info, err = provider.remote_info(url)
+    assert(remote_info and not err, err)
+    local info, err2 = provider.provider_info(remote_info)
+    assert(info and not err2, err2)
     assert.same({
       domain = "api.custom.com",
       name = "custom",
@@ -93,9 +94,10 @@ describe("provider_info", function()
 
   it("matches builtin github", function()
     local url = "https://github.com/flamfrosticboio/rissue.git"
-    local info, err = provider.provider_info(url)
-    assert(not err, err)
-    assert.is_not_nil(info)
+    local remote_info, err = provider.remote_info(url)
+    assert(remote_info and not err, err)
+    local info, err2 = provider.provider_info(remote_info)
+    assert(info and not err2, err2)
     assert.same({
       domain = "api.github.com",
       name = "github",
