@@ -14,14 +14,14 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
---- [Internal module]
---- Used for storing current configurations and settings
-
 local assert_op = require("rissue.utils.assert_op")
 local table_op = require("rissue.utils.table_op")
 
+--- Used for storing current configurations and settings
+---@class rissue.mod.Config
 local config = {}
 
+--- Settings (configured with `rissue.setup()`)
 ---@type rissue.Config
 config.options = {
   additional_providers = {},
@@ -42,6 +42,7 @@ config.options = {
   timeout = 60000,
 }
 
+--- Table of available providers
 ---@type table<rissue.ProviderName, rissue.Provider>
 config.providers = { github = require("rissue.providers.github") }
 
@@ -59,9 +60,10 @@ local function is_provider_spec(obj)
   return obj
 end
 
---- Returns an error as string if it errors
+--- Setups settings, scans available providers and configure other
+--- configurations.
 ---@param opts rissue.Opts?
----@return string?
+---@return string? setup_error
 function config.setup(opts)
   config.options = table_op.force_deep_extend(config.options, opts or {})
 
@@ -93,11 +95,10 @@ function config.setup(opts)
   end
 end
 
---- Utility function
---- Merge settings with order (highest = priority):
----   - request options
----   - user defined settings
----   - provider's default settings
+--- A utility function for merging settings from:
+---   1. request options (from `rissue.get_issues()` and etc.)
+---   2. user defined settings
+---   3. provider's default settings
 ---@param provider rissue.Provider
 ---@param request table?
 ---@return table? merged_settings
