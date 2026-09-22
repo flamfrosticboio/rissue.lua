@@ -51,7 +51,7 @@ rissue.get_remote_info = provider.remote_info
 --- rissue.get_provider_info(remote_info)
 --- ```
 ---@param remote rissue.RemoteInfo Where string is remote url
----@param opts? table<rissue.ProviderName, table?> Additional options passed to providers
+---@param opts?table<rissue.ProviderName,table?>Additional options for providers
 ---@return rissue.ProviderInfo? provider_info
 ---@return string? error
 ---@overload fun(remote: string, opts?: table<rissue.ProviderName, table?>):
