@@ -14,6 +14,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@diagnostic disable: undefined-field, redundant-parameter
+
 local function reset()
   for name in pairs(package.loaded) do
     if name:match("^rissue") and not name:match("^rissue%.utils") then
@@ -21,6 +23,9 @@ local function reset()
     end
   end
 end
+
+local this_script = debug.getinfo(1, "S").source:sub(2)
+local this_dir = this_script:match("^(.*[/\\])") or "./"
 
 describe("remote_info", function()
   reset()
@@ -66,14 +71,24 @@ end)
 
 describe("provider_info", function()
   reset()
-  require("rissue").setup({
+
+  -- EXPLICITLY DISABLE OTHER PROVIDERS
+  require("rissue.config").providers = {}
+
+  local setup_err = require("rissue").setup({
     endpoint_shortcuts = {
-      custom = {
+      custom_shortcut = {
         domain = "api.custom.com",
         patterns = { "custom%.com" },
       },
     },
+    additional_providers = {
+      this_dir .. "/_test_custom_loader.lua",
+    },
   })
+  if setup_err then
+    error(setup_err)
+  end
 
   local provider = require("rissue.provider")
 
@@ -85,11 +100,35 @@ describe("provider_info", function()
     assert(info and not err2, err2)
     assert.same({
       domain = "api.custom.com",
-      name = "custom",
+      name = "custom_shortcut",
       owner = "flamfrosticboio",
       repo = "rissue",
       protocol = "https",
     }, info)
+  end)
+
+  it("opts was scoped", function()
+    local config = require("rissue.config")
+    local custom_provider = config.providers.custom
+    assert(custom_provider, "'custom' Not found")
+
+    local url = "https://newcustom22.com/flamfrosticboio/rissue.git"
+    local remote_info, err = provider.remote_info(url)
+    assert(remote_info and not err, err)
+    local info, err2 = provider.provider_info(remote_info, {
+      custom = {
+        my_setting = true,
+      },
+      github = {
+        my_setting = false,
+      },
+    })
+    assert(info and not err2, err2)
+
+    assert.is_true(
+      custom_provider.viewer.supports[3].my_setting,
+      "Supports passed was not scoped or not merged properly"
+    )
   end)
 
   it("matches builtin github", function()
