@@ -37,10 +37,12 @@ end
 rissue.get_remote_info = provider.remote_info
 
 --- Gets the provider info from a remote
----@param remote string | rissue.RemoteInfo Where string is remote url
----@param opts table<rissue.ProviderName, table>? Additional options passed to providers
+---@param remote rissue.RemoteInfo Where string is remote url
+---@param opts? table<rissue.ProviderName, table?> Additional options passed to providers
 ---@return rissue.ProviderInfo? provider_info
 ---@return string? error
+---@overload fun(remote: string, opts?: table<rissue.ProviderName, table?>):
+---rissue.ProviderInfo?, string?
 function rissue.get_provider_info(remote, opts)
   local remote_t = type(remote)
   if remote_t ~= "string" and remote_t ~= "table" then

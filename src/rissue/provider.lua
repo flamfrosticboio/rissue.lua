@@ -63,7 +63,7 @@ end
 ---@param remote_info rissue.RemoteInfo
 --- Additional request options passed to providers.
 --- Scoped to provider names (e.g. github, gitlab) to prevent conflicts
----@param opts table<rissue.ProviderName, table>?
+---@param opts table<rissue.ProviderName, table?>?
 ---@return rissue.ProviderInfo? info
 ---@return string? error
 function provider.provider_info(remote_info, opts)
