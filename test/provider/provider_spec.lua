@@ -79,7 +79,7 @@ describe("provider_info", function()
 
   it("matches custom", function()
     local url = "https://custom.com/flamfrosticboio/rissue.git"
-    local info, err = provider.get_provider_info(url)
+    local info, err = provider.provider_info(url)
     assert(not err, err)
     assert.is_not_nil(info)
     assert.same({
@@ -93,7 +93,7 @@ describe("provider_info", function()
 
   it("matches builtin github", function()
     local url = "https://github.com/flamfrosticboio/rissue.git"
-    local info, err = provider.get_provider_info(url)
+    local info, err = provider.provider_info(url)
     assert(not err, err)
     assert.is_not_nil(info)
     assert.same({

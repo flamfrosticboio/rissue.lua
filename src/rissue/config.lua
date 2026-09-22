@@ -14,6 +14,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+--- [Internal module]
+--- Used for storing current configurations and settings
+
 local assert_op = require("rissue.utils.assert_op")
 local table_op = require("rissue.utils.table_op")
 

@@ -61,7 +61,7 @@ end
 ---@param opts table? Additional request options passed to provider
 ---@return rissue.ProviderInfo? info
 ---@return string? error
-function M.get_provider_info(remote_url, opts)
+function M.provider_info(remote_url, opts)
   local remote_info = M.remote_info(remote_url)
   if not remote_info then
     return nil, "Could not parse remote url"
