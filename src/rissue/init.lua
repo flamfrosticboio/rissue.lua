@@ -18,6 +18,8 @@ local rissue = {}
 
 local config = require("rissue.config")
 local env = require("rissue.env")
+local get = require("rissue.get")
+local provider = require("rissue.provider")
 
 --- Throws an error as string when it failed to setup
 ---@param opts rissue.Opts?
@@ -32,7 +34,78 @@ function rissue.setup(opts, cwd)
   env.setup(config.options.env_file, cwd)
 end
 
-rissue.get = require("rissue.get")
-rissue.provider = require("rissue.provider")
+rissue.get_remote_info = provider.remote_info
+
+--- Gets the provider info from a remote
+---@param remote string | rissue.RemoteInfo Where string is remote url
+---@return rissue.ProviderInfo? provider_info
+---@return string? error
+function rissue.get_provider_info(remote)
+  local remote_t = type(remote)
+  if remote_t ~= "string" and remote_t ~= "table" then
+    return nil, "Argument 1 is not string|rissue.RemoteInfo"
+  end
+
+  if remote_t == "string" then
+    local remote_res, remote_err = provider.remote_info(remote --[[@as string]])
+
+    if not remote_res then
+      return nil, remote_err or "unknown error"
+    end
+
+    remote = remote_res
+  end
+
+  ---@cast remote rissue.RemoteInfo
+  return provider.provider_info(remote)
+end
+
+---@param remote string | rissue.RemoteInfo | rissue.ProviderInfo
+---@return rissue.ProviderInfo?
+---@return string? error
+local function into_provider_info(remote)
+  local remote_t = type(remote)
+  if remote_t ~= "string" and remote_t ~= "table" then
+    return nil, "Argument 1 is not string|rissue.ProviderInfo|rissue.RemoteInfo"
+  end
+
+  if
+    remote_t == "string" or (remote --[[@as rissue.RemoteInfo]]).full_url
+  then
+    local remote_res, remote_err =
+      rissue.get_provider_info(remote --[[@as string]])
+
+    if not remote_res then
+      return nil, remote_err or "unknown error"
+    end
+
+    remote = remote_res
+  end
+
+  ---@cast remote rissue.ProviderInfo
+  return remote
+end
+
+--- Gets issues from the remote url or provider info
+---@param remote string | rissue.ProviderInfo | rissue.RemoteInfo Where string is remote url
+---@param opts any
+function rissue.get_issues(remote, opts)
+  local _remote, err = into_provider_info(remote)
+  if not _remote then
+    return nil, err or "unknown error"
+  end
+  return get.issues(_remote, opts)
+end
+
+--- Gets issues from the remote url or provider info
+---@param remote string | rissue.ProviderInfo | rissue.RemoteInfo Where string is remote url
+---@param opts any
+function rissue.get_merge_requests(remote, opts)
+  local _remote, err = into_provider_info(remote)
+  if not _remote then
+    return nil, err or "unknown error"
+  end
+  return get.issues(_remote, opts)
+end
 
 return rissue
