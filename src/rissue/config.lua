@@ -50,9 +50,13 @@ config.providers = { github = require("rissue.providers.github") }
 ---@return rissue.Provider
 local function is_provider_spec(obj)
   local ok, err = assert_op.check_structure("rissue.provider_spec", obj, {
-    provider_name = "string",
-    map_into_issue = "function",
-    map_into_pr = "function",
+    name = "string",
+    version = "string",
+    version_code = "number",
+    get_issues = "function",
+    get_merge_requests = "function",
+    supports = "function",
+    settings = "table",
   }, "module")
   if not ok then
     error(err, 2)
