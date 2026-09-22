@@ -38,9 +38,10 @@ rissue.get_remote_info = provider.remote_info
 
 --- Gets the provider info from a remote
 ---@param remote string | rissue.RemoteInfo Where string is remote url
+---@param opts table<rissue.ProviderName, table>? Additional options passed to providers
 ---@return rissue.ProviderInfo? provider_info
 ---@return string? error
-function rissue.get_provider_info(remote)
+function rissue.get_provider_info(remote, opts)
   local remote_t = type(remote)
   if remote_t ~= "string" and remote_t ~= "table" then
     return nil, "Argument 1 is not string|rissue.RemoteInfo"
@@ -57,7 +58,7 @@ function rissue.get_provider_info(remote)
   end
 
   ---@cast remote rissue.RemoteInfo
-  return provider.provider_info(remote)
+  return provider.provider_info(remote, opts)
 end
 
 ---@param remote string | rissue.RemoteInfo | rissue.ProviderInfo

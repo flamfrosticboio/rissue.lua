@@ -61,7 +61,9 @@ end
 --- May trigger api requests to the url if no pattern was found from
 --- `config.options.endpoint_shortcuts`
 ---@param remote_info rissue.RemoteInfo
----@param opts table? Additional request options passed to provider
+--- Additional request options passed to providers.
+--- Scoped to provider names (e.g. github, gitlab) to prevent conflicts
+---@param opts table<rissue.ProviderName, table>?
 ---@return rissue.ProviderInfo? info
 ---@return string? error
 function provider.provider_info(remote_info, opts)
@@ -94,10 +96,11 @@ function provider.provider_info(remote_info, opts)
     local token = env.get_token(provider_name)
 
     local thread = coroutine.create(function()
+      local req_opts = opts and opts[provider_name]
       supported, additional_info = provider_module.supports(
         remote_info,
         token,
-        config.merge_provider_settings(provider_module, opts)
+        config.merge_provider_settings(provider_module, req_opts)
       )
       finished = true
     end)
