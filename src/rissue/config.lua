@@ -70,23 +70,24 @@ function config.setup(opts)
   local errors = {}
   local _err_idx = 0
   for _, filepath in ipairs(config.options.additional_providers) do
-    local name = filepath:match("rissue[/\\]providers[/\\](.+)%.lua$")
-    if name then
-      local ok, mod = pcall(require, "rissue.providers." .. name)
-      if ok then
-        local load_ok, err = pcall(function()
-          if not is_provider_spec(mod) then
-            return
-          end
-          ---@cast mod rissue.Provider
-          config.providers[mod.name] = mod
-        end)
-
-        if not load_ok then
-          _err_idx = _err_idx + 1
-          errors[_err_idx] = err
+    local chunk, err = loadfile(filepath)
+    if chunk then
+      local load_ok, load_err = pcall(function()
+        local mod = chunk()
+        if not is_provider_spec(mod) then
+          return
         end
+        ---@cast mod rissue.Provider
+        config.providers[mod.name] = mod
+      end)
+
+      if not load_ok then
+        _err_idx = _err_idx + 1
+        errors[_err_idx] = load_err
       end
+    else
+      _err_idx = _err_idx + 1
+      errors[_err_idx] = err
     end
   end
 
