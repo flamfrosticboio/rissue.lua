@@ -32,4 +32,7 @@ function rissue.setup(opts, cwd)
   env.setup(config.options.env_file, cwd)
 end
 
+rissue.get = require("rissue.get")
+rissue.provider = require("rissue.provider")
+
 return rissue
