@@ -21,22 +21,35 @@ local env = require("rissue.env")
 local get = require("rissue.get")
 local provider = require("rissue.provider")
 
---- Throws an error as string when it failed to setup
----@param opts rissue.Opts?
----@param cwd  string?
----@return string?
+--- Run setup for rissue
+---@param opts? rissue.Opts
+---@param cwd? string
+---@return string? error
 function rissue.setup(opts, cwd)
   local err = config.setup(opts)
   if err then
     return err
   end
 
+  --- no need to check status
   env.setup(config.options.env_file, cwd)
 end
 
 rissue.get_remote_info = provider.remote_info
 
---- Gets the provider info from a remote
+--- Gets the provider info from remote info or remote url.
+---
+--- Example:
+--- ```lua
+--- --- # With url
+--- rissue.get_provider_info("https://github.com/flamfrosticboio/rissue.git")
+--- -- should return a github related provider info
+---
+--- --- # With already parsed or manual constructed `rissue.RemoteInfo`
+--- local remote_info =
+---   rissue.get_remote_info("https://github.com/flamfrosticboio/rissue.git")
+--- rissue.get_provider_info(remote_info)
+--- ```
 ---@param remote rissue.RemoteInfo Where string is remote url
 ---@param opts? table<rissue.ProviderName, table?> Additional options passed to providers
 ---@return rissue.ProviderInfo? provider_info
@@ -64,51 +77,116 @@ function rissue.get_provider_info(remote, opts)
 end
 
 ---@param remote string | rissue.RemoteInfo | rissue.ProviderInfo
+---@param opts? table<rissue.ProviderName, table?> | table
 ---@return rissue.ProviderInfo?
+---@return table? opts
 ---@return string? error
-local function into_provider_info(remote)
+local function into_provider_info(remote, opts)
   local remote_t = type(remote)
   if remote_t ~= "string" and remote_t ~= "table" then
-    return nil, "Argument 1 is not string|rissue.ProviderInfo|rissue.RemoteInfo"
+    return nil,
+      nil,
+      "Argument 1 is not string|rissue.ProviderInfo|rissue.RemoteInfo"
   end
 
   if
     remote_t == "string" or (remote --[[@as rissue.RemoteInfo]]).full_url
   then
     local remote_res, remote_err =
-      rissue.get_provider_info(remote --[[@as string]])
+      rissue.get_provider_info(remote --[[@as string]], opts)
 
     if not remote_res then
-      return nil, remote_err or "unknown error"
+      return nil, nil, remote_err or "unknown error"
     end
 
-    remote = remote_res
+    return remote_res, opts and opts[remote_res.name]
   end
 
   ---@cast remote rissue.ProviderInfo
-  return remote
+  return remote, opts
 end
 
---- Gets issues from the remote url or provider info
----@param remote string | rissue.ProviderInfo | rissue.RemoteInfo Where string is remote url
----@param opts any
+--- Gets issues from the url, remote info or provider info
+---
+--- If the provided remote is a `string` (url) or `rissue.RemoteInfo`,
+--- then opts requires wrapping inside the target provider name.
+---
+--- Example:
+--- ```lua
+--- --- Passing opts as `string` or `rissue.RemoteInfo`
+--- rissue.get_issues("https://github.com/flamfrosticboio/rissue.git", {
+---   github = { max_items = 50 },
+---   gitlab = { max_items = 500 },
+---   --- gitea and forgejo may use default/user settings
+--- })
+---
+--- --- Passing opts as `rissue.ProviderInfo`
+--- local info, err =
+---   rissue.get_provider_info("https://github.com/flamfrosticboio/rissue.git")
+--- assert(info, err)
+--- assert(info.name == "github", "Not a github provider")
+--- --- Now we know that info is specifically github
+--- rissue.get_issues(info, { max_items = 50 })
+--- ```
+---@param remote rissue.ProviderInfo Where string is remote url.
+---@param opts? table Additional settings to provider/s.
+--- Refer to the providers documentation for the supported settings
+---@return rissue.issue[]? issues List of issues.
+--- Returns `nil` when the operation fails.
+---@return string? err_msg Error message if operation failed.
+---@overload fun(remote: string,
+---opts?: table<rissue.ProviderName, table?>):
+---rissue.issue[]?, string?
+---@overload fun(remote: rissue.RemoteInfo,
+---opts?: table<rissue.ProviderName, table?>):
+---rissue.issue[]?, string?
 function rissue.get_issues(remote, opts)
-  local _remote, err = into_provider_info(remote)
+  local _remote, new_opts, err = into_provider_info(remote, opts)
   if not _remote then
     return nil, err or "unknown error"
   end
-  return get.issues(_remote, opts)
+  return get.issues(_remote, new_opts)
 end
 
---- Gets issues from the remote url or provider info
----@param remote string | rissue.ProviderInfo | rissue.RemoteInfo Where string is remote url
----@param opts any
+--- Gets merge requests from the remote url, remote info or provider info
+---
+--- If the provided remote is a `string` (url) or `rissue.RemoteInfo`,
+--- then opts requires wrapping inside the target provider name.
+---
+--- Example:
+--- ```lua
+--- --- Passing opts as `string` or `rissue.RemoteInfo`
+--- rissue.get_merge_requests("https://github.com/flamfrosticboio/rissue.git", {
+---   github = { max_items = 50 },
+---   gitlab = { max_items = 500 },
+---   --- gitea and forgejo may use default/user settings
+--- })
+---
+--- --- Passing opts as `rissue.ProviderInfo`
+--- local info, err =
+---   rissue.get_provider_info("https://github.com/flamfrosticboio/rissue.git")
+--- assert(info, err)
+--- assert(info.name == "github", "Not a github provider")
+--- --- Now we know that info is specifically github
+--- rissue.get_merge_requests(info, { max_items = 50 })
+--- ```
+---@param remote rissue.ProviderInfo
+---@param opts? table
+---@return rissue.pr[]? merge_requests List of merge requests.
+--- Returns `nil` when the operation fails.
+---@return string? err_msg Error message if operation failed.
+---@overload fun(remote: string,
+---opts?: table<rissue.ProviderName, table?>):
+---rissue.pr[]?, string?
+---@overload fun(remote: rissue.RemoteInfo,
+---opts?: table<rissue.ProviderName, table?>):
+---rissue.pr[]?, string?
 function rissue.get_merge_requests(remote, opts)
-  local _remote, err = into_provider_info(remote)
+  local _remote, new_opts, err = into_provider_info(remote, opts)
   if not _remote then
     return nil, err or "unknown error"
   end
-  return get.issues(_remote, opts)
+  return get.issues(_remote, new_opts)
 end
 
 return rissue
