@@ -14,6 +14,19 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+--- A plugin that gets issues and merge requests from git provider.
+---
+--- Example usage:
+---
+--- ```lua
+--- local rissue = require('rissue')
+--- rissue.setup({
+---     -- your preferred configuration
+--- })
+--- rissue.get_issues("https://github.com/flamfrosticboio/rissue")
+--- rissue.get_merge_requests("https://github.com/flamfrosticboio/rissue")
+--- ```
+---@class rissue
 local rissue = {}
 
 local config = require("rissue.config")
