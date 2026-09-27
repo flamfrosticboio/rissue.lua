@@ -27,8 +27,9 @@
 ---@alias rissue.provider.Supports<I, S>
 ---| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: S): boolean, table?
 
+--- Specific requirements for a provider
 ---@class (exact) rissue.Provider
----@field name rissue.ProviderName
+---@field name rissue.ProviderName The provider name
 ---@field version string
 ---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
 ---@field version_code integer
@@ -41,21 +42,31 @@
 --- and other related operations.
 ---@field settings table<any, any>
 
----@class rissue.ProviderInfo<T>
----@field domain string
----@field name string
----@field owner string
----@field repo string
----@field protocol "http" | "https"
+--- The full provider information that will be used for `rissue.get_issues()`
+--- and `rissue.get_merge_requests()`.
+---
+--- Depending on the provider, the provider may perform curl requests to the
+--- servers to confirm and write their additional information required for that
+--- repository.
+---@class (exact) rissue.ProviderInfo<T>
+---@field domain string The api endpoint
+---@field name string The name of the provider
+---@field owner string The owner of the repository
+---@field repo string The repository name
+---@field protocol "http" | "https" The curl protocol
+---Additional provider information used for specific provider (e.g. github ghes)
 ---@field additional_info? T
 
+--- The remote information extracted from a url.
 ---@class (exact) rissue.RemoteInfo
----@field curl_protocol "http" | "https"
----@field repo string
----@field owner string
----@field domain string
----@field full_url string A whitespace stripped version of url
+---@field curl_protocol "http" | "https" Protocol
+---@field repo string The repository name
+---@field owner string The owner of the repository
+---@field domain string The api domain of the provider
+---@field full_url string The clean url
 
 ---@class rissue.Query
+--- The endpoint url appended after the api endpoint from `rissue.ProviderInfo`
 ---@field endpoint string
+--- The query parameters. Behavior differs between each provider.
 ---@field param table<string, string>

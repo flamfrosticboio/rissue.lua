@@ -53,6 +53,7 @@ rissue.get_remote_info = provider.remote_info
 --- Gets the provider info from remote info or remote url.
 ---
 --- Example:
+---
 --- ```lua
 --- --- # With url
 --- rissue.get_provider_info("https://github.com/flamfrosticboio/rissue.git")
@@ -122,9 +123,10 @@ end
 --- Gets issues from the url, remote info or provider info
 ---
 --- If the provided remote is a `string` (url) or `rissue.RemoteInfo`,
---- then opts requires wrapping inside the target provider name.
+--- then the `opts` arg requires specifying the provider name inside a table.
 ---
 --- Example:
+---
 --- ```lua
 --- --- Passing opts as `string` or `rissue.RemoteInfo`
 --- rissue.get_issues("https://github.com/flamfrosticboio/rissue.git", {
@@ -141,18 +143,10 @@ end
 --- --- Now we know that info is specifically github
 --- rissue.get_issues(info, { max_items = 50 })
 --- ```
----@param remote rissue.ProviderInfo Where string is remote url.
----@param opts? table Additional settings to provider/s.
---- Refer to the providers documentation for the supported settings
----@return rissue.issue[]? issues List of issues.
---- Returns `nil` when the operation fails.
----@return string? err_msg Error message if operation failed.
----@overload fun(remote: string,
----opts?: table<rissue.ProviderName, table?>):
----rissue.issue[]?, string?
----@overload fun(remote: rissue.RemoteInfo,
----opts?: table<rissue.ProviderName, table?>):
----rissue.issue[]?, string?
+---@param remote rissue.ProviderInfo<any> | rissue.RemoteInfo | string # See description
+---@param opts? table<rissue.ProviderName, table?> | table # See description
+---@return rissue.issue[]? issues List of issues. `nil` when it fails.
+---@return string? err_msg Error message if operation fails.
 function rissue.get_issues(remote, opts)
   local _remote, new_opts, err = into_provider_info(remote, opts)
   if not _remote then
@@ -164,7 +158,7 @@ end
 --- Gets merge requests from the remote url, remote info or provider info
 ---
 --- If the provided remote is a `string` (url) or `rissue.RemoteInfo`,
---- then opts requires wrapping inside the target provider name.
+--- then the `opts` arg requires specifying the provider name inside a table.
 ---
 --- Example:
 --- ```lua
@@ -183,23 +177,17 @@ end
 --- --- Now we know that info is specifically github
 --- rissue.get_merge_requests(info, { max_items = 50 })
 --- ```
----@param remote rissue.ProviderInfo
----@param opts? table
----@return rissue.pr[]? merge_requests List of merge requests.
---- Returns `nil` when the operation fails.
----@return string? err_msg Error message if operation failed.
----@overload fun(remote: string,
----opts?: table<rissue.ProviderName, table?>):
----rissue.pr[]?, string?
----@overload fun(remote: rissue.RemoteInfo,
----opts?: table<rissue.ProviderName, table?>):
----rissue.pr[]?, string?
+---
+---@param remote rissue.ProviderInfo<any> | rissue.RemoteInfo | string # See description
+---@param opts? table<rissue.ProviderName, table?> | table # See description
+---@return rissue.pr[]? merge_requests List of merge requests. `nil` when it fails.
+---@return string? err_msg Error message if operation fails.
 function rissue.get_merge_requests(remote, opts)
   local _remote, new_opts, err = into_provider_info(remote, opts)
   if not _remote then
     return nil, err or "unknown error"
   end
-  return get.issues(_remote, new_opts)
+  return get.merge_requests(_remote, new_opts)
 end
 
 return rissue

@@ -21,6 +21,8 @@ local table_op = require("rissue.utils.table_op")
 ---@class rissue.mod.Config
 local config = {}
 
+--- ### rissue.config.settings ### ---
+
 --- Settings (configured with `rissue.setup()`)
 ---@type rissue.Config
 config.options = {
@@ -41,6 +43,8 @@ config.options = {
   },
   timeout = 60000,
 }
+
+--- ### rissue.config.settings ### ---
 
 --- Table of available providers
 ---@type table<rissue.ProviderName, rissue.Provider>

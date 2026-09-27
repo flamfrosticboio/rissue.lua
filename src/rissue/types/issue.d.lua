@@ -16,5 +16,6 @@
 
 ---@meta
 
+--- The structure for issues.
 ---@class (exact) rissue.issue: rissue.item.base
 ---@field is_open boolean
