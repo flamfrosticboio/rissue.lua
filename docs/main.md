@@ -25,7 +25,7 @@ rissue.get_merge_requests("https://github.com/flamfrosticboio/rissue")
 
 ## Config
 
-Default config for rissue (see more on [setup.md](doc#setup)):
+Default config for rissue (see more on [setup.md](setup)):
 <!-- *rissue.config.settings -->
 
 ```lua
