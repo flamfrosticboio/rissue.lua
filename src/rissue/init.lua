@@ -34,10 +34,18 @@ local env = require("rissue.env")
 local get = require("rissue.get")
 local provider = require("rissue.provider")
 
---- Run setup for rissue
----@param opts? rissue.Opts
----@param cwd? string
----@return string? error
+--- Run setup for rissue.
+---
+--- Example:
+--- ```lua
+--- rissue.setup({
+---    timeout = 20000 -- 20 seconds
+--- }, "/home/user/projects/my_project")
+--- -- Will read the .env file from that path
+--- ```
+---@param opts? rissue.Opts Configuration
+---@param cwd? string The current working directory (used in finding env file)
+---@return string? err_msg The error message from setup
 function rissue.setup(opts, cwd)
   local err = config.setup(opts)
   if err then
