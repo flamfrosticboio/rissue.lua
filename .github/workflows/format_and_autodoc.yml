@@ -44,10 +44,10 @@ jobs:
 
       - uses: leafo/gh-actions-luarocks@v4
 
-      - run: luarocks install luv
+      - run: luarocks install lfs
 
       - name: Run Autodoc
-        run: lua ./scripts/auto_doc.lua
+        run: ./scripts/doc
 
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
