@@ -49,6 +49,9 @@
 --   end
 -- end
 
+--- Do package injection
+package.loaded["luv"] = {}
+
 local file_cache = {}
 
 ---@param path string
