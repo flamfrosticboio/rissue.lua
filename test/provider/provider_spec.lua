@@ -107,30 +107,6 @@ describe("provider_info", function()
     }, info)
   end)
 
-  it("opts was scoped", function()
-    local config = require("rissue.config")
-    local custom_provider = config.providers.custom
-    assert(custom_provider, "'custom' Not found")
-
-    local url = "https://newcustom22.com/flamfrosticboio/rissue.git"
-    local remote_info, err = provider.remote_info(url)
-    assert(remote_info and not err, err)
-    local info, err2 = provider.provider_info(remote_info, {
-      custom = {
-        my_setting = true,
-      },
-      github = {
-        my_setting = false,
-      },
-    })
-    assert(info and not err2, err2)
-
-    assert.is_true(
-      custom_provider.viewer.supports[3].my_setting,
-      "Supports passed was not scoped or not merged properly"
-    )
-  end)
-
   it("matches builtin github", function()
     local url = "https://github.com/flamfrosticboio/rissue.git"
     local remote_info, err = provider.remote_info(url)

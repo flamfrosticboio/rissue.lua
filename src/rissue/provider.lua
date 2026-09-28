@@ -96,11 +96,10 @@ function provider.provider_info(remote_info, opts)
     local token = env.get_token(provider_name)
 
     local thread = coroutine.create(function()
-      local req_opts = opts and opts[provider_name]
       supported, additional_info = provider_module.supports(
         remote_info,
         token,
-        config.merge_provider_settings(provider_module, req_opts)
+        config.merge_provider_settings(provider_module, opts)
       )
       finished = true
     end)
