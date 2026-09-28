@@ -151,7 +151,7 @@ end
 --- --- Now we know that info is specifically github
 --- rissue.get_issues(info, { max_items = 50 })
 --- ```
----@param remote rissue.ProviderInfo<any> | rissue.RemoteInfo | string # See description
+---@param remote rissue.ProviderInfo | rissue.RemoteInfo | string # See description
 ---@param opts? table<rissue.ProviderName, table?> | table # See description
 ---@return rissue.issue[]? issues List of issues. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.

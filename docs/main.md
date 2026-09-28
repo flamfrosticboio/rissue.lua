@@ -85,7 +85,7 @@ rissue.get_issues(info, { max_items = 50 })
 
 **Parameters:**
 
-- `remote`: `string|rissue.ProviderInfo<any>|rissue.RemoteInfo` -- See description
+- `remote`: `string|rissue.ProviderInfo|rissue.RemoteInfo` -- See description
 - `opts`: `(table|table<string, table?>)?` -- See description
 
 **Returns:**
