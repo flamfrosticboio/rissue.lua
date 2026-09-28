@@ -1,4 +1,14 @@
 #!/bin/bash
 
 export LUA_PATH="./src/?.lua;./src/?/init.lua;./test/?.lua;./test/?/init.lua;$LUA_PATH"
-lua5.1 "$@"
+
+if command -v lua5.1 &> /dev/null; then
+    LUA_BIN="lua5.1"
+elif command -v lua &> /dev/null; then
+    LUA_BIN="lua"
+else
+    echo "Error: lua is not installed." >&2
+    exit 1
+fi
+
+"$LUA_BIN" "$@"
