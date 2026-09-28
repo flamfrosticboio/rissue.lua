@@ -44,7 +44,7 @@ jobs:
 
       - uses: leafo/gh-actions-luarocks@v4
 
-      - run: luarocks install lfs
+      - run: luarocks install luafilesystem
 
       - name: Run Autodoc
         run: ./scripts/doc
