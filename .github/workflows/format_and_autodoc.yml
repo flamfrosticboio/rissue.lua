@@ -30,8 +30,6 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
 
       - name: Setup Dependencies
         run: |
@@ -44,7 +42,31 @@ jobs:
 
       - uses: leafo/gh-actions-luarocks@v4
 
-      - run: luarocks install luafilesystem
+      - name: Install Luarocks Dependencies
+        run: |
+          luarocks install luafilesystem
+          luarocks install dkjson
+
+      - name: Install lua-language-server
+        run: |
+          set -e
+          VERSION=$(curl -s https://api.github.com/repos/LuaLS/lua-language-server/releases/latest | grep tag_name | cut -d '"' -f4)
+          curl -L -o lls.tar.gz "https://github.com/LuaLS/lua-language-server/releases/download/${VERSION}/lua-language-server-${VERSION#v}-linux-x64.tar.gz"
+          mkdir -p /opt/lua-language-server
+          tar -xzf lls.tar.gz -C /opt/lua-language-server
+          ln -sf /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server
+          rm lls.tar.gz
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install Node Dependencies
+        working-directory: ./
+        run: |
+          npm ci
 
       - name: Run Autodoc
         run: ./scripts/doc
