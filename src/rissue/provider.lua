@@ -19,12 +19,14 @@ local env = require("rissue.env")
 local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 
-local M = {}
+--- Implementations of `rissue.get_provider_info()`
+---@class rissue.mod.Provider
+local provider = {}
 
---- Extracts the remote url to `rissue.RemoteInfo`
+--- Extracts the remote url into usable information.
 ---@param remote_url string
 ---@return rissue.RemoteInfo?
-function M.remote_info(remote_url)
+function provider.remote_info(remote_url)
   remote_url = remote_url:gsub("%s+$", "")
   -- all protocols must go to https except then the url is on http mode
   local protocol = remote_url:match("^http://") and "http" or "https"
@@ -56,17 +58,16 @@ function M.remote_info(remote_url)
 end
 
 --- Gets the provider info based on the remote url.
---- May trigger api requests to the url.
----@param remote_url string
----@param opts table? Additional request options passed to provider
+--- May trigger api requests to the url if no pattern was found from
+--- `config.options.endpoint_shortcuts`
+---@param remote_info rissue.RemoteInfo
+--- Additional request options passed to providers.
+--- Scoped to provider names (e.g. github, gitlab) to prevent conflicts
+---@param opts table<rissue.ProviderName, table?>?
 ---@return rissue.ProviderInfo? info
 ---@return string? error
-function M.get_provider_info(remote_url, opts)
-  local remote_info = M.remote_info(remote_url)
-  if not remote_info then
-    return nil, "Could not parse remote url"
-  end
-  remote_url = remote_info.full_url
+function provider.provider_info(remote_info, opts)
+  local remote_url = remote_info.full_url
 
   -- known public hosting providers - no API call needed
   for provider_name, spec in pairs(config.options.endpoint_shortcuts) do
@@ -86,7 +87,7 @@ function M.get_provider_info(remote_url, opts)
     end
   end
 
-  for provider_name, provider in pairs(config.providers) do
+  for provider_name, provider_module in pairs(config.providers) do
     -- async calling blocking pattern
     local supported ---@type boolean
     local additional_info ---@type table?
@@ -95,10 +96,10 @@ function M.get_provider_info(remote_url, opts)
     local token = env.get_token(provider_name)
 
     local thread = coroutine.create(function()
-      supported, additional_info = provider.supports(
+      supported, additional_info = provider_module.supports(
         remote_info,
         token,
-        config.merge_provider_settings(provider, opts)
+        config.merge_provider_settings(provider_module, opts)
       )
       finished = true
     end)
@@ -131,4 +132,4 @@ function M.get_provider_info(remote_url, opts)
   return nil, "No identifiable git provider"
 end
 
-return M
+return provider

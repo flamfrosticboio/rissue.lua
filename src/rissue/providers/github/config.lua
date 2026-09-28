@@ -16,7 +16,7 @@
 
 local M = {}
 
---- &SETTINGS
+--- ### github.conf ### ---
 
 --- Default settings
 ---@type rissue.Github.Settings
@@ -82,9 +82,9 @@ M.default = {
   fetch_delay = 1000,
 }
 
---- /SETTINGS
+--- ### github.conf ### ---
 
---- &TECHNICAL:GITHUB_GHES_RANGE
+--- ### github.ghes_range ### ---
 
 M.ghes_latest_version_code = 03022
 
@@ -96,7 +96,7 @@ M.ghes_api_version_range = {
   { 03021, M.ghes_latest_version_code, "2026-03-10" }, -- ghes 3.21+
 }
 
---- /TECHNICAL:GITHUB_GHES_RANGE
+--- ### github.ghes_range ### ---
 
 --- To be concatenated with api version from `rissue.Github.SupportedApiVersions`
 --- Example:

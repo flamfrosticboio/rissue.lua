@@ -17,8 +17,13 @@
 local assert_op = require("rissue.utils.assert_op")
 local table_op = require("rissue.utils.table_op")
 
+--- Used for storing current configurations and settings
+---@class rissue.mod.Config
 local config = {}
 
+--- ### rissue.config.settings ### ---
+
+--- Settings (configured with `rissue.setup()`)
 ---@type rissue.Config
 config.options = {
   additional_providers = {},
@@ -39,6 +44,9 @@ config.options = {
   timeout = 60000,
 }
 
+--- ### rissue.config.settings ### ---
+
+--- Table of available providers
 ---@type table<rissue.ProviderName, rissue.Provider>
 config.providers = { github = require("rissue.providers.github") }
 
@@ -46,9 +54,13 @@ config.providers = { github = require("rissue.providers.github") }
 ---@return rissue.Provider
 local function is_provider_spec(obj)
   local ok, err = assert_op.check_structure("rissue.provider_spec", obj, {
-    provider_name = "string",
-    map_into_issue = "function",
-    map_into_pr = "function",
+    name = "string",
+    version = "string",
+    version_code = "number",
+    get_issues = "function",
+    get_merge_requests = "function",
+    supports = "function",
+    settings = "table",
   }, "module")
   if not ok then
     error(err, 2)
@@ -56,32 +68,34 @@ local function is_provider_spec(obj)
   return obj
 end
 
---- Returns an error as string if it errors
+--- Setups settings, scans available providers and configure other
+--- configurations.
 ---@param opts rissue.Opts?
----@return string?
+---@return string? setup_error
 function config.setup(opts)
   config.options = table_op.force_deep_extend(config.options, opts or {})
 
   local errors = {}
   local _err_idx = 0
   for _, filepath in ipairs(config.options.additional_providers) do
-    local name = filepath:match("rissue[/\\]providers[/\\](.+)%.lua$")
-    if name then
-      local ok, mod = pcall(require, "rissue.providers." .. name)
-      if ok then
-        local load_ok, err = pcall(function()
-          if not is_provider_spec(mod) then
-            return
-          end
-          ---@cast mod rissue.Provider
-          config.providers[mod.name] = mod
-        end)
-
-        if not load_ok then
-          _err_idx = _err_idx + 1
-          errors[_err_idx] = err
+    local chunk, err = loadfile(filepath)
+    if chunk then
+      local load_ok, load_err = pcall(function()
+        local mod = chunk()
+        if not is_provider_spec(mod) then
+          return
         end
+        ---@cast mod rissue.Provider
+        config.providers[mod.name] = mod
+      end)
+
+      if not load_ok then
+        _err_idx = _err_idx + 1
+        errors[_err_idx] = load_err
       end
+    else
+      _err_idx = _err_idx + 1
+      errors[_err_idx] = err
     end
   end
 
@@ -90,11 +104,10 @@ function config.setup(opts)
   end
 end
 
---- Utility function
---- Merge settings with order (highest = priority):
----   - request options
----   - user defined settings
----   - provider's default settings
+--- A utility function for merging settings from:
+---   1. request options (from `rissue.get_issues()` and etc.)
+---   2. user defined settings
+---   3. provider's default settings
 ---@param provider rissue.Provider
 ---@param request table?
 ---@return table? merged_settings

@@ -14,7 +14,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local M = {}
+--- Implementations of `rissue.get_issues()` and `rissue.get_merge_requests()`
+---@class rissue.mod.Get
+local get = {}
 
 local config = require("rissue.config")
 local env = require("rissue.env")
@@ -60,22 +62,24 @@ local function get_issues_or_merge(info, opts, command)
   return result, err
 end
 
+--- Gets issues specified with info and provider opts
 ---@param info rissue.ProviderInfo
 ---@param opts table? Settings that are based on provider
 ---@return rissue.issue[]? results
 ---@return string? errors
-function M.issues(info, opts)
+function get.issues(info, opts)
   local res, err = get_issues_or_merge(info, opts, "get_issues")
   return res, err
 end
 
+--- Gets merge requests specified with info and provider opts
 ---@param info rissue.ProviderInfo
 ---@param opts table? Settings that are based on provider
 ---@return rissue.pr[]? results
 ---@return string? errors
-function M.merge_requests(info, opts)
+function get.merge_requests(info, opts)
   local res, err = get_issues_or_merge(info, opts, "get_merge_requests")
   return res, err
 end
 
-return M
+return get

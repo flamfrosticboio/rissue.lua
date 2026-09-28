@@ -22,5 +22,6 @@
 ---| "merged" pull request is closed and merged
 ---| "canceled" pull request is closed and not merged
 
+--- The structure for pull/merge request
 ---@class (exact) rissue.pr: rissue.item.base
 ---@field state rissue.pr.State

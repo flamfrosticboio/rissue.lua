@@ -14,8 +14,27 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@meta
+local viewer = {}
 
---- The structure for issues.
----@class (exact) rissue.issue: rissue.item.base
----@field is_open boolean
+---@type rissue.Provider
+return {
+  name = "custom",
+  version = "0.1",
+  version_code = 1000,
+  supports = function(info, token, opts)
+    viewer.supports = { info, token, opts }
+    return true
+  end,
+  get_merge_requests = function(info, token, opts)
+    viewer.get_merge_requests = { info, token, opts }
+    return {}
+  end,
+  get_issues = function(info, token, opts)
+    viewer.get_issues = { info, token, opts }
+    return {}
+  end,
+  settings = {
+    my_setting = false,
+  },
+  viewer = viewer,
+}

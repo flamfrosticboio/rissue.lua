@@ -14,183 +14,570 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local uv = require("luv") ---@type uv
+--- Using all pure os without luv
 
---- Auto documenting providers
+-- local _, inspect = pcall(require, "inspect")
+-- if not _ then
+--   inspect = tostring
+-- end
 
---- Opens files safely
----@param file string
----@return string
-local function read_file(file)
-  local fd, err = uv.fs_open(file, "r", 438)
-  if not fd then
-    error(err, 2)
+-- local function shallow_print(obj)
+--   if type(obj) == "table" then
+--     io.write("{")
+--     for k, v in pairs(obj) do
+--       local k_should_quotes = type(k) == "string"
+--       local v_should_quotes = type(v) == "string"
+--       local k_escaped = tostring(k):gsub("\n", "\\n")
+--       local v_escaped = tostring(v):gsub("\n", "\\n")
+--
+--       if k_should_quotes then
+--         k_escaped = '"' .. k_escaped .. '"'
+--       end
+--       if v_should_quotes then
+--         v_escaped = '"' .. v_escaped .. '"'
+--       end
+--
+--       io.write("\n    ")
+--       io.write(k_escaped)
+--       io.write(" = ")
+--       io.write(v_escaped)
+--     end
+--     io.write("\n}\n")
+--     io.flush()
+--   else
+--     print(tostring(obj))
+--   end
+-- end
+
+--- Do package injection
+package.loaded["luv"] = {}
+
+local file_cache = {}
+
+---@param path string
+---@return string? contents
+---@return string? err_msg
+local function read_file(path)
+  if file_cache[path] then
+    return file_cache[path]
   end
 
-  local ok, result = pcall(function()
-    local stat, stat_err = uv.fs_fstat(fd)
-    if not stat then
-      error(stat_err, 0)
+  local ok, res = pcall(function()
+    local fd, err = io.open(path, "r")
+    if not fd then
+      error(err, 0)
     end
-    local data, read_err = uv.fs_read(fd, stat.size, 0)
-    if not data then
-      error(read_err, 0)
+    local contents, read_err = fd:read("*a")
+    local close_ok, err_msg, code = fd:close()
+    if not contents and read_err then
+      error(tostring(read_err), 0)
     end
-    return data
+    if not close_ok then
+      error(tostring(err_msg) .. " [code: " .. tostring(code) .. "]", 0)
+    end
+    return contents
   end)
 
-  uv.fs_close(fd)
-
-  if not ok then
-    error(result, 0)
+  if ok and res then
+    file_cache[path] = res
+    return res
   end
-
-  return result
-end
-
----@param file string
----@param contents string
-local function write_file(file, contents)
-  local fd, err = uv.fs_open(file, "w", 438)
-  if not fd then
-    error(err, 2)
-  end
-
-  local ok, result = pcall(function()
-    local _, write_err = uv.fs_write(fd, contents, 0)
-    if write_err then
-      error(write_err)
-    end
-  end)
-
-  uv.fs_close(fd)
-
-  if not ok then
-    error(result, 0)
-  end
-
-  return result
-end
-
----@param content string
----@return table<string, string> mapped_blocks
-local function extract_blocks(content)
-  local blocks = {}
-
-  for name in content:gmatch("%-%-%-%s*&(%S-)\n") do
-    assert(type(name) == "string", "Name is not a string")
-    local start_pat = "%-%-%-%s*&" .. name .. "\n"
-    local end_pat = "%-%-%-%s*/" .. name .. "\n"
-    local pat = start_pat .. "(.-)" .. end_pat
-
-    ---@type string?
-    local body = content:match(pat)
-    if body then
-      blocks[name] = body:match("^%s*(.-)%s*$")
-    end
-  end
-
-  return blocks
-end
-
----@param filepath string
-local function strip_lua_file_extension(filepath)
-  return filepath:gsub("%.lua$", "")
-end
-
----@param content string
----@param blocks table<string, string>
-local function apply_blocks(content, blocks)
-  for name, body in pairs(blocks) do
-    local start_pat = "<!%-%-%s*&" .. name .. "%s*%-%->"
-    local end_pat = "<!%-%-%s*/" .. name .. "%s*%-%->"
-    local pat = start_pat .. "(.-)" .. end_pat
-    local replacement = "<!-- &"
-      .. name
-      .. " -->\n```lua\n"
-      .. body
-      .. "\n```\n<!-- /"
-      .. name
-      .. " -->"
-    content = content:gsub(pat, replacement)
-  end
-
-  return content
-end
-
-local is_windows = package.config:sub(1, 1) == "\\"
-local function shell_quote(s)
-  if is_windows then
-    return '"' .. s:gsub('"', '\\"') .. '"'
-  end
-  return "'" .. s:gsub("'", "'\\''") .. "'"
+  return nil, res or "no content was given (bug)"
 end
 
 ---@param path string
-local function run_formatter(path)
-  os.execute("npx prettier --config .prettierrc --write " .. shell_quote(path))
+---@param contents string
+---@return string? err_msg
+local function write_file(path, contents)
+  local ok, res = pcall(function()
+    local fd, err = io.open(path, "w")
+    if not fd then
+      error(err, 0)
+    end
+
+    local _, w_err = fd:write(contents)
+    local close_ok, err_msg, code = fd:close()
+
+    if w_err then
+      error(w_err, 0)
+    end
+    if not close_ok then
+      error(tostring(err_msg) .. " [code: " .. tostring(code) .. "]", 0)
+    end
+    return contents
+  end)
+
+  if not ok then
+    return res or "unknown error"
+  end
 end
 
-local providers_dir = "src/rissue/providers"
-local fd, err = uv.fs_scandir(providers_dir)
-if not fd then
-  error(err)
+---@param str string
+local function escape_pattern(str)
+  return str:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%1")
 end
 
-while true do
-  local name, ftype = uv.fs_scandir_next(fd)
-  if not name then
-    break
+---@return string?
+local function getCallerSourceLine(level)
+  level = level or 0
+  local info = debug.getinfo(2 + level, "Sl")
+  local f = io.open(info.short_src, "r")
+  if not f then
+    return nil
   end
 
-  local doc_file_path = "docs/providers/"
-    .. strip_lua_file_extension(name)
-    .. ".md"
-  local impl_file_path = providers_dir .. "/" .. name
-  local doc_contents = read_file(doc_file_path)
-  local original = doc_contents
-  if ftype == "directory" then
-    local ifd, ifd_err = uv.fs_scandir(impl_file_path)
-    if not ifd then
-      error(ifd_err)
+  local n, result = 0, nil
+  for line in f:lines() do
+    n = n + 1
+    if n == info.currentline then
+      result = line
+      break
     end
-    while true do
-      local impl_fname, impl_ftype = uv.fs_scandir_next(ifd)
-      if not impl_fname then
-        break
+  end
+  f:close()
+
+  return result
+end
+
+---@generic T: type
+---@param obj table
+---@param cls `T`
+---@return T
+local function get(obj, cls)
+  local item = obj
+  if type(item) ~= cls then
+    local ok, field_expr = xpcall(function()
+      local line = getCallerSourceLine(3)
+      ---@cast line string
+      line = line:match("^%s*(.-)%s*$")
+      local name = line:match("get(%b())")
+      ---@cast name string
+      name = name:match("%(([%w.]+),")
+      return name
+    end, function()
+      return "Object type is not a " .. cls
+    end)
+
+    if not ok then
+      error(field_expr, 2)
+    else
+      error(("'%s' is not a %s"):format(field_expr, cls), 2)
+    end
+  end
+  return item
+end
+
+---@param desc string
+local function format_desc(desc)
+  return desc:match("^%s*(.-)%s*$"):gsub("\n ", "\n")
+end
+
+---@class __rissue.auto_doc.Spec
+---@field description string?
+---@field fields string[]?
+---@field docs string?
+
+---@param parent_name string
+---@param fields table[]
+---@param buffer table<string, __rissue.auto_doc.Spec>
+---@param parent_spec __rissue.auto_doc.Spec
+local function parse_fields(parent_name, fields, buffer, parent_spec)
+  for _, field in ipairs(fields) do
+    ---@type __rissue.auto_doc.Spec
+    local spec = {}
+    local suffix = ""
+
+    if field.view == "function" then
+      suffix = "()"
+    end
+
+    if field.rawdesc then
+      spec.description = format_desc(get(field.rawdesc, "string"))
+    end
+
+    local name = parent_name .. "." .. field.name .. suffix
+
+    local function parse_docs()
+      ---@type string[]
+      local lines = {}
+
+      lines[#lines + 1] = ("### %s"):format(name)
+      if spec.description then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = spec.description
       end
 
-      local impl_fpath = impl_file_path .. "/" .. impl_fname
+      if field.view == "function" then
+        if type(field.extends.args) == "table" then
+          lines[#lines + 1] = "\n**Parameters:**\n"
+          for _, arg in ipairs(field.extends.args) do
+            local line = string.format("- `%s`: `%s`", arg.name, arg.view)
 
-      if impl_ftype == "file" then
-        local impl_contents = read_file(impl_fpath)
-        local blocks = extract_blocks(impl_contents)
-        doc_contents = apply_blocks(doc_contents, blocks)
-      else
-        print("Warning: Nested directory scanning is not yet supported")
+            if arg.rawdesc then
+              line = line .. string.format(" -- %s", arg.rawdesc)
+            end
+
+            lines[#lines + 1] = line
+          end
+        end
+
+        if type(field.extends.returns) == "table" then
+          lines[#lines + 1] = "\n**Returns:**\n"
+          for i, ret in ipairs(field.extends.returns) do
+            local line = string.format("- (%d) `%s`", i, ret.view)
+            if ret.rawdesc then
+              line = line .. " -- " .. ret.rawdesc
+            end
+
+            lines[#lines + 1] = line
+          end
+        end
       end
-    end
-    write_file(doc_file_path, doc_contents)
-    run_formatter(doc_file_path)
-  elseif ftype == "file" then
-    local impl_file = read_file(impl_file_path)
-    local blocks = extract_blocks(impl_file)
-    doc_contents = apply_blocks(doc_contents, blocks)
 
-    write_file(doc_file_path, doc_contents)
-    run_formatter(doc_file_path)
-  else
-    error("Invalid filetype: " .. ftype)
+      spec.docs = table.concat(lines, "\n")
+    end
+
+    parse_docs()
+
+    buffer[name] = spec
+    if not parent_spec.fields then
+      parent_spec.fields = {}
+    end
+
+    parent_spec.fields[#parent_spec.fields + 1] = name
+  end
+end
+
+---@param entry table
+---@param buffer table<string, __rissue.auto_doc.Spec>
+local function parse_entry(entry, buffer)
+  local name = get(entry.name, "string")
+  local defines = get(entry.defines, "table")
+  local first_define_entry = defines[1]
+  assert(first_define_entry, "Define field is empty")
+  local filename = get(first_define_entry.file, "string")
+  assert(filename, "Filename not found")
+
+  ---@type __rissue.auto_doc.Spec
+  local spec = {}
+
+  if entry.desc then
+    spec.description = format_desc(get(entry.rawdesc, "string"))
   end
 
-  local ci_status = os.getenv("FAIL_ON_WRITE")
-  doc_contents = read_file(doc_file_path) -- read again
+  local function parse_docs()
+    local lines = {}
 
-  if original ~= doc_contents then
-    print(doc_file_path .. " was updated")
-    if ci_status == "true" then
-      print("\nFiles were modified. Run 'git add --update .'")
-      os.exit(1)
+    lines[#lines + 1] = "### `" .. entry.name .. "`"
+    lines[#lines + 1] = ""
+
+    if spec.description then
+      lines[#lines + 1] = spec.description
+    end
+
+    if entry.type == "type" then
+      if #entry.fields > 0 then
+        lines[#lines + 1] = ""
+        for _, field in ipairs(entry.fields) do
+          if field.visible == "public" then
+            if field.type == "doc.field" then
+              local line = ("- %s: `%s`"):format(field.name, field.view)
+              if field.rawdesc then
+                ---@type string
+                local header = " -- " .. field.rawdesc
+                header = header:gsub("\n", "\n  ")
+                if #line + #header > 80 then
+                  line = line .. "\n" .. header
+                else
+                  line = line .. header
+                end
+              end
+
+              lines[#lines + 1] = line
+            end
+          end
+        end
+      end
+    end
+    if #lines > 0 then
+      spec.docs = table.concat(lines, "\n")
+    end
+  end
+
+  parse_docs()
+
+  if #entry.fields > 0 then
+    parse_fields(name, entry.fields, buffer, spec)
+  end
+
+  buffer[name] = spec
+end
+
+local constants_pattern_lua = "%-%-%-%s*###%s*([%w.]+)%s*###%s*---"
+---@param raw string
+local function parse_seen_constants(raw, buffer)
+  for constant_name in raw:gmatch(constants_pattern_lua) do
+    local headers = "\n%-%-%-%s*###%s*" .. constant_name .. "%s*###%s*---%s*\n"
+    local pattern = headers .. "(.-)" .. headers
+    local result = raw:match(pattern) ---@type string?
+    if result then
+      result = result:match("^%s*(.-)%s*$")
+      buffer[constant_name] = result
     end
   end
 end
+
+-- ---@param dir string
+-- ---@param callback fun(filename: string)
+-- local function list_files_shallow(dir, callback)
+--   local lfs = require("lfs")
+--   for entry in lfs.dir(dir) do
+--     if entry ~= "." and entry ~= ".." then
+--       local path = dir .. "/" .. entry
+--       local attr = lfs.attributes(path)
+--       if attr.mode == "file" then
+--         callback(path)
+--       end
+--     end
+--   end
+-- end
+
+---@param dir string
+---@param callback fun(filename: string)
+local function list_files_deep(dir, callback)
+  local lfs = require("lfs")
+  for entry in lfs.dir(dir) do
+    if entry ~= "." and entry ~= ".." then
+      local path = dir .. "/" .. entry
+      local attr = lfs.attributes(path)
+      if attr.mode == "file" then
+        callback(path)
+      elseif attr.mode == "directory" then
+        list_files_deep(path, callback)
+      end
+    end
+  end
+end
+
+---@return table<string, __rissue.auto_doc.Spec>
+local function get_types()
+  local lfs = require("lfs")
+  lfs.mkdir(".tmp")
+
+  os.execute("lua-language-server --doc=src --doc_out_path=.tmp")
+
+  local raw, read_err = read_file(".tmp/doc.json")
+  assert(raw, read_err)
+  local spec = require("rissue.utils.json").decode(raw)
+  assert(type(spec) == "table", "Not a table")
+  assert(getmetatable(spec).__jsontype == "array", "Not an array")
+
+  local buffer = {}
+  for _, item in ipairs(spec) do
+    assert(type(item) == "table", "An entry is not a table")
+    local name = get(item.name, "string")
+
+    if name:match("^rissue") then
+      parse_entry(item, buffer)
+    end
+  end
+
+  return buffer
+end
+
+local function get_constants()
+  local constants = {}
+  list_files_deep("src", function(filename)
+    local contents, err = read_file(filename)
+    if not contents then
+      print(err)
+    else
+      parse_seen_constants(contents, constants)
+    end
+  end)
+
+  return constants
+end
+
+local dir = "src/rissue/providers"
+---@return table<string, string>
+local function get_provider_versions()
+  local tables = {} ---@type table<string, string>
+  local visited = {}
+  list_files_deep(dir, function(path)
+    local dirname = path:match("(.*)/[^/]*$")
+    if dirname and visited[dirname] then
+      print("skipped " .. path)
+      return
+    elseif not path:match("init.lua") then
+      local contents, err = read_file(path)
+      if not contents then
+        print(err)
+        return
+      end
+
+      --- check if it is a valid spec if it was a standalone file
+      if not contents:match("version%s*=%s*") then
+        return
+      end
+    end
+
+    local chunk, load_err = loadfile(path)
+    if not chunk then
+      print("Could not load chunk: ", load_err)
+      return
+    end
+
+    local result = chunk()
+    if type(result) == "table" and result.version then
+      tables[result.name] = result.version
+      -- prevent already visited modules inner submodules to be visited
+      visited[dirname] = true
+    end
+  end)
+
+  return tables
+end
+
+---@param raw string
+---@param types table<string, __rissue.auto_doc.Spec>
+---@return string
+local function write_types(raw, types)
+  local saw = {}
+  for name, field in raw:gmatch("<!%-%-%s*&([%w_%.%(%)]+)@(%w+)%s*%-%->") do
+    assert(type(name) == "string", "Not a string")
+    assert(type(field) == "string", "Not a string")
+
+    if not (saw[name] and saw[name][field]) then
+      if not types[name] or not types[name][field] then
+        error("unknown entry: " .. name .. "@" .. field)
+      end
+
+      if not saw[name] then
+        saw[name] = {}
+      end
+      saw[name][field] = true
+
+      local name_escaped = escape_pattern(name)
+      local field_escaped = escape_pattern(field)
+
+      local ends = "<!%-%-%s*&"
+        .. name_escaped
+        .. "@"
+        .. field_escaped
+        .. "%s*%-%->"
+      local find_pattern = ends .. ".-" .. ends
+
+      local headers = "<!-- &" .. name_escaped .. "@" .. field_escaped .. " -->"
+      local replacement = headers
+        .. "\n\n"
+        .. types[name][field]
+        .. "\n\n"
+        .. headers
+
+      raw = raw:gsub(find_pattern, replacement)
+    end
+  end
+
+  return raw
+end
+
+---@param raw string
+---@param constants table<string, string>
+---@return string
+local function write_constants(raw, constants)
+  local saw = {}
+  for const in raw:gmatch("<!%-%-%s*%*([%w.]+)%s*%-%->") do
+    if not saw[const] then
+      if not constants[const] then
+        error("unknown constant: " .. const, 0)
+      end
+      saw[const] = true
+
+      local ends = "<!%-%-%s*%*" .. const .. "%s*%-%->"
+      local find_pattern = ends .. ".-" .. ends
+
+      local headers = "<!-- *" .. const .. " -->"
+      local replacement = headers
+        .. "\n\n```lua\n"
+        .. constants[const]
+        .. "\n```\n\n"
+        .. headers
+
+      raw = raw:gsub(find_pattern, replacement)
+    end
+  end
+
+  return raw
+end
+
+---@param raw string
+---@param versions table<string, string>
+---@return string
+local function write_provider_versions(raw, versions)
+  local saw = {}
+  for name in raw:gmatch("<!%-%-%s*@VERSION:([%w]+)%s*%-%->") do
+    if not saw[name] then
+      if not versions[name] then
+        error("unknown name: " .. name, 0)
+      end
+      saw[name] = true
+
+      local ends = "<!%-%-%s*@VERSION:" .. name .. "%s*%-%->"
+      local find_pattern = ends .. ".-" .. ends
+
+      local headers = "<!-- @VERSION:" .. name .. " -->"
+      local replacement = headers .. "Version: " .. versions[name] .. headers
+
+      raw = raw:gsub(find_pattern, replacement)
+    end
+  end
+
+  return raw
+end
+
+---@param raw string
+---@param infos __rissue.auto_doc.infos
+---@return string
+local function write_blocks(raw, infos)
+  raw = write_types(raw, infos.types)
+  raw = write_constants(raw, infos.constants)
+  raw = write_provider_versions(raw, infos.versions)
+
+  return raw
+end
+
+---@class __rissue.auto_doc.infos
+---@field types table<string, __rissue.auto_doc.Spec>
+---@field constants table<string, string>
+---@field versions table<string, string>
+
+local function main()
+  ---@type __rissue.auto_doc.infos
+  local info = {
+    types = get_types(),
+    constants = get_constants(),
+    versions = get_provider_versions(),
+  }
+
+  list_files_deep("docs/", function(filepath)
+    local contents, err = read_file(filepath)
+    if contents then
+      local result = write_blocks(contents, info)
+      write_file(filepath, result)
+
+      os.execute("./node_modules/.bin/prettier --write " .. filepath)
+
+      local fres, rerr = read_file(filepath)
+      if not fres then
+        print(rerr)
+      elseif contents ~= fres then
+        print("Changes made on " .. filepath)
+      end
+    else
+      print(err)
+    end
+  end)
+end
+
+main()

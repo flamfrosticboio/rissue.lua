@@ -2,7 +2,7 @@
 
 Adds support for github.
 
-<!-- VERSION -->Version: 0.1<!-- /VERSION -->
+<!-- @VERSION:github -->Version: 0.1<!-- @VERSION:github -->
 
 ## Supported
 
@@ -23,7 +23,7 @@ Theoretical support for ghes: 3.0
 
 ## Settings
 
-<!-- &SETTINGS -->
+<!-- *github.conf -->
 
 ```lua
 --- Default settings
@@ -91,76 +91,108 @@ M.default = {
 }
 ```
 
-<!-- /SETTINGS -->
+<!-- *github.conf -->
 
 ## Types
 
-<!-- &TYPES -->
+<!-- &rissue.Github.Settings@docs -->
 
-````lua
----@alias rissue.Github.ApiVersion "2026-03-10" | "2022-11-28"
+### `rissue.Github.Settings`
 
----@alias rissue.Github.MediaType
----| "raw" # Enables `body` in the response
----| "text" # Enables `body_text` in the response
----| "html" # Enables `body_html` in the response
+Note: use `rissue.Github.Opts` for a partial version of
+`rissue.Github.Settings`
 
----@class rissue.Github.supports.AdditionalInfo
----@field ghes string? The Github Enterprise Version (3.x)
----@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
----@field api_version rissue.Github.ApiVersion?
+- api_version: `("2022-11-28"|"2026-03-10"|false)?`
+  -- Override the api version to be used.
+  Most commonly used when doing requests like `get.issues()` or
+  `get.merge_requests()`
 
----@class rissue.Github.opts.Endpoints
----@field issues rissue.Query[]
----@field merge_requests rissue.Query[]
+  Setting it to false removes the api_version header to be sent to the server.
 
----@class rissue.Github.Settings
---- Required field on param in each query: `q`
---- `q` can be used as template string.
----
---- Supported template strings for `q`:
---- - `{owner}` - Repository owner
---- - `{repo}` - Repository name
----
---- See default settings for examples.
----@field endpoints rissue.Github.opts.Endpoints
---- Override the api version to be used.
---- Most commonly used when doing requests like `get.issues()` or
---- `get.merge_requests()`
----
---- Setting it to false removes the api_version header to be sent to the server.
----
---- **Warning: NOT RECOMMENDED TO BE SET ON USER SETTINGS**
----@field api_version? rissue.Github.ApiVersion | false
---- Limits how many items will be fetched and rendered.
----
---- Note: This does not guarantee the output size of the result to be exactly
----       `max_items` and may have more items than requested
----@field max_items integer
---- Defines how many items are fetched per page when performing pagination
---- requests in github. Limit=100 (enforced by github)
----@field items_per_page integer
---- The type of media to request from issues and pull requests.
----
---- Attaches a header to the requests:
---- ```
---- -H "Accept: application/vnd.github.<media_type>+json"
---- ```
----
---- See more on [github docs](https://docs.github.com/en/).
---- - [Issues](https://docs.github.com/en/rest/issues/issues)
---- - [Pull Requests](https://docs.github.com/en/rest/pulls/pulls)
----@field media_type rissue.Github.MediaType
---- Store the raw response from the server in the results
----@field store_raw boolean
---- The delay between fetching in each endpoints/pages
----@field fetch_delay integer
+  _It is not recommended for the api_version to be set as a permanent setting,
+  but rather a request option_
 
---- Partial version of rissue.Github.Settings
----@class (partial) rissue.Github.Opts: rissue.Github.Settings
-````
+- endpoints: `rissue.Github.opts.Endpoints`
+  -- Required field on param in each query: `q`.
 
-<!-- /TYPES -->
+  The query field supports template strings:
+  - `{owner}` - Repository owner
+  - `{repo}` - Repository name
+
+  See the default settings for examples.
+
+- fetch_delay: `integer`
+  -- The delay between fetching in each endpoints/pages
+
+- items_per_page: `integer`
+  -- Defines how many items are fetched per page when performing pagination
+  requests in github. Limit=100 (enforced by github)
+
+- max_items: `integer`
+  -- Limits how many items will be fetched and rendered.
+
+  Note: This does not guarantee the output size of the result to be exactly
+  `max_items` and may have more items than requested
+
+- media_type: `"full"|"html"|"raw"|"text"`
+  -- The type of media to request from issues and pull requests.
+
+  Attaches a header to the requests:
+
+  ```text
+  -H "Accept: application/vnd.github.<media_type>+json"
+  ```
+
+  Options:
+  - "raw" -- Enables `body` in the api response
+  - "text" -- Enables `body_text` in the api response
+  - "html" -- Enables `body_html` in the api response
+  - "full" -- Combination of `raw`, `text`, and `html`.
+
+  _Note: It is not possible to access to `body_text` and `body_html` when
+  `full` is selected. Enable the `store_raw` option instead and access it from
+  raw response_
+
+  See more on [github docs](https://docs.github.com/en/).
+  - [Issues](https://docs.github.com/en/rest/issues/issues)
+  - [Pull Requests](https://docs.github.com/en/rest/pulls/pulls)
+
+- store_raw: `boolean`
+  -- Store the raw response from the server in the results
+
+<!-- &rissue.Github.Settings@docs -->
+
+<!-- &rissue.Github.opts.Endpoints@docs -->
+
+### `rissue.Github.opts.Endpoints`
+
+- issues: `rissue.Query[]`
+- merge_requests: `rissue.Query[]`
+
+<!-- &rissue.Github.opts.Endpoints@docs -->
+
+<!-- &rissue.Github.supports.AdditionalInfo@docs -->
+
+### `rissue.Github.supports.AdditionalInfo`
+
+- api_version: `("2022-11-28"|"2026-03-10")?`
+- ghes: `string?` -- The Github Enterprise Version (3.x)
+- ghes_code: `integer?` -- Typically represented as 3xxx (e.g. 3.14 -> 03014)
+
+<!-- &rissue.Github.supports.AdditionalInfo@docs -->
+
+#### From rissue
+
+<!-- &rissue.Query@docs -->
+
+### `rissue.Query`
+
+- endpoint: `string`
+  -- The endpoint url appended after the api endpoint from `rissue.ProviderInfo`
+- param: `table<string, string>`
+  -- The query parameters. Behavior differs between each provider.
+
+<!-- &rissue.Query@docs -->
 
 ## Technical
 

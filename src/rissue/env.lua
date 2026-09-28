@@ -18,6 +18,9 @@ local config = require("rissue.config")
 
 local M = {}
 
+--- [Internal Module]
+--- Used to get environment variables
+---@class rissue.mod.Env
 M.env = {}
 
 ---@param path string
