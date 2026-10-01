@@ -102,7 +102,7 @@ M.default = {
 Note: use `rissue.Github.Opts` for a partial version of
 `rissue.Github.Settings`
 
-- api_version: `("2022-11-28"|"2026-03-10"|false)?`
+- api_version: `(rissue.Github.ApiVersion|false)?`
   -- Override the api version to be used.
   Most commonly used when doing requests like `get.issues()` or
   `get.merge_requests()`
@@ -134,7 +134,7 @@ Note: use `rissue.Github.Opts` for a partial version of
   Note: This does not guarantee the output size of the result to be exactly
   `max_items` and may have more items than requested
 
-- media_type: `"full"|"html"|"raw"|"text"`
+- media_type: `rissue.Github.MediaType`
   -- The type of media to request from issues and pull requests.
 
   Attaches a header to the requests:
@@ -175,7 +175,7 @@ Note: use `rissue.Github.Opts` for a partial version of
 
 ### `rissue.Github.supports.AdditionalInfo`
 
-- api_version: `("2022-11-28"|"2026-03-10")?`
+- api_version: `(rissue.Github.ApiVersion)?`
 - ghes: `string?` -- The Github Enterprise Version (3.x)
 - ghes_code: `integer?` -- Typically represented as 3xxx (e.g. 3.14 -> 03014)
 
