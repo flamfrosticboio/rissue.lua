@@ -364,7 +364,7 @@ local function get_types()
   local lfs = require("lfs")
   lfs.mkdir(".tmp")
 
-  os.execute("lua-language-server --doc=src --doc_out_path=.tmp")
+  os.execute("lua-language-server --doc=lua --doc_out_path=.tmp")
 
   local raw, read_err = read_file(".tmp/doc.json")
   assert(raw, read_err)
@@ -387,7 +387,7 @@ end
 
 local function get_constants()
   local constants = {}
-  list_files_deep("src", function(filename)
+  list_files_deep("lua", function(filename)
     local contents, err = read_file(filename)
     if not contents then
       print(err)
@@ -399,7 +399,7 @@ local function get_constants()
   return constants
 end
 
-local dir = "src/rissue/providers"
+local dir = "lua/rissue/providers"
 ---@return table<string, string>
 local function get_provider_versions()
   local tables = {} ---@type table<string, string>
