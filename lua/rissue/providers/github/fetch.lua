@@ -113,7 +113,10 @@ local function prepare_page(opts)
   local endpoint = opts.base .. fmt(opts.query.endpoint, opts.fmt_opts)
   local param = table_op.force_deep_extend(opts.query.param)
   param.q = param.q and fmt(param.q, opts.fmt_opts)
-  param.per_page = opts.fetch_opts.settings.items_per_page
+  param.per_page = math.min(
+    opts.fetch_opts.settings.items_per_page,
+    opts.fetch_opts.settings.max_items
+  )
   param.page = tostring(opts.page or 1)
 
   return { endpoint = endpoint, param = param } --[[@as rissue.Query]]
