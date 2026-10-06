@@ -22,27 +22,15 @@ local config = require("rissue.config")
 local env = require("rissue.env")
 local process = require("rissue.utils.process")
 
----@param info rissue.ProviderInfo
----@param opts table?
----@param command "get_issues" | "get_merge_requests"
----@return any[]? results
----@return string? errors
-local function get_issues_or_merge(info, opts, command)
-  ---@type rissue.Provider?
-  local provider = config.providers[info.name]
-  if not provider then
-    return nil, "Could not find provider: " .. info.name
-  end
-
+---@generic A, B
+---@param func fun(): A, B
+---@return A
+---@return B
+local function with_co_blocking(func)
   local done = false
-  local result, err = nil, nil
-
+  local a, b
   local co = coroutine.create(function()
-    result, err = provider[command](
-      info,
-      env.get_token(provider.name),
-      config.merge_provider_settings(provider, opts)
-    )
+    a, b = func()
     done = true
   end)
 
@@ -59,7 +47,38 @@ local function get_issues_or_merge(info, opts, command)
     return nil, wait_err
   end
 
-  return result, err
+  return a, b
+end
+
+---@param info rissue.ProviderInfo
+---@param opts table?
+---@param command "get_issues" | "get_merge_requests"
+---@return any[]? results
+---@return string? errors
+local function get_issues_or_merge(info, opts, command)
+  ---@type rissue.Provider?
+  local provider = config.providers[info.name]
+  if not provider then
+    return nil, "Could not find provider: " .. info.name
+  end
+
+  local co, is_main = coroutine.running()
+  if not is_main and co then
+    return provider[command](
+      info,
+      env.get_token(provider.name),
+      config.merge_provider_settings(provider, opts)
+    )
+  end
+
+  -- Blocking implementation
+  return with_co_blocking(function()
+    return provider[command](
+      info,
+      env.get_token(provider.name),
+      config.merge_provider_settings(provider, opts)
+    )
+  end)
 end
 
 --- Gets issues specified with info and provider opts
