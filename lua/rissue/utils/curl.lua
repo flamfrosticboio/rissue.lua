@@ -240,6 +240,7 @@ end
 --- Run curl with specified args.
 ---
 --- Note: must be in coroutine mode
+---@async
 ---@param args string[]
 ---@param cwd? string
 ---@param env? string[]|table<string,string?>
@@ -300,6 +301,7 @@ function M.raw(args, cwd, env)
 end
 
 --- Runs curl in exclusive coroutine mode.
+---@async
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
 ---@return rissue.utils.curl.Result? result
@@ -310,6 +312,7 @@ function M.request(url, opts)
 end
 
 --- Helper that curls with POST
+---@async
 ---@param url string
 ---@param data string | table<string, string?>
 ---@param opts rissue.utils.curl.Opts?

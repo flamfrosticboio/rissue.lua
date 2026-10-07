@@ -84,6 +84,7 @@ local function unmap(result)
 end
 
 --- Warning: raises errors
+---@async
 ---@param opts rissue.utils.curl.Opts
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
@@ -127,6 +128,7 @@ end
 ---@field contents __rissue.Github.unmap.Result
 ---@field next_url string?
 
+---@async
 ---@param opts __rissue.Github.fetch_page.Opts
 ---@return __rissue.Github.fetch_page.Result? result
 ---@return string? error
@@ -182,6 +184,7 @@ local function try_fetch_page(opts)
   end
 end
 
+---@async
 ---@param delay integer Delay in milliseconds
 local function delay_with_warning(delay)
   local delay_ok, delay_err = process.try_delay(delay)
@@ -196,6 +199,7 @@ end
 ---@field key fun(item: T): K
 ---@field settings rissue.Github.Settings
 
+---@async
 ---@generic T, K
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 ---@param queries rissue.Query[]

@@ -22,252 +22,245 @@ local uv = require("luv") ---@type uv
 
 M.cwd = "./.test_setup"
 
-local CPU_COUNT = tonumber(os.getenv("CPU"))
+local CPU_COUNT = tonumber(os.getenv("CORES"))
 if not CPU_COUNT then
   local cpus = uv.cpu_info()
   CPU_COUNT = cpus and #cpus or 1
 end
 
----@class __rissue.SetupConfigOptions.cache
----@field ttl integer
----@field name string
----@field folder string
-
----@class __rissue.SetupConfigOptions
----@field cache? __rissue.SetupConfigOptions.cache
----@field cwd string
-
----@alias __rissue.setup.Type __rissue.setup.type.File | __rissue.setup.type.Command
-
----@alias __rissue.SetupConfig __rissue.setup.Type[] | __rissue.SetupConfigOptions
+local log = require("rissue.utils.log")
+log.log_level = log.levels.debug
 
 ---@class __rissue._CmdResult: rissue.utils.CmdResult
 ---@field cmd string[]
 
----@param cmds rissue.cmd[]
----@param process_limit integer
----@return __rissue._CmdResult[], string[]
-function M.run_multiple(cmds, process_limit)
-  if #cmds <= 0 then
-    return {}, {}
+---@param pipelines __rissue.Pipeline[]
+---@param limit integer
+---@return string[]? errors
+local function run_pipelines(pipelines, limit)
+  if #pipelines <= 0 then
+    return
   end
+
+  limit = math.max(limit, 1)
 
   local errors = {} ---@type string[]
-  local results = {} ---@type __rissue._CmdResult[]
-  local total = #cmds
-  local finished = 0
-  local running = 0
-  local pointer = 0
+  local running = {} ---@type {co: thread, result: {done: boolean, err: string?}}[]
 
-  while finished < total do
-    while pointer < total do
-      --- Get next cmd to run
-      pointer = pointer + 1
-      local command = cmds[pointer]
-      local id = pointer
-
-      assert(command[1], "No binary passed")
-
-      local args = {}
-      for i = 2, #command do
-        args[#args + 1] = command[i]
+  --- Removes finished tasks and collects their errors
+  local function reap()
+    for i = #running, 1, -1 do
+      local task = running[i]
+      if task.result.done or coroutine.status(task.co) == "dead" then
+        if task.result.err then
+          table.insert(errors, task.result.err)
+        end
+        table.remove(running, i)
       end
+    end
+  end
 
-      local process, err = subprocess.spawn({ cmd = command[1], args = args })
-      if not process then
-        error(err)
-      end
+  local next_pipeline = fn.iterator(pipelines)
 
-      process:register_event("on_stdout", function()
-        print(
-          fn.ccolor(("[%03d] | "):format(id), id)
-            .. process:get_last_stdout(true):gsub("\n", fn.ccolor("\n^| ", id))
-        )
-      end)
-      process:register_event("on_stderr", function()
-        print(
-          fn.ccolor(("[%03d] @ "):format(id), id)
-            .. process:get_last_stderr(true):gsub("\n", fn.ccolor("\n^@ ", id))
-        )
-      end)
-      process:register_event("on_exit", function()
-        finished = finished + 1
-        running = running - 1
-
-        results[id] = {
-          return_code = process:get_code(),
-          stdout = process:get_stdout(),
-          stderr = process:get_stderr(),
-          cmd = command,
-        }
-
-        fn.print_shell(
-          command,
-          ("[%d/%d][DONE]: "):format(finished, total),
-          true
-        )
-      end)
-
-      process:run()
-      running = running + 1
-
+  while true do
+    -- Wait for a free slot before starting the next pipeline
+    if #running >= limit then
       subprocess.wait(function()
-        return running < process_limit
-      end, -1, 100)
+        reap()
+        return #running < limit
+      end, -1)
     end
 
-    -- final wait
-    subprocess.wait(function()
-      return finished >= total
-    end, -1, 100)
-  end
-
-  for _, result in ipairs(results) do
-    if result.return_code ~= 0 then
-      local contents = result.stderr ~= "" and result.stderr or result.stdout
-      errors[#errors + 1] = (
-        "failed to run '"
-        .. table.concat(result.cmd, " ")
-        .. "':\n"
-        .. contents
-      )
+    local pipeline = next_pipeline()
+    if not pipeline then
+      break
     end
+
+    local result = { done = false } ---@type {done: boolean, err: string?}
+    local co = coroutine.create(
+      ---@async
+      function()
+        result.err = fn.run_pipeline(pipeline)
+        result.done = true
+      end
+    )
+
+    local ok, err = coroutine.resume(co)
+    if not ok then
+      result.err = tostring(err)
+      result.done = true
+    end
+
+    table.insert(running, { co = co, result = result })
+    reap()
   end
 
-  return results, errors
+  -- Wait for everything still running
+  subprocess.wait(function()
+    reap()
+    return #running == 0
+  end, -1)
+
+  if #errors > 0 then
+    return errors
+  end
 end
 
----@class __rissue.setup.type.Command
----@field type "command"
----@field file string
----@field bin string
----@field args string[]
-
----@param file string? File to check (caching). Pass nil if this is not applicable
----@param binary string
----@param args (string | true)[]?
----@return __rissue.setup.type.Command
-function M.setup_command(file, binary, args)
-  args = fn.replace_in_list(args or {}, true, file)
-  return { file = file, bin = binary, args = args, type = "command" }
-end
-
----@class __rissue.setup.type.File
----@field file string
----@field contents string
----@field type "file"
-
----@param file string File to write. Note that it will not write if the file exists
----@param contents string
----@return __rissue.setup.type.File
-function M.setup_file(file, contents)
-  return { file = file, contents = contents, type = "file" }
-end
-
----@param cache __rissue.SetupConfigOptions.cache
-local function handle_cache(cache)
-  local marker_path = M.cwd .. "/cache-marker-" .. cache.name
+---@param id string
+---@param folder string folder path
+---@param duration number duration in seconds
+---@return boolean cache_is_valid
+function M.handle_caching(id, folder, duration)
+  local marker_path = M.cwd .. "/cache-marker-" .. id
+  local folder_path = M.cwd .. "/" .. folder
   local f, _ = io.open(marker_path, "r")
   if f then
     local content = f:read("*a")
     f:close()
     content = tonumber(content)
-    if content and os.time() - content > cache.ttl then
-      local ok, err = fn.rmdir(M.cwd .. "/" .. cache.folder)
+    if content and os.time() - content <= duration then
+      return true
+    end
+
+    local folder_stat = uv.fs_stat(folder_path)
+    if folder_stat and folder_stat.type == "directory" then
+      local ok, errmsg = fn.rmdir(folder_path)
       if not ok then
-        print("Warning: failed to delete expired cached folder: " .. err)
+        error(("Failed to delete folder %s: %s"):format(folder_path, errmsg), 0)
       end
-      os.remove(marker_path)
-    end
-  else
-    print("Warning: No cache file found")
-    local err
-    f, err = io.open(marker_path, "w")
-    if not f then
-      -- if I can't write cache, then there is a problem
-      error(err)
-    end
-
-    local _, ferr = f:write(tostring(os.time()))
-    f:close()
-    if ferr then
-      print("Warning: failed to write to cache file: " .. ferr)
+      print("Removed old setup folder: " .. folder_path)
     end
   end
+
+  print("Warning: No cache file found. Running full setup...")
+  local ok, err_msg = fn.mkdir(M.cwd)
+  if not ok then
+    error("Failed to make directory: " .. err_msg, 0)
+  end
+
+  ok, err_msg = fn.write_file(marker_path, tostring(os.time()))
+  if not ok then
+    error("Failed to write cache marker path: " .. err_msg, 0)
+  end
+
+  return false
 end
 
----@class __rissue.run_setup_config.Result
----@field files_processed string[]
----@field files_failed string[]
-
----@param configs __rissue.SetupConfig
----@return __rissue.run_setup_config.Result
-local function run_setup_config(configs)
-  if configs.cache then
-    handle_cache(configs.cache)
-  end
-
-  local files_affected = {} ---@type string[]
-  local files_failed = {} ---@type string
-  local commands_to_execute = {} ---@type rissue.cmd[]
-  local command_file_map = {} ---@type table<rissue.cmd[], string>
-  local files_to_write = {} ---@type __rissue.setup.type.File[]
-
-  for _, config in ipairs(configs) do
-    if not (config.file and uv.fs_stat(config.file)) then
-      if config.type == "command" then
-        local args = fn.replace_in_list(config.args, true, config.file)
-        local cmd = { config.bin, unpack(args) }
-        commands_to_execute[#commands_to_execute + 1] = cmd
-        command_file_map[cmd] = config.file
-      elseif config.type == "file" then
-        files_to_write[#files_to_write + 1] = config
-      else
-        error("unknown config")
-      end
-    else
-      print("Skipping file: " .. config.file)
-    end
-  end
-
-  for _, config in ipairs(files_to_write) do
-    local fd = uv.fs_open(config.file, "w", tonumber("644", 8))
-    if fd then
-      uv.fs_write(fd, config.contents)
-      uv.fs_close(fd)
-    end
-    files_affected[#files_affected + 1] = config.file
-    print("Wrote file: " .. config.file)
-  end
-
-  local results, errors = M.run_multiple(commands_to_execute, CPU_COUNT)
-
-  if #errors > 0 then
-    print(table.concat(errors, "\n"))
-  end
-
-  for _, result in ipairs(results) do
-    local cmd = command_file_map[result.cmd]
-    if result.return_code ~= 0 then
-      files_affected[#files_affected + 1] = cmd
-    else
-      files_failed[#files_failed + 1] = cmd
-    end
-  end
-
-  return files_affected
-end
-
+---@param pipelines __rissue.Pipeline[]
 ---@param cwd string The current working directory
----@param setup_config __rissue.SetupConfig
----@return __rissue.run_setup_config.Result
-function M.run_setup(cwd, setup_config)
+function M.run_setup(cwd, pipelines)
   -- run luv without blocking
   uv.run("nowait")
-  fn.mkdir(cwd)
-  local files_affected = run_setup_config(setup_config)
+  local ok, err = fn.mkdir(cwd)
+  if not ok then
+    error(err, 0)
+  end
+
+  local err_msg = run_pipelines(pipelines, CPU_COUNT)
+  if err_msg then
+    print(
+      "\n\nError: An error occurred while running pipelines:\n\t"
+        .. table.concat(err_msg, "\n\t")
+    )
+  end
+
   print("Done")
-  return files_affected
+end
+
+---@param path string
+---@return __rissue.pipeline.CreateDirectory
+function M.p_new_dir(path)
+  ---@type __rissue.pipeline.CreateDirectory
+  return { type = "mkdir", path = path }
+end
+
+---@class __rissue.pipeline.run.Opts
+--- If `skip_when_file_exists` is passed, the `true` will be replaced
+--- with the value of `skip_when_file_exists`
+---@field args? (string|true)[]
+---@field cwd? string
+---@field env? table<string, string?>
+--- Skips when file exists in the specified directory
+--- Default: none
+---@field skip_when_file_exists? string
+
+---@param bin string
+---@param opts __rissue.pipeline.run.Opts
+---@return __rissue.pipeline.Run | __rissue.pipeline.Operation
+function M.p_run(bin, opts)
+  if opts then
+    local filepath = opts.skip_when_file_exists
+    if filepath then
+      local stat = uv.fs_stat(filepath)
+      if stat and stat.type == "file" then
+        print("Skipping file: " .. filepath)
+        ---@type __rissue.pipeline.Operation
+        return { type = "op", should_continue = false }
+      end
+    end
+  end
+  ---@type __rissue.pipeline.Run
+  return {
+    type = "run",
+    bin = bin,
+    args = opts and opts.args,
+    cwd = opts and opts.cwd,
+    env = opts and opts.env,
+  }
+end
+
+---@param source string
+---@param dest string
+---@return __rissue.pipeline.Rename
+function M.p_rename(source, dest)
+  ---@type __rissue.pipeline.Rename
+  return { type = "rename", source = source, dest = dest }
+end
+
+---@param func async fun(): string? Where the return of the function is error message
+---@return __rissue.pipeline.RegisterCleanup
+function M.p_register_cleanup(func)
+  ---@type __rissue.pipeline.RegisterCleanup
+  return { type = "reg_cleanup", func = func }
+end
+
+---@param path string
+---@param opts? { skip_when_fail: boolean? }
+---@return __rissue.pipeline.RemoveDirectory
+function M.p_rmdir(path, opts)
+  ---@type __rissue.pipeline.RemoveDirectory
+  return {
+    type = "remove_dir",
+    path = path,
+    skip_when_fail = opts and opts.skip_when_fail,
+  }
+end
+
+---@param path string
+---@param opts? { skip_when_fail: boolean? }
+---@return __rissue.pipeline.RemoveFile
+function M.p_rmfile(path, opts)
+  ---@type __rissue.pipeline.RemoveFile
+  return {
+    type = "remove_file",
+    path = path,
+    skip_when_fail = opts and opts.skip_when_fail,
+  }
+end
+
+---@param condition fun(): boolean
+---@return __rissue.pipeline.Operation
+function M.p_op(condition)
+  ---@type __rissue.pipeline.Operation
+  return { type = "op", should_continue = condition }
+end
+
+---@param filepath string
+---@param contents string
+---@return __rissue.pipeline.WriteFile
+function M.p_write_f(filepath, contents)
+  ---@type __rissue.pipeline.WriteFile
+  return { type = "write_file", filepath = filepath, contents = contents }
 end
 
 return M

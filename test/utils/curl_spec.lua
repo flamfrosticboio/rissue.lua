@@ -467,6 +467,7 @@ describe("curl", function()
     it("set ok", function()
       local test = stub(curl, "request")
 
+      ---@diagnostic disable-next-line: await-in-sync
       curl.post("hello", "my data", {})
 
       assert.stub(test).called_with(
@@ -484,6 +485,7 @@ describe("curl", function()
       assert.equal(
         false,
         pcall(function()
+          ---@diagnostic disable-next-line: await-in-sync
           curl.raw({})
         end),
         "did not fail successfully"
