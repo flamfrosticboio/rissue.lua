@@ -334,8 +334,7 @@ describe("github #api", function()
       end
       test_version(
         version .. " #ghes_" .. version .. "_2022", -- e.g. "3.14 #ghes-3.14"
-        "ghes-" .. version,
-
+        "ghes-" .. version .. "-2022",
         {
           is_proxy = true,
           additional_info = {
