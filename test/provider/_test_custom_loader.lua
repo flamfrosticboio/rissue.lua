@@ -16,6 +16,22 @@
 
 local viewer = {}
 
+---@param state string
+local function handle_coroutine(state)
+  local hook = viewer.on_coroutine_hook
+  viewer.on_coroutine = state
+  if type(hook) == "function" then
+    hook()
+  end
+
+  coroutine.yield()
+
+  viewer.on_coroutine = nil
+  if type(hook) == "function" then
+    hook()
+  end
+end
+
 ---@type rissue.Provider
 return {
   name = "custom",
@@ -23,14 +39,23 @@ return {
   version_code = 1000,
   supports = function(info, token, opts)
     viewer.supports = { info, token, opts }
+    if opts.enable_coroutine then
+      handle_coroutine("supports")
+    end
     return true
-  end,
-  get_merge_requests = function(info, token, opts)
-    viewer.get_merge_requests = { info, token, opts }
-    return {}
   end,
   get_issues = function(info, token, opts)
     viewer.get_issues = { info, token, opts }
+    if opts.enable_coroutine then
+      handle_coroutine("get_issues")
+    end
+    return {}
+  end,
+  get_merge_requests = function(info, token, opts)
+    viewer.get_merge_requests = { info, token, opts }
+    if opts.enable_coroutine then
+      handle_coroutine("get_merge_requests")
+    end
     return {}
   end,
   settings = {
