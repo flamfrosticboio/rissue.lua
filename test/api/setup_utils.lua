@@ -22,7 +22,7 @@ local uv = require("luv") ---@type uv
 
 M.cwd = "./.test_setup"
 
-local CPU_COUNT = tonumber(os.getenv("CPU"))
+local CPU_COUNT = tonumber(os.getenv("CORES"))
 if not CPU_COUNT then
   local cpus = uv.cpu_info()
   CPU_COUNT = cpus and #cpus or 1
