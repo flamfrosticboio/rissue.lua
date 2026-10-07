@@ -93,17 +93,20 @@ describe("cmd", function()
     it("stdout ok", function()
       local contents = nil
       local co
-      co = coroutine.create(function()
-        local p, spawn_err =
-          cmd.spawn({ cmd = "echo", args = { "Hello World" } })
-        assert(p ~= nil, spawn_err)
-        p:register_event("on_exit", function()
-          coroutine.resume(co)
-        end)
-        p:run()
-        coroutine.yield()
-        contents = p:get_stdout()
-      end)
+      co = coroutine.create(
+        ---@async
+        function()
+          local p, spawn_err =
+            cmd.spawn({ cmd = "echo", args = { "Hello World" } })
+          assert(p ~= nil, spawn_err)
+          p:register_event("on_exit", function()
+            coroutine.resume(co)
+          end)
+          p:run()
+          coroutine.yield()
+          contents = p:get_stdout()
+        end
+      )
 
       local ok, err = coroutine.resume(co)
       assert(ok == true, err)
@@ -115,18 +118,21 @@ describe("cmd", function()
     it("stderr ok (with sh) #unix", function()
       local contents = nil
       local co
-      co = coroutine.create(function()
-        local p, spawn_err =
-          cmd.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
-        assert(p ~= nil, spawn_err)
-        assert(type(p) ~= "string", "cmd.spawn returned a string")
-        p:register_event("on_exit", function()
-          coroutine.resume(co)
-        end)
-        p:run()
-        coroutine.yield()
-        contents = p:get_stderr()
-      end)
+      co = coroutine.create(
+        ---@async
+        function()
+          local p, spawn_err =
+            cmd.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
+          assert(p ~= nil, spawn_err)
+          assert(type(p) ~= "string", "cmd.spawn returned a string")
+          p:register_event("on_exit", function()
+            coroutine.resume(co)
+          end)
+          p:run()
+          coroutine.yield()
+          contents = p:get_stderr()
+        end
+      )
 
       local ok, err = coroutine.resume(co)
       assert(ok == true, err)
@@ -141,14 +147,17 @@ describe("cmd", function()
         cmd.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
       assert(p ~= nil, spawn_err)
       local co
-      co = coroutine.create(function()
-        p:register_event("on_exit", function()
-          coroutine.resume(co)
-        end)
-        p:run()
-        coroutine.yield()
-        contents = p:get_code()
-      end)
+      co = coroutine.create(
+        ---@async
+        function()
+          p:register_event("on_exit", function()
+            coroutine.resume(co)
+          end)
+          p:run()
+          coroutine.yield()
+          contents = p:get_code()
+        end
+      )
 
       local ok, err = coroutine.resume(co)
       assert(ok == true, err)
@@ -160,16 +169,20 @@ describe("cmd", function()
     it("cwd is correct #unix", function()
       local contents = nil
       local co
-      co = coroutine.create(function()
-        local p, spawn_err = cmd.spawn({ cmd = "pwd", args = {}, cwd = "/tmp" })
-        assert(p ~= nil, spawn_err)
-        p:register_event("on_exit", function()
-          coroutine.resume(co)
-        end)
-        p:run()
-        coroutine.yield()
-        contents = p:get_stdout()
-      end)
+      co = coroutine.create(
+        ---@async
+        function()
+          local p, spawn_err =
+            cmd.spawn({ cmd = "pwd", args = {}, cwd = "/tmp" })
+          assert(p ~= nil, spawn_err)
+          p:register_event("on_exit", function()
+            coroutine.resume(co)
+          end)
+          p:run()
+          coroutine.yield()
+          contents = p:get_stdout()
+        end
+      )
       coroutine.resume(co)
       require("luv").run()
       assert.equal("/tmp\n", contents)
@@ -180,23 +193,26 @@ describe("cmd", function()
       local code = -1
       local stderr = ""
       local co
-      co = coroutine.create(function()
-        local p, spawn_err = cmd.spawn({
-          cmd = "printenv",
-          args = { "HELLO" },
-          env = { HELLO = "YES" },
-        })
-        assert(p ~= nil, spawn_err)
-        assert(type(p) ~= "string", "cmd.spawn returned a string")
-        p:register_event("on_exit", function()
-          coroutine.resume(co)
-        end)
-        p:run()
-        coroutine.yield()
-        code = p:get_code()
-        contents = p:get_stdout()
-        stderr = p:get_stderr()
-      end)
+      co = coroutine.create(
+        ---@async
+        function()
+          local p, spawn_err = cmd.spawn({
+            cmd = "printenv",
+            args = { "HELLO" },
+            env = { HELLO = "YES" },
+          })
+          assert(p ~= nil, spawn_err)
+          assert(type(p) ~= "string", "cmd.spawn returned a string")
+          p:register_event("on_exit", function()
+            coroutine.resume(co)
+          end)
+          p:run()
+          coroutine.yield()
+          code = p:get_code()
+          contents = p:get_stdout()
+          stderr = p:get_stderr()
+        end
+      )
       coroutine.resume(co)
       require("luv").run()
       assert(
@@ -213,23 +229,26 @@ describe("cmd", function()
       local code = -1
       local stderr = ""
       local co
-      co = coroutine.create(function()
-        local p, spawn_err = cmd.spawn({
-          cmd = "printenv",
-          args = { "HELLO" },
-          env = { "HELLO=YES" },
-        })
-        assert(p ~= nil, spawn_err)
-        assert(type(p) ~= "string", "cmd.spawn returned a string")
-        p:register_event("on_exit", function()
-          coroutine.resume(co)
-        end)
-        p:run()
-        coroutine.yield()
-        code = p:get_code()
-        contents = p:get_stdout()
-        stderr = p:get_stderr()
-      end)
+      co = coroutine.create(
+        ---@async
+        function()
+          local p, spawn_err = cmd.spawn({
+            cmd = "printenv",
+            args = { "HELLO" },
+            env = { "HELLO=YES" },
+          })
+          assert(p ~= nil, spawn_err)
+          assert(type(p) ~= "string", "cmd.spawn returned a string")
+          p:register_event("on_exit", function()
+            coroutine.resume(co)
+          end)
+          p:run()
+          coroutine.yield()
+          code = p:get_code()
+          contents = p:get_stdout()
+          stderr = p:get_stderr()
+        end
+      )
       local ok, err = coroutine.resume(co)
       assert(ok == true, err)
       require("luv").run()
