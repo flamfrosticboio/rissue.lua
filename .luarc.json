@@ -5,7 +5,7 @@
         "pathStrict": true
     },
     "workspace": {
-        "library": [".types/addons/luv/library", "./lua"],
+        "library": ["${3rd}/luv/library", "./lua"],
         "ignoreDir": ["test"]
     }
 }
