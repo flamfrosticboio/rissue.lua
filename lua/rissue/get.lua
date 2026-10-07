@@ -39,12 +39,12 @@ local function with_co_blocking(func)
     return nil, co_err
   end
 
-  local _, wait_err = process.wait(function()
+  local wait_ok, wait_err = process.wait(function()
     return done
   end, config.options.timeout)
 
-  if wait_err then
-    return nil, wait_err
+  if not wait_ok then
+    return nil, wait_err or "unknown error while waiting"
   end
 
   return a, b
