@@ -34,12 +34,21 @@ local function with_co_blocking(func)
     done = true
   end)
 
+  --- hit the first coroutine.yield()
   local co_ok, co_err = coroutine.resume(co)
   if not co_ok then
     return nil, co_err
   end
 
   local wait_ok, wait_err = process.wait(function()
+    --- Mechanism to try re-enable multiple suspended coroutines
+    local co_status = coroutine.status(co)
+    if co_status == "suspended" then
+      local success, err = coroutine.resume(co)
+      if not success then
+        process.try_stop_current_wait(err)
+      end
+    end
     return done
   end, config.options.timeout)
 
