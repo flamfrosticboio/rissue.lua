@@ -266,10 +266,7 @@ describe("cmd", function()
         cmd.spawn({ cmd = "someRandomBinary29924", args = {} })
       assert(p ~= nil, spawn_err)
       ---@cast p rissue.utils.Process
-      local run_ok, msg = pcall(function()
-        p:run()
-      end)
-      assert.equal(false, run_ok)
+      local msg = p:run()
       assert(
         msg and msg:match("Failed to spawn process: someRandomBinary29924"),
         "Expected message to have: 'Failed to spawn process: someRandomBinary29924'"
@@ -280,14 +277,20 @@ describe("cmd", function()
   describe("run_co", function()
     it("outputs are correct", function()
       local result ---@type rissue.utils.CmdResult?
-      local co = coroutine.create(function()
-        local err
-        result, err = cmd.run_co({
-          cmd = "sh",
-          args = { "-c", 'echo "stdout line"; echo "stderr line" >&2; exit 0' },
-        })
-        assert(result ~= nil, err)
-      end)
+      local co = coroutine.create(
+        ---@async
+        function()
+          local err
+          result, err = cmd.run_co({
+            cmd = "sh",
+            args = {
+              "-c",
+              'echo "stdout line"; echo "stderr line" >&2; exit 0',
+            },
+          })
+          assert(result ~= nil, err)
+        end
+      )
       local ok, err = coroutine.resume(co)
       assert(ok == true, err)
       require("luv").run()

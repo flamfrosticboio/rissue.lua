@@ -141,15 +141,11 @@ function Process:close(callback, signal)
   end
 end
 
----@return boolean success
----@return uv.uv_pipe_t | string
+---@return uv.uv_pipe_t? pipe
+---@return string? err_msg
 local function new_pipe()
   local pipe, pipe_err = uv.new_pipe()
-  if not pipe then
-    return false, pipe_err or "unknown error"
-  end
-
-  return true, pipe
+  return pipe, pipe_err
 end
 
 ---@param pipe uv.uv_pipe_t
@@ -178,21 +174,19 @@ local function read_pipe(pipe, buffer, on_close, on_read)
 end
 
 --- Runs the process
---- May raise errors! Recommended to wrap in pcall!
+---@return string? err_msg
 function Process:run()
-  local ok_stdout, pipe_stdout = new_pipe()
+  local pipe_stdout, pipe_stdout_err = new_pipe()
 
-  if not ok_stdout then
-    error(pipe_stdout)
+  if not pipe_stdout then
+    return pipe_stdout_err or "unknown error occurred when creating stdout pipe"
   end
 
-  ---@cast pipe_stdout uv.uv_pipe_t
+  local pipe_stderr, pipe_stderr_err = new_pipe()
 
-  local ok_stderr, pipe_stderr = new_pipe()
-
-  if not ok_stderr then
+  if not pipe_stderr then
     close_handle(pipe_stdout)
-    error(pipe_stderr)
+    return pipe_stderr_err
   end
 
   local function on_stdout_pipe_close()
@@ -207,8 +201,6 @@ function Process:run()
     self:try_exit()
   end
 
-  ---@cast pipe_stderr uv.uv_pipe_t
-
   ---@type uv.spawn.options
   ---@diagnostic disable-next-line: missing-fields
   local options = {
@@ -217,7 +209,8 @@ function Process:run()
     env = self._opts.env --[=[@type string[]]=],
     stdio = { nil, pipe_stdout, pipe_stderr },
   }
-  local handle = uv.spawn(self._opts.cmd, options, function(code)
+
+  local handle, err = uv.spawn(self._opts.cmd, options, function(code)
     -- for now we don't handle signal code
     self._exit_code = code
     log.trace("Program exited with code " .. tostring(code))
@@ -233,7 +226,10 @@ function Process:run()
   if not handle then
     close_handle(pipe_stdout)
     close_handle(pipe_stderr)
-    error("Failed to spawn process: " .. self._opts.cmd)
+    return "Failed to spawn process: "
+      .. self._opts.cmd
+      .. ": "
+      .. tostring(err)
   end
 
   -- unknown reason why read_pipe must happen after uv.spawn
@@ -361,6 +357,7 @@ function M.spawn_err(opts)
   return p
 end
 
+---@async
 --- Wrapper to M.spawn with `uv.spawn()` that blocks for exit inside coroutines.
 --- Use `process.spawn()` if manually implementing instead.
 ---
@@ -393,7 +390,10 @@ function M.run_co(command_opts, opts)
     end)
   end
 
-  p:run()
+  err = p:run()
+  if err then
+    return nil, err
+  end
   coroutine.yield()
   return {
     return_code = p:get_code(),
@@ -430,7 +430,10 @@ function M.run(command_opts, timeout, opts)
       log.info("@ " .. p:get_last_stderr(true))
     end)
   end
-  p:run()
+  err = p:run()
+  if err then
+    return nil, err
+  end
   local wait_ok = M.wait(function()
     return finished
   end, timeout)
