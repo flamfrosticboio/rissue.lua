@@ -33,6 +33,7 @@ return {
       .. (is_windows and "unix" or "windows")
       .. (exclude_cmd ~= "" and ("," .. exclude_cmd) or ""),
     lua = "lua5.1",
+    helper = "test/helper.lua",
   },
   default = {
     verbose = true,
