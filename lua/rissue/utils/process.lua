@@ -462,6 +462,7 @@ end
 --- Delays the coroutine/main thread execution by number of milliseconds
 ---
 --- If not in coroutine mode, it uses `process.wait()` instead
+---@async
 ---@param milliseconds integer
 ---@return boolean success
 ---@return string? error
