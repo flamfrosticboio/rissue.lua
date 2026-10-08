@@ -6,9 +6,9 @@
     "workspace": {
         "library": [
             "../lua/",
-            "../.types/addons/busted/library",
-            "../.types/addons/luassert/library",
-            "../.types/addons/luv/library"
+            "${3rd}/busted/library",
+            "${3rd}/luassert/library",
+            "${3rd}/luv/library"
         ]
     },
     "diagnostics": {

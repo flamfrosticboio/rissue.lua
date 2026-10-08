@@ -22,6 +22,43 @@ local config = require("rissue.config")
 local env = require("rissue.env")
 local process = require("rissue.utils.process")
 
+---@generic A, B
+---@param func fun(): A, B
+---@return A
+---@return B
+local function with_co_blocking(func)
+  local done = false
+  local a, b
+  local co = coroutine.create(function()
+    a, b = func()
+    done = true
+  end)
+
+  --- hit the first coroutine.yield()
+  local co_ok, co_err = coroutine.resume(co)
+  if not co_ok then
+    return nil, co_err
+  end
+
+  local wait_ok, wait_err = process.wait(function()
+    --- Mechanism to try re-enable multiple suspended coroutines
+    local co_status = coroutine.status(co)
+    if co_status == "suspended" then
+      local success, err = coroutine.resume(co)
+      if not success then
+        process.try_stop_current_wait(err)
+      end
+    end
+    return done
+  end, config.options.timeout)
+
+  if not wait_ok then
+    return nil, wait_err or "unknown error while waiting"
+  end
+
+  return a, b
+end
+
 ---@param info rissue.ProviderInfo
 ---@param opts table?
 ---@param command "get_issues" | "get_merge_requests"
@@ -34,32 +71,23 @@ local function get_issues_or_merge(info, opts, command)
     return nil, "Could not find provider: " .. info.name
   end
 
-  local done = false
-  local result, err = nil, nil
-
-  local co = coroutine.create(function()
-    result, err = provider[command](
+  local co, is_main = coroutine.running()
+  if not is_main and co then
+    return provider[command](
       info,
       env.get_token(provider.name),
       config.merge_provider_settings(provider, opts)
     )
-    done = true
+  end
+
+  -- Blocking implementation
+  return with_co_blocking(function()
+    return provider[command](
+      info,
+      env.get_token(provider.name),
+      config.merge_provider_settings(provider, opts)
+    )
   end)
-
-  local co_ok, co_err = coroutine.resume(co)
-  if not co_ok then
-    return nil, co_err
-  end
-
-  local _, wait_err = process.wait(function()
-    return done
-  end, config.options.timeout)
-
-  if wait_err then
-    return nil, wait_err
-  end
-
-  return result, err
 end
 
 --- Gets issues specified with info and provider opts

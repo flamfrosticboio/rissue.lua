@@ -59,8 +59,7 @@ local wait_co_err = nil ---@type string?
 local function safe_co_resume(co)
   local ok, err = coroutine.resume(co)
   if not ok then
-    wait_co_err = err
-    local _, stop_err = M.try_stop_current_wait()
+    local _, stop_err = M.try_stop_current_wait(err)
     if stop_err then
       log.error(
         "Failed to send stop signal to current wait thread: "
@@ -504,9 +503,11 @@ local waiting = false
 local force_stop_waiting = false
 
 --- Stops the current `process.wait`
---- @return boolean success
---- @return string? error
-function M.try_stop_current_wait()
+---@param reason string Reason for stopping current waiting loop
+---@return boolean success
+---@return string? error
+function M.try_stop_current_wait(reason)
+  wait_co_err = reason
   if waiting then
     force_stop_waiting = true
     local timer, err = uv.new_timer()
