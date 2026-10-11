@@ -273,6 +273,9 @@ end
 
 ---@return string
 function Process:get_stderr()
+  if self._exit_code == -1 then
+    return "Process has not yet been executed. If this is unintended, please report it to the developers."
+  end
   return table.concat(self._stderr_raw)
 end
 
@@ -291,6 +294,9 @@ end
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
 --- @param strip_newline boolean? No by default
 function Process:get_last_stderr(strip_newline)
+  if self._exit_code == -1 then
+    return "Process has not yet been executed. If this is unintended, please report it to the developers."
+  end
   local line = self._stderr_raw[#self._stderr_raw]
   if strip_newline then
     line = line:match("^%s*(.-)%s*$")
