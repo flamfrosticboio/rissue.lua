@@ -18,14 +18,14 @@
 
 --- Second return is for errors
 ---@alias rissue.provider.GetIssues<I, S>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.issue[]?, string?
+---| async fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.issue[]?, string?
 
 --- Second return is for errors
 ---@alias rissue.provider.GetMergeRequests<I, S>
----| fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.pr[]?, string?
+---| async fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.pr[]?, string?
 
 ---@alias rissue.provider.Supports<I, S>
----| fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: S): boolean, table?
+---| async fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: S): boolean, table?
 
 --- Specific requirements for a provider
 ---@class (exact) rissue.Provider
@@ -33,11 +33,11 @@
 ---@field version string
 ---Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
 ---@field version_code integer
----@field get_issues rissue.provider.GetIssues<any, any, any>
----@field get_merge_requests rissue.provider.GetMergeRequests<any, any, any>
+---@field get_issues rissue.provider.GetIssues<unknown, unknown, unknown>
+---@field get_merge_requests rissue.provider.GetMergeRequests<unknown, unknown, unknown>
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
 ---The second return is where there are additional information to relay to provider info
----@field supports rissue.provider.Supports
+---@field supports rissue.provider.Supports<unknown, unknown>
 --- Default settings of the provider. Used for merging settings at `get.issue()`
 --- and other related operations.
 ---@field settings table<any, any>
