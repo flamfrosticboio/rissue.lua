@@ -10,5 +10,11 @@
             "../.types/addons/luassert/library",
             "../.types/addons/luv/library"
         ]
+    },
+    "diagnostics": {
+        "neededFileStatus": {
+            "await-in-sync": "Any",
+            "not-yieldable": "Any"
+        }
     }
 }

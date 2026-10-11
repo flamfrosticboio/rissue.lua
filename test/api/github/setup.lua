@@ -18,97 +18,122 @@
 
 local gutils = require("api.github.setup_utils")
 local sutils = require("api.setup_utils")
+local sutils_fn = require("api.setup_utils_fn")
 
 local cwd = sutils.cwd .. "/github"
 
----@return string[] spec_files
-local function get_specs()
-  ---@type __rissue.SetupConfig
-  local setup_file = {
-    cache = {
-      name = "github",
-      folder = "github",
-      ttl = 7 * 24 * 60 * 60, -- 1 week since they get updated regularl
-    },
+local tmp_folder = "./.tmp"
+local tmp_filename_prefix = tmp_folder .. "/__rissue_setup_github_"
 
+local test_api_path = "./test/api"
+local node_modules_path = test_api_path .. "/node_modules/.bin"
+local redocly_bin = node_modules_path .. "/redocly"
+local redocly_config = test_api_path .. "/github/redocly.yaml"
+
+---@param spec_name string
+---@param url string
+---@return __rissue.Pipeline
+local function spec_pipeline(spec_name, url)
+  local dest_path = cwd .. "/" .. spec_name
+  local tmp_filename = tmp_filename_prefix .. spec_name
+  local tmp_filename_processed = tmp_filename .. "_bundled.json"
+  ---@type __rissue.Pipeline
+  return {
+    sutils.p_run("curl", {
+      args = { "-sSf", "--remove-on-error", "-L", "-o", tmp_filename, url },
+      skip_when_file_exists = dest_path,
+    }),
+    sutils.p_register_cleanup(function()
+      -- incase when the whole pipeline fails
+      sutils.p_rmfile(tmp_filename, { skip_when_fail = true })
+      sutils.p_rmfile(tmp_filename_processed, { skip_when_fail = true })
+    end),
+    sutils.p_run(redocly_bin, {
+      args = {
+        "bundle",
+        tmp_filename,
+        "-o",
+        tmp_filename_processed,
+        "--dereferenced",
+        "--config",
+        redocly_config,
+      },
+    }),
+    sutils.p_run(redocly_bin, {
+      args = {
+        "lint",
+        tmp_filename_processed,
+        "--config",
+        redocly_config,
+      },
+    }),
+    sutils.p_rename(tmp_filename_processed, dest_path),
+  }
+end
+
+---@param filename string
+---@return __rissue.Pipeline
+local function empty_file(filename)
+  return {
+    sutils.p_write_f(cwd .. "/" .. filename, ""),
+  }
+end
+
+local function run()
+  ---@type __rissue.Pipeline[]
+  local setup_file = {
     --- Github enterprise cloud (api: 2026)
-    sutils.setup_command(
-      cwd .. "/ghec.json",
-      "./scripts/curl_and_prune_spec_file.sh",
-      {
-        true,
-        "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/dereferenced/ghec.2026-03-10.deref.json",
-      }
+    spec_pipeline(
+      "ghec.json",
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/dereferenced/ghec.2026-03-10.deref.json"
     ),
-    sutils.setup_file(cwd .. "/server-statistics-advisory-db.yaml", ""),
-    sutils.setup_file(cwd .. "/server-statistics-packages.yaml", ""),
-    sutils.setup_file(cwd .. "/server-statistics-actions.yaml", ""),
+    empty_file("server-statistics-advisory-db.yaml"),
+    empty_file("server-statistics-packages.yaml"),
+    empty_file("server-statistics-actions.yaml"),
 
     --- Github Public Api (api: 2026)
-    sutils.setup_command(
-      cwd .. "/github_api.json",
-      "./scripts/curl_and_prune_spec_file.sh",
-      {
-        true,
-        "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/dereferenced/api.github.com.2026-03-10.deref.json",
-      }
+    spec_pipeline(
+      "github_api.json",
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/dereferenced/api.github.com.2026-03-10.deref.json"
     ),
   }
-
+  --
   for _, version in ipairs(gutils.ghes_2022_versions) do
-    setup_file[#setup_file + 1] = sutils.setup_command(
-      cwd .. "/ghes-" .. version .. ".json",
-      "./scripts/curl_and_prune_spec_file.sh",
-      {
-        true,
-        "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
-          .. version
-          .. "/dereferenced/ghes-"
-          .. version
-          .. ".2022-11-28.deref.json",
-      }
+    setup_file[#setup_file + 1] = spec_pipeline(
+      "ghes-" .. version .. "-2022.json",
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
+        .. version
+        .. "/dereferenced/ghes-"
+        .. version
+        .. ".2022-11-28.deref.json"
     )
   end
 
   for _, version in ipairs(gutils.ghes_2026_versions) do
-    setup_file[#setup_file + 1] = sutils.setup_command(
-      cwd .. "/ghes-" .. version .. "-2026.json",
-      "./scripts/curl_and_prune_spec_file.sh",
-      {
-        true,
-        "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
-          .. version
-          .. "/dereferenced/ghes-"
-          .. version
-          .. ".2026-03-10.deref.json",
-      }
+    setup_file[#setup_file + 1] = spec_pipeline(
+      "ghes-" .. version .. "-2026.json",
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
+        .. version
+        .. "/dereferenced/ghes-"
+        .. version
+        .. ".2026-03-10.deref.json"
     )
   end
 
   for _, version in ipairs(gutils.ghes_non_dated_versions) do
-    setup_file[#setup_file + 1] = sutils.setup_command(
-      cwd .. "/ghes-" .. version .. ".json",
-      "./scripts/curl_and_prune_spec_file.sh",
-      {
-        true,
-        "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
-          .. version
-          .. "/dereferenced/ghes-"
-          .. version
-          .. ".deref.json",
-      }
+    setup_file[#setup_file + 1] = spec_pipeline(
+      "ghes-" .. version .. ".json",
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
+        .. version
+        .. "/dereferenced/ghes-"
+        .. version
+        .. ".deref.json"
     )
   end
 
-  return sutils.run_setup(cwd, setup_file)
+  sutils_fn.mkdir(tmp_folder)
+  sutils.handle_caching("github", "github", 604800) -- 1 week
+  sutils.run_setup(cwd, setup_file)
 end
 
-return function()
-  local affected_files = get_specs()
-  if #affected_files > 0 then
-    print("Files Affected:")
-    for _, file in ipairs(affected_files) do
-      print("- " .. file)
-    end
-  end
-end
+return run

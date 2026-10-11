@@ -32,6 +32,7 @@ local function from_range(range, target)
   end
 end
 
+---@async
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
 ---@return boolean
@@ -48,6 +49,7 @@ local function check(url, opts)
     result and result.content
 end
 
+---@async
 ---@type rissue.provider.Supports<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 function M.main(info, token, opts)
   local base = info.curl_protocol .. "://" .. info.domain
