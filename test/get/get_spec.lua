@@ -99,7 +99,7 @@ describe("get", function()
     assert(issues, err_msg)
   end)
 
-  it("blocking mode ok", function()
+  it("blocking mode ok #blocking", function()
     local rissue = require("rissue")
     local config = require("rissue.config")
     rissue.setup({
