@@ -15,7 +15,9 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local viewer = {}
+local luv = require("luv") ---@type uv
 
+---@async
 ---@param state string
 local function handle_coroutine(state)
   local hook = viewer.on_coroutine_hook
@@ -23,6 +25,22 @@ local function handle_coroutine(state)
   if type(hook) == "function" then
     hook()
   end
+
+  local co = coroutine.running()
+  local timer, timer_err = luv.new_timer()
+  if not timer then
+    error("Could not create timer: " .. (timer_err or "unknown error"))
+  end
+  timer:start(200, 0, function()
+    timer:stop()
+    timer:close()
+    if coroutine.status(co) == "suspended" then
+      local ok, err = coroutine.resume(co)
+      if not ok then
+        error(debug.traceback(err))
+      end
+    end
+  end)
 
   coroutine.yield()
 
@@ -37,6 +55,7 @@ return {
   name = "custom",
   version = "0.1",
   version_code = 1000,
+  ---@async
   supports = function(info, token, opts)
     viewer.supports = { info, token, opts }
     if opts.enable_coroutine then
@@ -44,6 +63,7 @@ return {
     end
     return true
   end,
+  ---@async
   get_issues = function(info, token, opts)
     viewer.get_issues = { info, token, opts }
     if opts.enable_coroutine then
@@ -51,6 +71,7 @@ return {
     end
     return {}
   end,
+  ---@async
   get_merge_requests = function(info, token, opts)
     viewer.get_merge_requests = { info, token, opts }
     if opts.enable_coroutine then
