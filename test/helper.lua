@@ -44,3 +44,12 @@ function print(...)
   io.write("\n")
   io.flush()
 end
+
+--- setup logging
+local logger = require("rissue.utils.log")
+local use_trace = os.getenv("TRACE")
+if use_trace and use_trace:lower() == "true" then
+  logger.log_level = logger.levels.trace
+else
+  logger.log_level = logger.levels.debug
+end
