@@ -171,11 +171,15 @@ local function try_fetch_page(opts)
       ) or nil,
     } --[[@as __rissue.Github.fetch_page.Result]]
   else
+    local err = (response and response.err or "")
+      .. (fetch_err and (" | " .. fetch_err) or "")
+    err = err ~= "" and err or "unknown error"
+
     if log.level_enabled(log.levels.error) then
       local message = "Failed to fetch on '"
         .. opts.query.endpoint
         .. "': "
-        .. (response and response.err or fetch_err or "unknown error")
+        .. err
       if response and response.content ~= "" then
         message = message .. "\nServer responded: " .. response.content
       end
@@ -183,7 +187,7 @@ local function try_fetch_page(opts)
       log.log(message, log.levels.error)
     end
 
-    return nil, response and response.err or fetch_err
+    return nil, err
   end
 end
 

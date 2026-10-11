@@ -14,8 +14,42 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@alias rissue.fetch_type "issue" | "pr"
+require("luv")
 
----@class (exact) rissue.fetch_type.Map<T>
----@field issue T
----@field pr    T
+---@param arg any
+local function write(arg)
+  local inspect = require("inspect")
+  if type(arg) == "string" then
+    io.write(arg)
+  else
+    io.write(inspect(arg))
+  end
+end
+
+--- rebind print with inspect print for debugging purposes
+function print(...)
+  local args = { ... }
+  local len = select("#", ...)
+
+  if len <= 0 then
+    return
+  end
+  write(args[1])
+
+  for i = 2, len do
+    io.write("\t")
+    write(args[i])
+  end
+
+  io.write("\n")
+  io.flush()
+end
+
+--- setup logging
+local logger = require("rissue.utils.log")
+local use_trace = os.getenv("TRACE")
+if use_trace and use_trace:lower() == "true" then
+  logger.log_level = logger.levels.trace
+else
+  logger.log_level = logger.levels.debug
+end

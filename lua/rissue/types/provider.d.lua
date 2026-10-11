@@ -14,6 +14,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@meta
+
+---@module "rissue.types.pr.d"
+---@module "rissue.types.issue.d"
+
 ---@alias rissue.ProviderName string The name of provider (e.g. "github", "gitlab", "forgejo", "gitea")
 
 --- Second return is for errors

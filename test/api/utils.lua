@@ -16,6 +16,7 @@
 
 local cmd = require("rissue.utils.process")
 local fn = require("api.setup_utils_fn")
+local log = require("rissue.utils.log")
 local uv = require("luv") ---@type uv
 
 local describe = describe or require("busted").describe
@@ -94,13 +95,15 @@ local function run_mock_server(filepath, port_offset, id, callback)
     end
   end)
 
-  p:register_event("on_stdout", function()
-    print(fn.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id))
-  end)
+  if log.level_enabled(log.levels.trace) then
+    p:register_event("on_stdout", function()
+      print(fn.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id))
+    end)
 
-  p:register_event("on_stderr", function()
-    print(fn.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id))
-  end)
+    p:register_event("on_stderr", function()
+      print(fn.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id))
+    end)
+  end
 
   local function close_func()
     local is_closed = false
@@ -305,9 +308,5 @@ function M.with_server(opts, func)
     func(id, M.port)
   end)
 end
-
---- setup logging
-local logger = require("rissue.utils.log")
-logger.log_level = logger.levels.trace
 
 return M

@@ -59,8 +59,7 @@ local wait_co_err = nil ---@type string?
 local function safe_co_resume(co)
   local ok, err = coroutine.resume(co)
   if not ok then
-    wait_co_err = err
-    local _, stop_err = M.try_stop_current_wait()
+    local _, stop_err = M.try_stop_current_wait(err)
     if stop_err then
       log.error(
         "Failed to send stop signal to current wait thread: "
@@ -248,7 +247,7 @@ function Process:run()
   self._stderr_pipe = pipe_stderr
   self._stdout_pipe = pipe_stdout
 
-  if log.level_enabled(log.levels.debug) then
+  if log.level_enabled(log.levels.trace) then
     log.log(
       "\nRunning process: "
         .. M.construct_command_line_string(self._opts.cmd, self._opts.args)
@@ -258,7 +257,7 @@ function Process:run()
             and ("\n\tWith env: " .. table.concat(self._opts.env, " "))
           or ""
         ),
-      log.levels.debug
+      log.levels.trace
     )
   end
 end
@@ -274,6 +273,9 @@ end
 
 ---@return string
 function Process:get_stderr()
+  if self._exit_code == -1 then
+    return "Process has not yet been executed. If this is unintended, please report it to the developers."
+  end
   return table.concat(self._stderr_raw)
 end
 
@@ -292,6 +294,9 @@ end
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
 --- @param strip_newline boolean? No by default
 function Process:get_last_stderr(strip_newline)
+  if self._exit_code == -1 then
+    return "Process has not yet been executed. If this is unintended, please report it to the developers."
+  end
   local line = self._stderr_raw[#self._stderr_raw]
   if strip_newline then
     line = line:match("^%s*(.-)%s*$")
@@ -381,7 +386,7 @@ function M.run_co(command_opts, opts)
     safe_co_resume(co)
   end)
 
-  if opts and opts.print_output then
+  if (opts and opts.print_output) or log.level_enabled(log.levels.trace) then
     p:register_event("on_stdout", function()
       log.info("| " .. p:get_last_stdout(true))
     end)
@@ -504,9 +509,11 @@ local waiting = false
 local force_stop_waiting = false
 
 --- Stops the current `process.wait`
---- @return boolean success
---- @return string? error
-function M.try_stop_current_wait()
+---@param reason string Reason for stopping current waiting loop
+---@return boolean success
+---@return string? error
+function M.try_stop_current_wait(reason)
+  wait_co_err = reason
   if waiting then
     force_stop_waiting = true
     local timer, err = uv.new_timer()
