@@ -247,7 +247,7 @@ function Process:run()
   self._stderr_pipe = pipe_stderr
   self._stdout_pipe = pipe_stdout
 
-  if log.level_enabled(log.levels.debug) then
+  if log.level_enabled(log.levels.trace) then
     log.log(
       "\nRunning process: "
         .. M.construct_command_line_string(self._opts.cmd, self._opts.args)
@@ -257,7 +257,7 @@ function Process:run()
             and ("\n\tWith env: " .. table.concat(self._opts.env, " "))
           or ""
         ),
-      log.levels.debug
+      log.levels.trace
     )
   end
 end
@@ -380,7 +380,7 @@ function M.run_co(command_opts, opts)
     safe_co_resume(co)
   end)
 
-  if opts and opts.print_output then
+  if (opts and opts.print_output) or log.level_enabled(log.levels.trace) then
     p:register_event("on_stdout", function()
       log.info("| " .. p:get_last_stdout(true))
     end)
