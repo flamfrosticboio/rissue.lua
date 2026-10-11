@@ -15,3 +15,32 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 require("luv")
+
+---@param arg any
+local function write(arg)
+  local inspect = require("inspect")
+  if type(arg) == "string" then
+    io.write(arg)
+  else
+    io.write(inspect(arg))
+  end
+end
+
+--- rebind print with inspect print for debugging purposes
+function print(...)
+  local args = { ... }
+  local len = select("#", ...)
+
+  if len <= 0 then
+    return
+  end
+  write(args[1])
+
+  for i = 2, len do
+    io.write("\t")
+    write(args[i])
+  end
+
+  io.write("\n")
+  io.flush()
+end
