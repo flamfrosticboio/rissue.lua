@@ -30,7 +30,7 @@ run = "luarocks test .rockspec/rissue-dev-1.rockspec -- --run=api"
 
 [tasks.doc]
 description = "Run auto documentation generator"
-run = "lua ./scripts/auto_doc.lua"
+run = "lua ./scripts/gen_doc.lua"
 
 [tasks.format]
 description = "Format all source and test files (lua)"

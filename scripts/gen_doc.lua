@@ -49,6 +49,8 @@
 --   end
 -- end
 
+package.path = "./lua/?.lua;./lua/?/init.lua" .. package.path
+
 --- Do package injection
 package.loaded["luv"] = {}
 
