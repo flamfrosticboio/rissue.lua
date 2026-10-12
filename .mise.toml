@@ -1,0 +1,58 @@
+[tools]
+"aqua:Kampfkarren/selene" = "latest"
+lua = "5.1"
+lua-language-server = "latest"
+prek = "latest"
+prettier = "latest"
+stylua = "latest"
+
+[env]
+_.file = '.env'
+
+[tasks.setup]
+description = "Install dependencies"
+run = '''
+echo ">>> Installing mise tools"
+mise install
+echo ">>> Installing from luarocks spec"
+luarocks test --prepare --tree=.luarocks .rockspec/rissue-dev-1.rockspec
+echo ">>> Installing prek"
+prek install
+'''
+
+[tasks.test]
+description = "Run tests"
+run = "luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print"
+
+[tasks.test-api]
+description = "Run tests on api"
+run = "luarocks test .rockspec/rissue-dev-1.rockspec -- --run=api"
+
+[tasks.doc]
+description = "Run auto documentation generator"
+run = "lua ./scripts/auto_doc.lua"
+
+[tasks.format]
+description = "Format all source and test files (lua)"
+run = "stylua lua/ test/"
+
+[tasks.lint]
+description = "Lint all source and test files (lua)"
+run = '''
+echo ">>> Linting source files"
+selene --config .selene.toml lua/
+echo ">>> Linting test files"
+selene --config .selene.tests.toml test/
+'''
+
+[tasks.lint-src]
+description = "Lint only the source files (lua)"
+run = "selene --config .selene.toml lua/"
+
+[tasks.lint-test]
+description = "Lint only the test files (lua)"
+run = "selene --config .selene.tests.toml test/"
+
+[tasks.check]
+description = "Check changes with prek"
+run = "prek run --all-files"
