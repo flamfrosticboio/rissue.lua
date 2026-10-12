@@ -304,6 +304,20 @@ describe("github #api", function()
     },
   })
 
+  local curl = require("rissue.utils.curl")
+  local original_request = curl.request
+
+  ---@diagnostic disable-next-line: duplicate-set-field
+  curl.request =
+    ---@async
+    function(url, opts)
+      if url:match("api.github.com") then
+        ---@type rissue.utils.curl.Result
+        return nil, "Proxy block (reason: test mode)"
+      end
+      return original_request(url, opts)
+    end
+
   test_utils.with_proxy({
     -- Since the current api description does not support custom, we will just rewrite
     -- all application into application/json
