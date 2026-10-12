@@ -54,7 +54,7 @@ repos:
         entry: mise doc
         language: system
         types: [lua]
-        files: ^src/
+        files: ^lua/
         stages: [pre-commit]
       - id: lint
         name: Lint lua files
