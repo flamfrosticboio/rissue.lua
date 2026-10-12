@@ -1,3 +1,0 @@
-#!/bin/bash
-
-./scripts/lua ./scripts/auto_doc.lua
