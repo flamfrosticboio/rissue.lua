@@ -74,7 +74,7 @@ repos:
         stages: [pre-commit]
       - id: busted
         name: busted
-        entry: busted test/ --defer-print --suppress-pending --lua=lua5.1
+        entry: env TEST_STRICT=true busted test/ --defer-print --suppress-pending --lua=lua5.1
         language: system
         types: [lua]
         exclude: ^lua/rissue/types/
