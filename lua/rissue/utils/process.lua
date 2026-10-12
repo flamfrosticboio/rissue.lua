@@ -50,6 +50,7 @@ local uv = require("luv") ---@type uv
 ---@field package _complete boolean
 ---@field package _opts rissue.utils.CommandOpts
 ---@field package __index table? Stub to avoid listing in IDE
+---@field package _running boolean
 local Process = {}
 Process.__index = Process
 
@@ -74,6 +75,15 @@ local function run_all_events(events)
   for _, event in ipairs(events) do
     event()
   end
+end
+
+--- Checks if the process is running.
+---
+--- To check if the process has finish running, check by its `exit_code` is not -1
+--- instead.
+---@return boolean
+function Process:is_running()
+  return self._running
 end
 
 --- Tries to fully exit
@@ -246,6 +256,7 @@ function Process:run()
   self._handle = handle
   self._stderr_pipe = pipe_stderr
   self._stdout_pipe = pipe_stdout
+  self._running = true
 
   if log.level_enabled(log.levels.trace) then
     log.log(
@@ -346,6 +357,7 @@ function M.spawn(opts)
     _stderr_pipe = nil,
     _opts = opts,
     _complete = false,
+    _running = false,
   }
 
   return setmetatable(process, Process), nil
