@@ -45,6 +45,10 @@ function print(...)
   io.flush()
 end
 
+--- add package paths
+package.path = "./test/?.lua;./test/?/init.lua;./lua/?.lua;./lua/?/init.lua;"
+  .. package.path
+
 --- setup logging
 local logger = require("rissue.utils.log")
 local use_trace = os.getenv("TRACE")

@@ -2,6 +2,7 @@
 "aqua:Kampfkarren/selene" = "latest"
 lua = "5.1"
 lua-language-server = "latest"
+node = "lts"
 prek = "latest"
 prettier = "latest"
 stylua = "latest"
@@ -23,6 +24,10 @@ prek install
 [tasks.test]
 description = "Run tests"
 run = "luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print"
+
+[tasks.test-api-setup]
+description = "Setup required specs for api tests"
+run = "lua ./test/api/setup_script.lua"
 
 [tasks.test-api]
 description = "Run tests on api"
