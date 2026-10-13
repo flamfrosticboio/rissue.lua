@@ -10,6 +10,10 @@ stylua = "latest"
 [env]
 _.file = '.env'
 
+[settings]
+fetch_remote_versions_cache = "1d"
+cache_prune_age = "30d"
+
 [tasks.setup]
 description = "Install dependencies"
 run = '''
