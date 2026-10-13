@@ -71,19 +71,14 @@ jobs:
           ln -sf /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server
           rm lls.tar.gz
 
-      - uses: actions/setup-node@v7
+      - uses: jdx/mise-action@v4
+        env:
+          MISE_AUTO_INSTALL: false
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: ./package-lock.json
-
-      - name: Install Node Dependencies
-        working-directory: ./
-        run: |
-          npm ci
+          install_args: "prettier"
 
       - name: Run Autodoc
-        run: ./scripts/doc
+        run: lua ./scripts/gen_doc.lua
 
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
