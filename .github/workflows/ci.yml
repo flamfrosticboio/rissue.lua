@@ -98,19 +98,19 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Install selene
+        run: |
+          curl -fsSL -o selene.zip https://github.com/Kampfkarren/selene/releases/download/0.31.0/selene-0.31.0-linux.zip
+          unzip -q selene.zip -d "$HOME/.selene"
+          chmod +x "$HOME/.selene/selene"
+          echo "$HOME/.selene" >> "$GITHUB_PATH"
+
       - name: Lint
-        uses: NTBBloodbath/selene-action@v1.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          version: "0.31.0"
-          args: lua/ --config .selene.toml
+        run: selene lua/ --config .selene.toml
 
       - name: Lint Tests
-        uses: NTBBloodbath/selene-action@v1.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          version: "0.31.0"
-          args: test/ --config .selene.tests.toml
+        if: ${{ !cancelled() }}
+        run: selene test/ --config .selene.tests.toml
 
   test:
     runs-on: ubuntu-slim
