@@ -13,7 +13,7 @@ jobs:
       - name: Setup Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
+          sudo apt-get install -y --no libuv1-dev cmake libreadline-dev libncurses-dev
 
       - uses: actions/setup-node@v7
         with:

@@ -48,7 +48,7 @@ jobs:
       - name: Setup Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
+          sudo apt-get install -y --no-install-recommends libuv1-dev cmake libreadline-dev libncurses-dev
 
       - uses: leafo/gh-actions-lua@v10
         with:
@@ -128,7 +128,7 @@ jobs:
       - name: Setup Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
+          sudo apt-get install -y --no-install-recommends libuv1-dev cmake libreadline-dev libncurses-dev
 
       - uses: leafo/gh-actions-lua@v13
         with:
