@@ -280,13 +280,30 @@ end
 
 ---@return string
 function Process:get_stdout()
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_stdout()' when process has not started.",
+      log.levels.warn
+    )
+  end
   return table.concat(self._stdout_raw)
 end
 
 ---@return string
 function Process:get_stderr()
-  if self._exit_code == -1 then
-    return "Process has not yet been executed. If this is unintended, please report it to the developers."
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_stderr()' when process has not started.",
+      log.levels.warn
+    )
   end
   return table.concat(self._stderr_raw)
 end
@@ -295,6 +312,16 @@ end
 --- Used with relation to `on_stdout` or `on_output` event (e.g. print output)
 --- @param strip_newline boolean? No by default
 function Process:get_last_stdout(strip_newline)
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_last_stdout()' when process has not started.",
+      log.levels.warn
+    )
+  end
   local line = self._stdout_raw[#self._stdout_raw]
   if strip_newline then
     line = line:match("^%s*(.-)%s*$")
@@ -306,8 +333,15 @@ end
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
 --- @param strip_newline boolean? No by default
 function Process:get_last_stderr(strip_newline)
-  if self._exit_code == -1 then
-    return "Process has not yet been executed. If this is unintended, please report it to the developers."
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_last_stderr()' when process has not started.",
+      log.levels.warn
+    )
   end
   local line = self._stderr_raw[#self._stderr_raw]
   if strip_newline then
