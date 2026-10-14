@@ -68,12 +68,11 @@ local ansi_colors = {
   [M.levels.off] = "\27[36m", -- cyan (for user)
 }
 
---- The default logger
----@param msg string
----@param level rissue.log.level
-M.default_logger = function(msg, level)
-  local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
-  print(("[%s][%s]: %s"):format(time, log_name[level], msg))
+local function load_logger_without_colors()
+  return function(msg, level)
+    local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
+    print(("[%s][%s]: %s"):format(time, log_name[level], msg))
+  end
 end
 
 local function load_logger_with_colors()
@@ -89,6 +88,9 @@ local function load_logger_with_colors()
     )
   end
 end
+
+--- The default logger
+M.default_logger = load_logger_without_colors()
 
 ---@class rissue.log.Opts
 ---@field log_level? rissue.log.level
@@ -120,6 +122,8 @@ function M.setup(opts)
 
     if M.builtin_logger_color_enabled then
       M._logger = load_logger_with_colors()
+    else
+      M._logger = load_logger_without_colors()
     end
   end
 end
