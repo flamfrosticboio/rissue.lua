@@ -99,6 +99,8 @@ M.default = {
 
 ### `rissue.Github.Settings`
 
+Type: `class`
+
 Note: use `rissue.Github.Opts` for a partial version of
 `rissue.Github.Settings`
 
@@ -166,6 +168,8 @@ Note: use `rissue.Github.Opts` for a partial version of
 
 ### `rissue.Github.opts.Endpoints`
 
+Type: `class`
+
 - issues: `rissue.Query[]`
 - merge_requests: `rissue.Query[]`
 
@@ -174,6 +178,8 @@ Note: use `rissue.Github.Opts` for a partial version of
 <!-- &rissue.Github.supports.AdditionalInfo@docs -->
 
 ### `rissue.Github.supports.AdditionalInfo`
+
+Type: `class`
 
 - api_version: `("2022-11-28"|"2026-03-10")?`
 - ghes: `string?` -- The Github Enterprise Version (3.x)
@@ -186,6 +192,8 @@ Note: use `rissue.Github.Opts` for a partial version of
 <!-- &rissue.Query@docs -->
 
 ### `rissue.Query`
+
+Type: `class`
 
 - endpoint: `string`
   -- The endpoint url appended after the api endpoint from `rissue.ProviderInfo`
