@@ -42,6 +42,7 @@ config.options = {
     },
   },
   timeout = 60000,
+  log = {},
 }
 
 --- ### rissue.config.settings ### ---

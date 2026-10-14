@@ -54,6 +54,10 @@ function rissue.setup(opts, cwd)
 
   --- no need to check status
   env.setup(config.options.env_file, cwd)
+
+  --- setup logging
+  local log = require("rissue.utils.log")
+  log.setup(opts and opts.log or {})
 end
 
 rissue.get_remote_info = provider.remote_info
