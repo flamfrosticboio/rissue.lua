@@ -21,6 +21,7 @@ local M = {
 
 ---@alias rissue.log.logger fun(msg: string, level: integer)
 
+--- Sets the current logger
 ---@param logger rissue.log.logger
 function M.set_logger(logger)
   M._logger = logger
@@ -75,7 +76,7 @@ local log_name = {
 --- Logs to logger.
 ---
 --- Warning: Does not filter logging based on current log level.
----          Wrap it with `M.level_enabled()` instead.
+---          Wrap it with `log.level_enabled()` instead.
 ---@param msg string
 ---@param level rissue.log.level
 function M.log(msg, level)
@@ -89,6 +90,7 @@ function M.level_enabled(level)
   return level >= M.log_level
 end
 
+--- Print a message with log level of `log` to the logger
 ---@param msg string
 function M.info(msg)
   if not M.level_enabled(M.levels.info) then
@@ -97,6 +99,7 @@ function M.info(msg)
   M.log(msg, M.levels.info)
 end
 
+--- Print a message with log level of `warning` to the logger
 ---@param msg string
 function M.warn(msg)
   if not M.level_enabled(M.levels.warn) then
@@ -105,6 +108,7 @@ function M.warn(msg)
   M.log(msg, M.levels.warn)
 end
 
+--- Print a message with log level of `error` to the logger
 ---@param msg string
 function M.error(msg)
   if not M.level_enabled(M.levels.error) then
@@ -113,6 +117,7 @@ function M.error(msg)
   M.log(msg, M.levels.error)
 end
 
+--- Print a message with log level of `trace` to the logger
 ---@param msg string
 function M.trace(msg)
   if not M.level_enabled(M.levels.trace) then
@@ -121,6 +126,7 @@ function M.trace(msg)
   M.log(msg, M.levels.trace)
 end
 
+--- Print a message with log level of `debug` to the logger
 ---@param msg string
 function M.debug(msg)
   if not M.level_enabled(M.levels.debug) then
@@ -133,7 +139,17 @@ end
 ---@field prefix string?
 ---@field suffix string?
 
---- Returns a fixed logger function. Usually used on xpcalls
+--- Returns a fixed logger function. Usually used on xpcalls.
+---
+--- Example:
+---
+--- ```lua
+--- local log = require("rissue.utils.log")
+---
+--- local ok = xpcall(function()
+---   error("something went wrong")
+--- end, log.log_func("error", { prefix = "[sync] " }))
+--- ```
 ---@param level rissue.log.level
 ---@param opts rissue.utils.log.log_func.Opts?
 function M.log_func(level, opts)
