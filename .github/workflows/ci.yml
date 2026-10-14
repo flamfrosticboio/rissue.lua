@@ -75,7 +75,7 @@ jobs:
         env:
           MISE_AUTO_INSTALL: false
         with:
-          install_args: "prettier"
+          install_args: "node@lts prettier@latest"
 
       - name: Run Autodoc
         run: lua ./scripts/gen_doc.lua
