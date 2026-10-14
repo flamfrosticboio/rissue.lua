@@ -51,9 +51,8 @@ package.path = "./test/?.lua;./test/?/init.lua;./lua/?.lua;./lua/?/init.lua;"
 
 --- setup logging
 local logger = require("rissue.utils.log")
-local use_trace = os.getenv("TRACE")
-if use_trace and use_trace:lower() == "true" then
-  logger.log_level = logger.levels.trace
-else
-  logger.log_level = logger.levels.debug
-end
+local use_trace_env = os.getenv("TRACE")
+local use_trace = use_trace_env and use_trace_env:lower() == "true"
+logger.setup({
+  log_level = use_trace and logger.levels.trace or logger.levels.debug,
+})

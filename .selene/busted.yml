@@ -16,7 +16,13 @@ globals:
   setup:
     args:
       - type: function
+  lazy_setup:
+    args:
+      - type: function
   teardown:
+    args:
+      - type: function
+  lazy_teardown:
     args:
       - type: function
   pending:

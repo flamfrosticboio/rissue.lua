@@ -48,6 +48,7 @@ config.options = {
     },
   },
   timeout = 60000,
+  log = {},
 }
 ```
 
@@ -141,6 +142,8 @@ rissue.get_merge_requests(info, { max_items = 50 })
 
 ### `rissue.issue`
 
+Type: `class`
+
 The structure for issues.
 
 - author: `rissue.user`
@@ -161,6 +164,8 @@ The structure for issues.
 <!-- &rissue.pr@docs -->
 
 ### `rissue.pr`
+
+Type: `class`
 
 The structure for pull/merge request
 
@@ -183,6 +188,8 @@ The structure for pull/merge request
 
 ### `rissue.ProviderInfo`
 
+Type: `class`
+
 The full provider information that will be used for `rissue.get_issues()`
 and `rissue.get_merge_requests()`.
 
@@ -203,6 +210,8 @@ repository.
 <!-- &rissue.RemoteInfo@docs -->
 
 ### `rissue.RemoteInfo`
+
+Type: `class`
 
 The remote information extracted from a url.
 
