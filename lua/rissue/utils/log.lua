@@ -16,8 +16,9 @@
 
 ---@class rissue.log
 local M = {
-  log_level = 2, -- info
-  --- Read only variable
+  --- Current log level. Default: info
+  log_level = 2,
+  --- Read only variable.
   builtin_logger_color_enabled = false,
 }
 
@@ -39,6 +40,7 @@ local M = {
 ---| 4 error
 ---| 5 off
 
+--- Log levels
 ---@type rissue.log.levels
 M.levels = {
   trace = 0,
@@ -99,6 +101,7 @@ M.default_logger = load_logger_without_colors()
 ---Enables/Disables color on the built-in logger.
 ---@field builtin_logger_color_enabled? boolean
 
+--- Runs the logger setup
 ---@param opts rissue.log.Opts
 function M.setup(opts)
   if opts.log_level ~= nil then
@@ -136,6 +139,8 @@ function M.set_logger(logger)
   M._logger = logger
 end
 
+--- Sets the current log level
+---@param level rissue.log.level
 function M.set_log_level(level)
   M.log_level = level
 end
@@ -154,6 +159,7 @@ end
 
 --- Checks if the specified level is enabled
 ---@param level rissue.log.level
+---@return boolean
 function M.level_enabled(level)
   return level >= M.log_level
 end
@@ -220,8 +226,11 @@ end
 --- ```
 ---@param level rissue.log.level
 ---@param opts rissue.utils.log.log_func.Opts?
+---@return fun(err: string)
 function M.log_func(level, opts)
   return function(err)
+    -- there might be cases where the level is changed,
+    -- so we just evaluate every call instead
     if M.level_enabled(level) then
       local message = err
       if opts then
