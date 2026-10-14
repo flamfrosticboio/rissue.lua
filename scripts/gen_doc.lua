@@ -56,6 +56,33 @@ package.loaded["luv"] = {}
 
 local file_cache = {}
 
+--- A pusher that returns index
+---@generic T
+---@param list T[]
+---@return fun(item: T): integer
+local function appender(list)
+  local n = #list
+  return function(item)
+    n = n + 1
+    list[n] = item
+    return n
+  end
+end
+
+--- Will execute the function if generator passed is a function
+---@generic K, V
+---@param factory fun(k: K): V
+---@return table<K, V>
+local function default_dict(factory)
+  return setmetatable({}, {
+    __index = function(t, k)
+      local v = factory(k)
+      rawset(t, k, v)
+      return v
+    end,
+  })
+end
+
 ---@param path string
 ---@return string? contents
 ---@return string? err_msg
@@ -268,18 +295,42 @@ local function parse_entry(entry, buffer)
   end
 
   local function parse_docs()
-    local lines = {}
+    local lines = {} ---@type string[]
+    local push = appender(lines)
 
-    lines[#lines + 1] = "### `" .. entry.name .. "`"
-    lines[#lines + 1] = ""
+    push("### `" .. entry.name .. "`")
+
+    local define_type = default_dict(function()
+      return {}
+    end)
+
+    if #entry.defines > 0 then
+      for _, def in ipairs(entry.defines) do
+        table.insert(define_type[def.type], def)
+      end
+    end
+
+    if #define_type["doc.alias"] > 0 then
+      local a = {}
+      for i, def in ipairs(define_type["doc.alias"]) do
+        a[i] = ("`%s`"):format(def.view)
+      end
+      local z = table.concat(a, " | ")
+      push("")
+      push("Type: `alias` -- " .. z)
+    elseif #define_type["doc.class"] > 0 then
+      push("")
+      push("Type: `class`")
+    end
 
     if spec.description then
-      lines[#lines + 1] = spec.description
+      push("")
+      push(spec.description)
     end
 
     if entry.type == "type" then
       if #entry.fields > 0 then
-        lines[#lines + 1] = ""
+        push("")
         for _, field in ipairs(entry.fields) do
           if field.visible == "public" then
             if field.type == "doc.field" then
@@ -295,7 +346,7 @@ local function parse_entry(entry, buffer)
                 end
               end
 
-              lines[#lines + 1] = line
+              push(line)
             end
           end
         end

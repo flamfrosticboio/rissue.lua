@@ -36,11 +36,14 @@ rissue.setup({
 
 ### `rissue.Opts`
 
+Type: `class`
+
 - additional_providers: `string[]`
   -- List of provider's filepaths to import with `loadfile()`
 - endpoint_shortcuts: `table<string, rissue.EndpointShortcut>`
 - env: `(rissue.opts.Env)?`
 - env_file: `string` -- The name of the env file
+- log: `rissue.log.Opts` -- Logging setup opts
 - provider_options: `table<string, table>`
   -- List of options for a provider. See the provider's documentation for the
   list of options that is supported.
@@ -74,6 +77,7 @@ config.options = {
     },
   },
   timeout = 60000,
+  log = {},
 }
 ```
 
