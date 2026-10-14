@@ -24,9 +24,29 @@ New Features:
   end, 5 * 60 * 1000) -- 5 minutes in milliseconds
   ```
 
+- Integrate logging setup to `rissue.setup()`
+
 - `utils/process`
   - Added `Process:is_running()` which checks if the process is currently running.
   - Improved debugging by changing log levels on certain statements.
+
+- `utils/log` [Breaking Changes]
+  - Add setup.
+  - Separate logging with timestamp and error level into its own function
+    (as builtin logger) [#27](https://github.com/flamfrosticboio/rissue.lua/issues/27).
+
+    When setting logger with `log.set_logger()` or `log.setup()`, it no longer
+    gives you the timestamp and log level prefixes in the message.
+
+    ```lua
+    log.set_logger(function(msg, _level) print(msg) end)
+    --- previously
+    log.warn("my message") -- prints "[<timestamp>][ Warn]: my message"
+    --- now
+    log.warn("my message") -- prints "my message" without the timestamp
+    ```
+
+  - Add `colors` to print output using ansi characters.
 
 - `Github`
   - Improve error logging
