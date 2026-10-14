@@ -84,6 +84,7 @@ local function unmap(result)
 end
 
 --- Warning: raises errors
+---@async
 ---@param opts rissue.utils.curl.Opts
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
@@ -113,7 +114,10 @@ local function prepare_page(opts)
   local endpoint = opts.base .. fmt(opts.query.endpoint, opts.fmt_opts)
   local param = table_op.force_deep_extend(opts.query.param)
   param.q = param.q and fmt(param.q, opts.fmt_opts)
-  param.per_page = opts.fetch_opts.settings.items_per_page
+  param.per_page = math.min(
+    opts.fetch_opts.settings.items_per_page,
+    opts.fetch_opts.settings.max_items
+  )
   param.page = tostring(opts.page or 1)
 
   return { endpoint = endpoint, param = param } --[[@as rissue.Query]]
@@ -127,6 +131,7 @@ end
 ---@field contents __rissue.Github.unmap.Result
 ---@field next_url string?
 
+---@async
 ---@param opts __rissue.Github.fetch_page.Opts
 ---@return __rissue.Github.fetch_page.Result? result
 ---@return string? error
@@ -166,11 +171,15 @@ local function try_fetch_page(opts)
       ) or nil,
     } --[[@as __rissue.Github.fetch_page.Result]]
   else
+    local err = (response and response.err or "")
+      .. (fetch_err and (" | " .. fetch_err) or "")
+    err = err ~= "" and err or "unknown error"
+
     if log.level_enabled(log.levels.error) then
       local message = "Failed to fetch on '"
         .. opts.query.endpoint
         .. "': "
-        .. (response and response.err or fetch_err or "unknown error")
+        .. err
       if response and response.content ~= "" then
         message = message .. "\nServer responded: " .. response.content
       end
@@ -178,10 +187,11 @@ local function try_fetch_page(opts)
       log.log(message, log.levels.error)
     end
 
-    return nil, response and response.err or fetch_err
+    return nil, err
   end
 end
 
+---@async
 ---@param delay integer Delay in milliseconds
 local function delay_with_warning(delay)
   local delay_ok, delay_err = process.try_delay(delay)
@@ -196,6 +206,7 @@ end
 ---@field key fun(item: T): K
 ---@field settings rissue.Github.Settings
 
+---@async
 ---@generic T, K
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 ---@param queries rissue.Query[]

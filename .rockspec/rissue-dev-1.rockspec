@@ -25,5 +25,10 @@ build = {
 
 test_dependencies = {
   "busted >= 2.3.0",
-  "luv >= 1.52.1",
+  "inspect >= 3.1.3",
+}
+
+test = {
+  type = "busted",
+  flags = { "--verbose" },
 }

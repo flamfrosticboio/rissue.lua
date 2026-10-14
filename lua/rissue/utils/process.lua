@@ -50,6 +50,7 @@ local uv = require("luv") ---@type uv
 ---@field package _complete boolean
 ---@field package _opts rissue.utils.CommandOpts
 ---@field package __index table? Stub to avoid listing in IDE
+---@field package _running boolean
 local Process = {}
 Process.__index = Process
 
@@ -59,8 +60,7 @@ local wait_co_err = nil ---@type string?
 local function safe_co_resume(co)
   local ok, err = coroutine.resume(co)
   if not ok then
-    wait_co_err = err
-    local _, stop_err = M.try_stop_current_wait()
+    local _, stop_err = M.try_stop_current_wait(err)
     if stop_err then
       log.error(
         "Failed to send stop signal to current wait thread: "
@@ -77,12 +77,22 @@ local function run_all_events(events)
   end
 end
 
+--- Checks if the process is running.
+---
+--- To check if the process has finish running, check by its `exit_code` is not -1
+--- instead.
+---@return boolean
+function Process:is_running()
+  return self._running
+end
+
 --- Tries to fully exit
 ---@package
 function Process:try_exit()
   if not self._complete and table_op.all(self._finished) then
     self._complete = true
     run_all_events(self._events.on_exit)
+    self._running = false
   end
 end
 
@@ -141,15 +151,11 @@ function Process:close(callback, signal)
   end
 end
 
----@return boolean success
----@return uv.uv_pipe_t | string
+---@return uv.uv_pipe_t? pipe
+---@return string? err_msg
 local function new_pipe()
   local pipe, pipe_err = uv.new_pipe()
-  if not pipe then
-    return false, pipe_err or "unknown error"
-  end
-
-  return true, pipe
+  return pipe, pipe_err
 end
 
 ---@param pipe uv.uv_pipe_t
@@ -178,21 +184,19 @@ local function read_pipe(pipe, buffer, on_close, on_read)
 end
 
 --- Runs the process
---- May raise errors! Recommended to wrap in pcall!
+---@return string? err_msg
 function Process:run()
-  local ok_stdout, pipe_stdout = new_pipe()
+  local pipe_stdout, pipe_stdout_err = new_pipe()
 
-  if not ok_stdout then
-    error(pipe_stdout)
+  if not pipe_stdout then
+    return pipe_stdout_err or "unknown error occurred when creating stdout pipe"
   end
 
-  ---@cast pipe_stdout uv.uv_pipe_t
+  local pipe_stderr, pipe_stderr_err = new_pipe()
 
-  local ok_stderr, pipe_stderr = new_pipe()
-
-  if not ok_stderr then
+  if not pipe_stderr then
     close_handle(pipe_stdout)
-    error(pipe_stderr)
+    return pipe_stderr_err
   end
 
   local function on_stdout_pipe_close()
@@ -207,8 +211,6 @@ function Process:run()
     self:try_exit()
   end
 
-  ---@cast pipe_stderr uv.uv_pipe_t
-
   ---@type uv.spawn.options
   ---@diagnostic disable-next-line: missing-fields
   local options = {
@@ -217,7 +219,8 @@ function Process:run()
     env = self._opts.env --[=[@type string[]]=],
     stdio = { nil, pipe_stdout, pipe_stderr },
   }
-  local handle = uv.spawn(self._opts.cmd, options, function(code)
+
+  local handle, err = uv.spawn(self._opts.cmd, options, function(code)
     -- for now we don't handle signal code
     self._exit_code = code
     log.trace("Program exited with code " .. tostring(code))
@@ -233,7 +236,10 @@ function Process:run()
   if not handle then
     close_handle(pipe_stdout)
     close_handle(pipe_stderr)
-    error("Failed to spawn process: " .. self._opts.cmd)
+    return "Failed to spawn process: "
+      .. self._opts.cmd
+      .. ": "
+      .. tostring(err)
   end
 
   -- unknown reason why read_pipe must happen after uv.spawn
@@ -251,8 +257,9 @@ function Process:run()
   self._handle = handle
   self._stderr_pipe = pipe_stderr
   self._stdout_pipe = pipe_stdout
+  self._running = true
 
-  if log.level_enabled(log.levels.debug) then
+  if log.level_enabled(log.levels.trace) then
     log.log(
       "\nRunning process: "
         .. M.construct_command_line_string(self._opts.cmd, self._opts.args)
@@ -262,7 +269,7 @@ function Process:run()
             and ("\n\tWith env: " .. table.concat(self._opts.env, " "))
           or ""
         ),
-      log.levels.debug
+      log.levels.trace
     )
   end
 end
@@ -273,11 +280,31 @@ end
 
 ---@return string
 function Process:get_stdout()
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_stdout()' when process has not started.",
+      log.levels.warn
+    )
+  end
   return table.concat(self._stdout_raw)
 end
 
 ---@return string
 function Process:get_stderr()
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_stderr()' when process has not started.",
+      log.levels.warn
+    )
+  end
   return table.concat(self._stderr_raw)
 end
 
@@ -285,6 +312,16 @@ end
 --- Used with relation to `on_stdout` or `on_output` event (e.g. print output)
 --- @param strip_newline boolean? No by default
 function Process:get_last_stdout(strip_newline)
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_last_stdout()' when process has not started.",
+      log.levels.warn
+    )
+  end
   local line = self._stdout_raw[#self._stdout_raw]
   if strip_newline then
     line = line:match("^%s*(.-)%s*$")
@@ -296,6 +333,16 @@ end
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
 --- @param strip_newline boolean? No by default
 function Process:get_last_stderr(strip_newline)
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1
+    and self._running == false
+  then
+    log.log(
+      "Calling 'process:get_last_stderr()' when process has not started.",
+      log.levels.warn
+    )
+  end
   local line = self._stderr_raw[#self._stderr_raw]
   if strip_newline then
     line = line:match("^%s*(.-)%s*$")
@@ -345,6 +392,7 @@ function M.spawn(opts)
     _stderr_pipe = nil,
     _opts = opts,
     _complete = false,
+    _running = false,
   }
 
   return setmetatable(process, Process), nil
@@ -361,6 +409,7 @@ function M.spawn_err(opts)
   return p
 end
 
+---@async
 --- Wrapper to M.spawn with `uv.spawn()` that blocks for exit inside coroutines.
 --- Use `process.spawn()` if manually implementing instead.
 ---
@@ -384,7 +433,7 @@ function M.run_co(command_opts, opts)
     safe_co_resume(co)
   end)
 
-  if opts and opts.print_output then
+  if (opts and opts.print_output) or log.level_enabled(log.levels.trace) then
     p:register_event("on_stdout", function()
       log.info("| " .. p:get_last_stdout(true))
     end)
@@ -393,7 +442,10 @@ function M.run_co(command_opts, opts)
     end)
   end
 
-  p:run()
+  err = p:run()
+  if err then
+    return nil, err
+  end
   coroutine.yield()
   return {
     return_code = p:get_code(),
@@ -430,7 +482,10 @@ function M.run(command_opts, timeout, opts)
       log.info("@ " .. p:get_last_stderr(true))
     end)
   end
-  p:run()
+  err = p:run()
+  if err then
+    return nil, err
+  end
   local wait_ok = M.wait(function()
     return finished
   end, timeout)
@@ -459,6 +514,7 @@ end
 --- Delays the coroutine/main thread execution by number of milliseconds
 ---
 --- If not in coroutine mode, it uses `process.wait()` instead
+---@async
 ---@param milliseconds integer
 ---@return boolean success
 ---@return string? error
@@ -500,9 +556,11 @@ local waiting = false
 local force_stop_waiting = false
 
 --- Stops the current `process.wait`
---- @return boolean success
---- @return string? error
-function M.try_stop_current_wait()
+---@param reason string Reason for stopping current waiting loop
+---@return boolean success
+---@return string? error
+function M.try_stop_current_wait(reason)
+  wait_co_err = reason
   if waiting then
     force_stop_waiting = true
     local timer, err = uv.new_timer()

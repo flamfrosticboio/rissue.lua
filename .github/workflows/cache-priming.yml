@@ -1,43 +1,25 @@
-name: Tests
+name: Cache Priming
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-
+  workflow_dispatch:
 jobs:
-  lint:
-    runs-on: ubuntu-slim
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Lint
-        uses: NTBBloodbath/selene-action@v1.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          version: "0.31.0"
-          args: lua/ --config .selene.toml
-
-      - name: Lint Tests
-        uses: NTBBloodbath/selene-action@v1.0.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          version: "0.31.0"
-          args: test/ --config .selene.tests.toml
-
-  test:
+  prime-api:
     runs-on: ubuntu-slim
     timeout-minutes: 15
     env:
-      TEST_ALL: ${{ github.event_name == 'pull_request' && github.base_ref == 'main' }}
+      TEST_ALL: true
     steps:
       - uses: actions/checkout@v6
 
       - name: Setup Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libuv1-dev cmake libreadline-dev libncurses-dev
+          sudo apt-get install -y --no-install-recommends libuv1-dev cmake libreadline-dev libncurses-dev
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: ./test/api/package-lock.json
 
       - uses: leafo/gh-actions-lua@v13
         with:
@@ -52,6 +34,11 @@ jobs:
           if [ ! -e "/usr/local/bin/lua5.1" ]; then
             sudo ln -s $(pwd)/.lua/bin/lua /usr/local/bin/lua5.1
           fi
+
+      - name: Install Node Dependencies
+        working-directory: ./test/api/
+        run: |
+          npm ci --omit=prod
 
       - name: Load cache for Test Dependencies
         id: cache-test-dependencies
@@ -73,43 +60,19 @@ jobs:
           path: .luarocks
           key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
 
-      - name: Run Tests
-        run: |
-          luarocks test --tree=.luarocks .rockspec/rissue-dev-1.rockspec
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: ./test/api/package-lock.json
-
-      - name: Install Node Dependencies
-        working-directory: ./test/api/
-        run: |
-          npm ci
-
       - name: Load cache for '.test_setup'
         id: cache-test-setup
         uses: actions/cache/restore@v6
         with:
-          path: .test_setup
+          path: ./.tmp/test-api
           key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
 
       - name: Install Specs
         run: |
-          ./scripts/lua ./test/api/setup.lua
+          lua ./test/api/setup_script.lua
 
       - name: Save cache for '.test_setup'
         uses: actions/cache/save@v6
         with:
-          path: .test_setup
+          path: ./.tmp/test-api
           key: ${{ steps.cache-test-setup.outputs.cache-primary-key }}
-
-      - name: Run Api Tests Parallel
-        shell: bash
-        env:
-          VERBOSE: true
-          TEST_STRICT: true
-        run: |
-          eval $(luarocks path --tree=.luarocks --lua-version=5.1)
-          luarocks test --tree=.luarocks .rockspec/rissue-dev-1.rockspec -- --run=api

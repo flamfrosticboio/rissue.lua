@@ -1,0 +1,22 @@
+# Description
+
+<!-- Recommended structure: summary - full paragraph of details -->
+
+## Type
+
+<!-- Choose any of the following applicable -->
+
+- [ ] New features
+- [ ] Bug fixes
+- [ ] Refactors
+- [ ] Documentation Changes
+- [ ] Chore
+
+## References
+
+<!-- Link related issues or PRs (e.g., Closes #123, Ref #456) -->
+
+## Operational Checks
+
+- [ ] Tested manually in a local/interactive environment
+- [ ] Contains breaking changes

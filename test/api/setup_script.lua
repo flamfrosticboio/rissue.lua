@@ -14,8 +14,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@alias rissue.fetch_type "issue" | "pr"
+-- Strapper
 
----@class (exact) rissue.fetch_type.Map<T>
----@field issue T
----@field pr    T
+local current_script = debug.getinfo(1, "S").source:sub(2)
+local util_path = current_script:match("(.*/)") .. "../helper.lua"
+util_path = util_path:gsub("/[^/]+/%../", "/")
+local chunk = loadfile(util_path)
+if not chunk then
+  error("Could not load helper file")
+end
+chunk()
+
+require("api.github.setup")()

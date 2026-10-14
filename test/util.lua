@@ -14,11 +14,23 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
---- A bunch of functions that is used frequently in `setup_utils.lua`
-
-local uv = require("luv") ---@type uv
-
 local M = {}
+
+M.config = {
+  tmp = "./.tmp/",
+  api = "./.tmp/test-api",
+}
+
+---@param folder string Folder name
+---@return string path
+function M.get_test_api_path(folder)
+  return M.config.api .. "/" .. folder
+end
+
+---@param msg string
+function M.print_status(msg)
+  print(">>> " .. msg)
+end
 
 --- Replaces an value in the list
 ---@generic T: any, A: any, B: any
@@ -70,63 +82,6 @@ function M.print_shell(shell_command, prefix, output_on_stderr)
   out:flush()
 end
 
---- Performs recursive mkdir on the path
----@param path string
-function M.mkdir(path)
-  -- normalize trailing slash
-  path = path:gsub("/$", "")
-
-  local stat = uv.fs_stat(path)
-  if stat and stat.type == "directory" then
-    return true -- already exists
-  end
-
-  local parent = path:match("^(.*)/[^/]+$")
-  if parent and parent ~= "" then
-    local ok, err = M.mkdir(parent) -- recurse into parent first
-    if not ok then
-      return nil, err
-    end
-  end
-
-  local ok, err, errname = uv.fs_mkdir(path, tonumber("755", 8))
-  if not ok and errname ~= "EEXIST" then
-    return nil, err
-  end
-  return true
-end
-
---- Performs recursive rmdir on path
----@param path string
-function M.rmdir(path)
-  local fd, err = uv.fs_scandir(path)
-  if not fd then
-    return false, err
-  end
-
-  while true do
-    local name, typ = uv.fs_scandir_next(fd)
-    if not name then
-      break
-    end
-
-    local full_path = path .. "/" .. name
-    if typ == "directory" then
-      local ok, e = M.rmdir(full_path)
-      if not ok then
-        return false, e
-      end
-    else
-      local ok, e = uv.fs_unlink(full_path)
-      if not ok then
-        return false, e
-      end
-    end
-  end
-
-  return uv.fs_rmdir(path)
-end
-
 local ansi_colors = {
   "\27[31m",
   "\27[32m",
@@ -154,6 +109,17 @@ local RESET = "\27[0m"
 function M.ccolor(str, id)
   id = (id % ansi_colors_len) + 1
   return ansi_colors[id] .. str .. RESET
+end
+
+---@generic T
+---@param list T[]
+---@return fun(): T|nil
+function M.iterator(list)
+  local n = 0
+  return function()
+    n = n + 1
+    return list[n]
+  end
 end
 
 return M

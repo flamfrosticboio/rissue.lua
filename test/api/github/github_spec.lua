@@ -20,8 +20,10 @@ local describe = describe or require("busted").describe
 local it = it or require("busted").it
 ---@type luassert | fun()
 local assert = require("busted").assert
+local test_utils = require("api.test_utils")
+local utils = require("util")
 
-local test_files = ".test_setup/github"
+local spec_folder = utils.get_test_api_path("github")
 
 ---@class __rissue.github.test_version
 ---@field is_proxy boolean?
@@ -33,15 +35,14 @@ local test_files = ".test_setup/github"
 ---@param opts __rissue.github.test_version
 local function test_version(name, specfile, opts)
   local is_proxy = opts.is_proxy
-  local utils = require("api.utils")
   local provider = require("rissue.provider")
   local get = require("rissue.get")
-  utils.with_server({
+  test_utils.with_server({
     name = name,
-    specfile = test_files .. "/" .. specfile .. ".json",
+    specfile = spec_folder .. "/" .. specfile .. ".json",
     is_proxy = is_proxy or false,
   }, function(_, port)
-    local domain = utils.host .. ":" .. port
+    local domain = test_utils.host .. ":" .. port
 
     local info_shared = nil
 
@@ -294,8 +295,30 @@ end
 local gutils = require("api.github.setup_utils")
 
 describe("github #api", function()
-  local utils = require("api.utils")
-  utils.with_proxy({
+  local config = require("rissue.config")
+  config.setup({
+    provider_options = {
+      github = {
+        fetch_delay = 0,
+      },
+    },
+  })
+
+  local curl = require("rissue.utils.curl")
+  local original_request = curl.request
+
+  ---@diagnostic disable-next-line: duplicate-set-field
+  curl.request =
+    ---@async
+    function(url, opts)
+      if url:match("api.github.com") then
+        ---@type rissue.utils.curl.Result
+        return nil, "Proxy block (reason: test mode)"
+      end
+      return original_request(url, opts)
+    end
+
+  test_utils.with_proxy({
     -- Since the current api description does not support custom, we will just rewrite
     -- all application into application/json
     accept_rewrite = "application/json",
@@ -318,7 +341,7 @@ describe("github #api", function()
     })
   end)
 
-  utils.with_proxy({
+  test_utils.with_proxy({
     name = "github ghes #ghes",
     prefix = "/api/v3",
     port = 55000,
@@ -334,8 +357,7 @@ describe("github #api", function()
       end
       test_version(
         version .. " #ghes_" .. version .. "_2022", -- e.g. "3.14 #ghes-3.14"
-        "ghes-" .. version,
-
+        "ghes-" .. version .. "-2022",
         {
           is_proxy = true,
           additional_info = {

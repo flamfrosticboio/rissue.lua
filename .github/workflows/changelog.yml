@@ -1,0 +1,70 @@
+name: Changelog
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changelog
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BRANCH: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          required=false
+          reason=""
+
+          # Opt-out label wins
+          if echo "$LABELS" | grep -Eq '"no-changelog"'; then
+            echo "no-changelog label set, skipping."
+            exit 0
+          fi
+
+          # 1. Labels
+          if echo "$LABELS" | grep -Eq '"(feature|bugfix|bug)"'; then
+            required=true; reason="label"
+          fi
+
+          # 2. Branch name
+          if echo "$BRANCH" | grep -Eq '^(feat|fix|bugfix|refactor|perf)/'; then
+            required=true; reason="$reason branch"
+          fi
+
+          # 3. Commits (subjects and bodies for BREAKING CHANGE)
+          if git log --no-merges --format=%s "$BASE_SHA..$HEAD_SHA" \
+             | grep -Eq '^(feat|fix|refactor|perf)(\([^)]+\))?!?: '; then
+            required=true; reason="$reason commit"
+          fi
+          if git log --no-merges --format=%B "$BASE_SHA..$HEAD_SHA" \
+             | grep -Eq '^BREAKING[ -]CHANGE'; then
+            required=true; reason="$reason breaking-change"
+          fi
+          # For chore!, build! and other variations of <name>!:
+          if git log --no-merges --format=%s "$BASE_SHA..$HEAD_SHA" \
+             | grep -Eq '^[a-z]+(\([^)]+\))?!: '; then
+            required=true; reason="$reason breaking-marker"
+          fi
+
+          if [ "$required" != "true" ]; then
+            echo "No changelog required."
+            exit 0
+          fi
+
+          echo "Changelog required (trigger:$reason)"
+          if git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -qx 'CHANGELOG.md'; then
+            echo "CHANGELOG.md updated."
+          else
+            echo "::error::CHANGELOG.md was not updated. Update it or ask a maintainer to add the 'no-changelog' label."
+            exit 1
+          fi

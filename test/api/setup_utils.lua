@@ -14,260 +14,556 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local M = {}
+--- A bunch of functions that is used frequently in `setup_utils.lua`
 
-local fn = require("api.setup_utils_fn")
 local subprocess = require("rissue.utils.process")
+local util = require("util")
 local uv = require("luv") ---@type uv
 
-M.cwd = "./.test_setup"
+local M = {}
 
-local CPU_COUNT = tonumber(os.getenv("CPU"))
-if not CPU_COUNT then
-  local cpus = uv.cpu_info()
-  CPU_COUNT = cpus and #cpus or 1
-end
+---@diagnostic disable-next-line: deprecated
+local unpack = table.unpack or unpack
 
----@class __rissue.SetupConfigOptions.cache
----@field ttl integer
----@field name string
----@field folder string
-
----@class __rissue.SetupConfigOptions
----@field cache? __rissue.SetupConfigOptions.cache
----@field cwd string
-
----@alias __rissue.setup.Type __rissue.setup.type.File | __rissue.setup.type.Command
-
----@alias __rissue.SetupConfig __rissue.setup.Type[] | __rissue.SetupConfigOptions
-
----@class __rissue._CmdResult: rissue.utils.CmdResult
----@field cmd string[]
-
----@param cmds rissue.cmd[]
----@param process_limit integer
----@return __rissue._CmdResult[], string[]
-function M.run_multiple(cmds, process_limit)
-  if #cmds <= 0 then
-    return {}, {}
+---@async
+local function await(fn, ...)
+  local co = coroutine.running()
+  local n = select("#", ...)
+  local args = { ... }
+  args[n + 1] = function(...)
+    local status = coroutine.status(co)
+    if status == "suspended" then
+      local ok, err = coroutine.resume(co, ...)
+      if not ok then
+        error(debug.traceback(co, err), 0)
+      end
+    else
+      print("Warning: Coroutine is not suspended, but " .. status)
+    end
   end
 
-  local errors = {} ---@type string[]
-  local results = {} ---@type __rissue._CmdResult[]
-  local total = #cmds
-  local finished = 0
-  local running = 0
-  local pointer = 0
+  fn(unpack(args, 1, n + 1))
+  return coroutine.yield()
+end
 
-  while finished < total do
-    while pointer < total do
-      --- Get next cmd to run
-      pointer = pointer + 1
-      local command = cmds[pointer]
-      local id = pointer
+---@class __rissue.pipeline._base<T>
+---@field type T
 
-      assert(command[1], "No binary passed")
+---@class __rissue.pipeline.Run: __rissue.pipeline._base<"run">
+---@field bin string
+---@field args? string[]
+---@field env? table<string, string?>
+---@field cwd? string
 
-      local args = {}
-      for i = 2, #command do
-        args[#args + 1] = command[i]
+---@class __rissue.pipeline.Operation: __rissue.pipeline._base<"op">
+---@field should_continue boolean | fun(): boolean
+
+---@class __rissue.pipeline.RegisterCleanup: __rissue.pipeline._base<"reg_cleanup">
+---@field func async fun(): string? Where the return value is err_msg
+
+---@class __rissue.pipeline.Rename: __rissue.pipeline._base<"rename">
+---@field source string
+---@field dest string
+
+---@class __rissue.pipeline.CreateDirectory: __rissue.pipeline._base<"mkdir">
+---@field path string
+---@field mode? integer in decimal (e.g. 0755 octal = 493 decimal)
+
+---@class __rissue.pipeline.WriteFile: __rissue.pipeline._base<"write_file">
+---@field filepath string
+---@field contents string
+---@field ensure_directory? boolean
+---@field mode integer?
+
+---@class __rissue.pipeline.RemoveFile: __rissue.pipeline._base<"remove_file">
+---@field path string
+---@field skip_when_fail? boolean
+
+---@class __rissue.pipeline.RemoveDirectory: __rissue.pipeline._base<"remove_dir">
+---@field path string
+---@field skip_when_fail? boolean
+
+---@alias __rissue.PipelineCommands
+---| __rissue.pipeline.Run
+---| __rissue.pipeline.Rename
+---| __rissue.pipeline.RegisterCleanup
+---| __rissue.pipeline.CreateDirectory
+---| __rissue.pipeline.Operation
+---| __rissue.pipeline.WriteFile
+---| __rissue.pipeline.RemoveFile
+---| __rissue.pipeline.RemoveDirectory
+
+---@alias __rissue.Pipeline __rissue.PipelineCommands[]
+
+---@async
+---@param command __rissue.pipeline.Run
+---@return boolean success
+---@return string? err_msg
+local function run_command(command)
+  local process = require("rissue.utils.process")
+
+  util.print_status("Attempting to run command: " .. command.bin)
+
+  local result, err = process.run_co({
+    cmd = command.bin,
+    args = command.args,
+    env = command.env,
+    cwd = command.cwd,
+  }, {
+    print_output = true,
+  })
+
+  if not result then
+    return false, err
+  end
+
+  if result.return_code ~= 0 then
+    return false,
+      table.concat({
+        "Failed to run: Process exited with code ",
+        result.return_code,
+        "\nStderr: \n",
+        result.stderr,
+        "\nStdout: \n",
+        result.stdout,
+      })
+  end
+
+  return true
+end
+
+---@async
+---@param args __rissue.pipeline.Rename
+---@return boolean success
+---@return string? err_msg
+local function rename(args)
+  util.print_status("Renaming '" .. args.source .. "' to '" .. args.dest .. "'")
+  local err = await(uv.fs_rename, args.source, args.dest)
+  if err then
+    return false, err
+  end
+  return true
+end
+
+---@async
+---@param args __rissue.pipeline.CreateDirectory
+---@return boolean success
+---@return string? err_msg
+local function mkdir(args)
+  local mode = args.mode or 493
+  local path = args.path:gsub("\\", "/")
+
+  local root, rest = path:match("^(%a:/?)(.*)$")
+  if not root then
+    root, rest = path:match("^(/*)(.*)$")
+  end
+
+  local cur = root
+  for part in rest:gmatch("[^/]+") do
+    cur = cur .. part
+
+    local err = await(uv.fs_mkdir, cur, mode)
+    if err then
+      if not err:match("^EEXIST") then
+        return false, err
       end
 
-      local process, err = subprocess.spawn({ cmd = command[1], args = args })
-      if not process then
+      local serr, stat = await(uv.fs_stat, cur)
+      if serr or not stat or stat.type ~= "directory" then
+        return false, "not a directory: " .. cur
+      end
+    end
+
+    cur = cur .. "/"
+  end
+
+  util.print_status("Directory created at " .. args.path)
+
+  return true
+end
+
+---@param func async fun(): boolean, string?
+---@return boolean success
+---@return string? error
+local function into_sync(func)
+  local done = false
+  local co = coroutine.create(
+    ---@async
+    function()
+      local success, err = func()
+      done = true
+      if not success then
         error(err)
       end
-
-      process:register_event("on_stdout", function()
-        print(
-          fn.ccolor(("[%03d] | "):format(id), id)
-            .. process:get_last_stdout(true):gsub("\n", fn.ccolor("\n^| ", id))
-        )
-      end)
-      process:register_event("on_stderr", function()
-        print(
-          fn.ccolor(("[%03d] @ "):format(id), id)
-            .. process:get_last_stderr(true):gsub("\n", fn.ccolor("\n^@ ", id))
-        )
-      end)
-      process:register_event("on_exit", function()
-        finished = finished + 1
-        running = running - 1
-
-        results[id] = {
-          return_code = process:get_code(),
-          stdout = process:get_stdout(),
-          stderr = process:get_stderr(),
-          cmd = command,
-        }
-
-        fn.print_shell(
-          command,
-          ("[%d/%d][DONE]: "):format(finished, total),
-          true
-        )
-      end)
-
-      process:run()
-      running = running + 1
-
-      subprocess.wait(function()
-        return running < process_limit
-      end, -1, 100)
     end
+  )
 
-    -- final wait
-    subprocess.wait(function()
-      return finished >= total
-    end, -1, 100)
-  end
-
-  for _, result in ipairs(results) do
-    if result.return_code ~= 0 then
-      local contents = result.stderr ~= "" and result.stderr or result.stdout
-      errors[#errors + 1] = (
-        "failed to run '"
-        .. table.concat(result.cmd, " ")
-        .. "':\n"
-        .. contents
-      )
+  if coroutine.status(co) == "suspended" then
+    local ok, err = coroutine.resume(co)
+    if not ok then
+      return false, err
     end
   end
 
-  return results, errors
+  local ok, err = subprocess.wait(function()
+    return done
+  end, -1)
+
+  if not ok then
+    return false, err
+  end
+
+  return true
 end
 
----@class __rissue.setup.type.Command
----@field type "command"
----@field file string
----@field bin string
----@field args string[]
+---@async
+---@param args __rissue.pipeline.WriteFile
+---@return boolean success
+---@return string? err_msg
+local function write_file(args)
+  local mode = args.mode or 493
 
----@param file string? File to check (caching). Pass nil if this is not applicable
----@param binary string
----@param args (string | true)[]?
----@return __rissue.setup.type.Command
-function M.setup_command(file, binary, args)
-  args = fn.replace_in_list(args or {}, true, file)
-  return { file = file, bin = binary, args = args, type = "command" }
-end
-
----@class __rissue.setup.type.File
----@field file string
----@field contents string
----@field type "file"
-
----@param file string File to write. Note that it will not write if the file exists
----@param contents string
----@return __rissue.setup.type.File
-function M.setup_file(file, contents)
-  return { file = file, contents = contents, type = "file" }
-end
-
----@param cache __rissue.SetupConfigOptions.cache
-local function handle_cache(cache)
-  local marker_path = M.cwd .. "/cache-marker-" .. cache.name
-  local f, _ = io.open(marker_path, "r")
-  if f then
-    local content = f:read("*a")
-    f:close()
-    content = tonumber(content)
-    if content and os.time() - content > cache.ttl then
-      local ok, err = fn.rmdir(M.cwd .. "/" .. cache.folder)
-      if not ok then
-        print("Warning: failed to delete expired cached folder: " .. err)
+  if args.ensure_directory then
+    local dir = args.filepath:match("^(.*)[/\\]")
+    if dir and dir ~= "" then
+      local success, err = mkdir({ path = dir, mode = mode, type = "mkdir" })
+      if not success then
+        return false, err
       end
-      os.remove(marker_path)
-    end
-  else
-    print("Warning: No cache file found")
-    local err
-    f, err = io.open(marker_path, "w")
-    if not f then
-      -- if I can't write cache, then there is a problem
-      error(err)
-    end
-
-    local _, ferr = f:write(tostring(os.time()))
-    f:close()
-    if ferr then
-      print("Warning: failed to write to cache file: " .. ferr)
     end
   end
+
+  local err, fd = await(uv.fs_open, args.filepath, "w", mode)
+  if err or not fd then
+    return false, err
+  end
+
+  local werr = await(uv.fs_write, fd, args.contents, 0)
+  local cerr = await(uv.fs_close, fd)
+
+  if werr then
+    return false, werr
+  end
+  if cerr then
+    return false, cerr
+  end
+
+  util.print_status("Wrote contents to " .. args.filepath)
+  return true
 end
 
----@class __rissue.run_setup_config.Result
----@field files_processed string[]
----@field files_failed string[]
+---@param path string
+---@param mode integer?
+---@return boolean success
+---@return string? err_msg
+function M.mkdir(path, mode)
+  return into_sync(
+    ---@async
+    function()
+      return mkdir({ type = "mkdir", path = path, mode = mode })
+    end
+  )
+end
 
----@param configs __rissue.SetupConfig
----@return __rissue.run_setup_config.Result
-local function run_setup_config(configs)
-  if configs.cache then
-    handle_cache(configs.cache)
+---@async
+---@param args __rissue.pipeline.RemoveDirectory
+---@return boolean success
+---@return string? err_msg
+local function rmdir(args)
+  local err, handle = await(uv.fs_scandir, args.path)
+  if err or not handle then
+    if args.skip_when_fail then
+      print("Warning: failed to scan directory: " .. err)
+      return true
+    end
+    return false, err
   end
 
-  local files_affected = {} ---@type string[]
-  local files_failed = {} ---@type string
-  local commands_to_execute = {} ---@type rissue.cmd[]
-  local command_file_map = {} ---@type table<rissue.cmd[], string>
-  local files_to_write = {} ---@type __rissue.setup.type.File[]
+  while true do
+    local name, typ = uv.fs_scandir_next(handle)
+    if not name then
+      break
+    end
 
-  for _, config in ipairs(configs) do
-    if not (config.file and uv.fs_stat(config.file)) then
-      if config.type == "command" then
-        local args = fn.replace_in_list(config.args, true, config.file)
-        local cmd = { config.bin, unpack(args) }
-        commands_to_execute[#commands_to_execute + 1] = cmd
-        command_file_map[cmd] = config.file
-      elseif config.type == "file" then
-        files_to_write[#files_to_write + 1] = config
-      else
-        error("unknown config")
+    local child = args.path .. "/" .. name
+
+    if not typ then
+      local lerr, stat = await(uv.fs_lstat, child)
+      if lerr or not stat then
+        if args.skip_when_fail then
+          print("Warning: failed to get stat: " .. lerr)
+          return true
+        end
+        return false, lerr
+      end
+      typ = stat.type
+    end
+
+    if typ == "directory" then
+      local ok, cerr = rmdir({
+        type = "remove_dir",
+        path = child,
+        skip_when_fail = args.skip_when_fail,
+      })
+      if not ok then
+        if args.skip_when_fail then
+          print("Warning: failed to delete directory: " .. cerr)
+          return true
+        end
+        return false, cerr
       end
     else
-      print("Skipping file: " .. config.file)
+      local uerr = await(uv.fs_unlink, child)
+      if uerr then
+        if args.skip_when_fail then
+          print("Warning: failed to delete file: " .. uerr)
+          return true
+        end
+        return false, uerr
+      end
     end
   end
 
-  for _, config in ipairs(files_to_write) do
-    local fd = uv.fs_open(config.file, "w", tonumber("644", 8))
-    if fd then
-      uv.fs_write(fd, config.contents)
-      uv.fs_close(fd)
-    end
-    files_affected[#files_affected + 1] = config.file
-    print("Wrote file: " .. config.file)
+  local rerr = await(uv.fs_rmdir, args.path)
+  if rerr then
+    return false, rerr
   end
 
-  local results, errors = M.run_multiple(commands_to_execute, CPU_COUNT)
+  util.print_status("Removed directory: " .. args.path)
+  return true
+end
+
+---@param path string
+---@param opts? {skip_when_fail:  boolean?}
+---@return boolean success
+---@return string? err_msg
+function M.rmdir(path, opts)
+  return into_sync(
+    ---@async
+    function()
+      return rmdir({
+        type = "remove_dir",
+        path = path,
+        skip_when_fail = opts and opts.skip_when_fail,
+      })
+    end
+  )
+end
+
+---@async
+---@param args __rissue.pipeline.RemoveFile
+---@return boolean success
+---@return string? err_msg
+local function rmfile(args)
+  local err = await(uv.fs_unlink, args.path)
+  if err then
+    if args.skip_when_fail then
+      return true
+    end
+    return false, err
+  end
+  util.print_status("Removed file: " .. args.path)
+  return true
+end
+
+---@param path string
+---@param opts? {skip_when_fail: boolean?}
+---@return boolean success
+---@return string? err_msg
+function M.rmfile(path, opts)
+  return into_sync(
+    ---@async
+    function()
+      return rmfile({
+        type = "remove_file",
+        path = path,
+        skip_when_fail = opts and opts.skip_when_fail,
+      })
+    end
+  )
+end
+
+---@param path string
+---@param contents string
+---@param opts? {ensure_directory: boolean?, mode: integer?}
+---@return boolean success
+---@return string? err_msg
+function M.write_file(path, contents, opts)
+  return into_sync(
+    ---@async
+    function()
+      return write_file({
+        type = "write_file",
+        contents = contents,
+        filepath = path,
+        ensure_directory = opts and opts.ensure_directory,
+        mode = opts and opts.mode,
+      })
+    end
+  )
+end
+
+---@async
+---@param pipeline __rissue.Pipeline
+---@return string? err_msg Error message if available
+function M.run_pipeline(pipeline)
+  local cleanup = {} ---@type __rissue.pipeline.RegisterCleanup[]
+  local err = nil ---@type string?
+
+  for _, item in ipairs(pipeline) do
+    if item.type == "run" then
+      ---@cast item __rissue.pipeline.Run
+      local success, run_err = run_command(item)
+      if not success then
+        err = run_err
+        break
+      end
+    elseif item.type == "reg_cleanup" then
+      ---@cast item __rissue.pipeline.RegisterCleanup
+      table.insert(cleanup, item)
+      util.print_status("Added cleanup item")
+    elseif item.type == "rename" then
+      ---@cast item __rissue.pipeline.Rename
+      local success, move_err = rename(item)
+      if not success then
+        err = move_err
+        break
+      end
+    elseif item.type == "mkdir" then
+      ---@cast item __rissue.pipeline.CreateDirectory
+      local success, mkdir_err = mkdir(item)
+      if not success then
+        err = mkdir_err
+        break
+      end
+    elseif item.type == "write_file" then
+      ---@cast item __rissue.pipeline.WriteFile
+      local success, write_err = write_file(item)
+      if not success then
+        err = write_err
+        break
+      end
+    elseif item.type == "remove_file" then
+      ---@cast item __rissue.pipeline.RemoveFile
+      local success, rmfile_err = rmfile(item)
+      if not success then
+        err = rmfile_err
+        break
+      end
+    elseif item.type == "remove_dir" then
+      ---@cast item __rissue.pipeline.RemoveDirectory
+      local success, rmdir_err = rmdir(item)
+      if not success then
+        err = rmdir_err
+        break
+      end
+    elseif item.type == "op" then
+      local should_continue = item.should_continue
+      if type(should_continue) == "function" then
+        should_continue = should_continue()
+      end
+
+      if not should_continue then
+        util.print_status("Stopping pipeline...")
+        break
+      end
+    else
+      error("Unknown type: " .. tostring(item.type), 0)
+    end
+  end
+
+  if #cleanup > 0 then
+    util.print_status("Running cleanup")
+    for _, cleanup_op in ipairs(cleanup) do
+      local errmsg = cleanup_op.func()
+      if errmsg then
+        print("Failed when running cleanup: " .. errmsg)
+        if not err then
+          err = ""
+        end
+        err = err .. "\n\t" .. errmsg
+      end
+    end
+    util.print_status("Cleanup complete!")
+  end
+
+  if err then
+    print("!!! " .. err)
+  end
+
+  return err
+end
+
+---@param pipelines __rissue.Pipeline[]
+---@param limit integer
+---@return string[]? errors
+function M.run_pipelines(pipelines, limit)
+  if #pipelines <= 0 then
+    return
+  end
+
+  limit = math.max(limit, 1)
+
+  local errors = {} ---@type string[]
+  local running = {} ---@type {co: thread, result: {done: boolean, err: string?}}[]
+
+  --- Removes finished tasks and collects their errors
+  local function reap()
+    for i = #running, 1, -1 do
+      local task = running[i]
+      if task.result.done or coroutine.status(task.co) == "dead" then
+        if task.result.err then
+          table.insert(errors, task.result.err)
+        end
+        table.remove(running, i)
+      end
+    end
+  end
+
+  local next_pipeline = util.iterator(pipelines)
+
+  while true do
+    -- Wait for a free slot before starting the next pipeline
+    if #running >= limit then
+      subprocess.wait(function()
+        reap()
+        return #running < limit
+      end, -1)
+    end
+
+    local pipeline = next_pipeline()
+    if not pipeline then
+      break
+    end
+
+    local result = { done = false } ---@type {done: boolean, err: string?}
+    local co = coroutine.create(
+      ---@async
+      function()
+        result.err = M.run_pipeline(pipeline)
+        result.done = true
+      end
+    )
+
+    local ok, err = coroutine.resume(co)
+    if not ok then
+      result.err = tostring(err)
+      result.done = true
+    end
+
+    table.insert(running, { co = co, result = result })
+    reap()
+  end
+
+  -- Wait for everything still running
+  subprocess.wait(function()
+    reap()
+    return #running == 0
+  end, -1)
 
   if #errors > 0 then
-    print(table.concat(errors, "\n"))
+    return errors
   end
-
-  for _, result in ipairs(results) do
-    local cmd = command_file_map[result.cmd]
-    if result.return_code ~= 0 then
-      files_affected[#files_affected + 1] = cmd
-    else
-      files_failed[#files_failed + 1] = cmd
-    end
-  end
-
-  return files_affected
-end
-
----@param cwd string The current working directory
----@param setup_config __rissue.SetupConfig
----@return __rissue.run_setup_config.Result
-function M.run_setup(cwd, setup_config)
-  -- run luv without blocking
-  uv.run("nowait")
-  fn.mkdir(cwd)
-  local files_affected = run_setup_config(setup_config)
-  print("Done")
-  return files_affected
 end
 
 return M

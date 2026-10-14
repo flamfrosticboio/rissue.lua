@@ -15,7 +15,8 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local cmd = require("rissue.utils.process")
-local fn = require("api.setup_utils_fn")
+local log = require("rissue.utils.log")
+local utils = require("util")
 local uv = require("luv") ---@type uv
 
 local describe = describe or require("busted").describe
@@ -94,13 +95,19 @@ local function run_mock_server(filepath, port_offset, id, callback)
     end
   end)
 
-  p:register_event("on_stdout", function()
-    print(fn.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id))
-  end)
+  if log.level_enabled(log.levels.trace) then
+    p:register_event("on_stdout", function()
+      print(
+        utils.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id)
+      )
+    end)
 
-  p:register_event("on_stderr", function()
-    print(fn.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id))
-  end)
+    p:register_event("on_stderr", function()
+      print(
+        utils.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id)
+      )
+    end)
+  end
 
   local function close_func()
     local is_closed = false
@@ -129,29 +136,32 @@ local function run_mock_server(filepath, port_offset, id, callback)
     p:run()
 
     watch_loop:start(1000, 1000, function()
-      local watch_err = coroutine.wrap(function()
-        print("Checking...")
-        local result, co_err = cmd.run_co({
-          cmd = "timeout",
-          args = {
-            "1",
-            "bash",
-            "-c",
-            "</dev/tcp/" .. M.host .. "/" .. port,
-          },
-        })
-        if not result then
-          error(co_err)
+      local watch_err = coroutine.wrap(
+        ---@async
+        function()
+          print("Checking...")
+          local result, co_err = cmd.run_co({
+            cmd = "timeout",
+            args = {
+              "1",
+              "bash",
+              "-c",
+              "</dev/tcp/" .. M.host .. "/" .. port,
+            },
+          })
+          if not result then
+            error(co_err)
+          end
+          if result.return_code == 0 then
+            watch_loop:stop()
+            local callback_thread = coroutine.create(function()
+              callback()
+            end)
+            local callback_ok, co_watch_err = coroutine.resume(callback_thread)
+            assert(callback_ok, co_watch_err)
+          end
         end
-        if result.return_code == 0 then
-          watch_loop:stop()
-          local callback_thread = coroutine.create(function()
-            callback()
-          end)
-          local callback_ok, co_watch_err = coroutine.resume(callback_thread)
-          assert(callback_ok, co_watch_err)
-        end
-      end)()
+      )()
       assert(not watch_err, watch_err)
     end)
   end
@@ -302,9 +312,5 @@ function M.with_server(opts, func)
     func(id, M.port)
   end)
 end
-
---- setup logging
-local logger = require("rissue.utils.log")
-logger.log_level = logger.levels.trace
 
 return M

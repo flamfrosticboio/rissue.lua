@@ -1,0 +1,197 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Format check
+        uses: JohnnyMorganz/stylua-action@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: "2.5.2"
+          args: --config-path ./.stylua.toml .
+
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'chore(format): auto format with stylua'
+          file_pattern: '**/*.lua'
+          push_options: ''
+
+  docs:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: write
+    needs: format
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libuv1-dev cmake libreadline-dev libncurses-dev
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install Luarocks Dependencies
+        run: |
+          luarocks install luafilesystem
+          luarocks install dkjson
+
+      - name: Install lua-language-server
+        run: |
+          set -e
+          VERSION=$(curl -s https://api.github.com/repos/LuaLS/lua-language-server/releases/latest | grep tag_name | cut -d '"' -f4)
+          curl -L -o lls.tar.gz "https://github.com/LuaLS/lua-language-server/releases/download/${VERSION}/lua-language-server-${VERSION#v}-linux-x64.tar.gz"
+          mkdir -p /opt/lua-language-server
+          tar -xzf lls.tar.gz -C /opt/lua-language-server
+          ln -sf /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server
+          rm lls.tar.gz
+
+      - uses: jdx/mise-action@v4
+        env:
+          MISE_AUTO_INSTALL: false
+        with:
+          install_args: "node@lts prettier@latest"
+
+      - name: Run Autodoc
+        run: lua ./scripts/gen_doc.lua
+
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: 'docs: auto doc with auto_doc script'
+          file_pattern: 'docs/**/*.md'
+          push_options: ''
+
+  lint:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install selene
+        run: |
+          curl -fsSL -o selene.zip https://github.com/Kampfkarren/selene/releases/download/0.31.0/selene-0.31.0-linux.zip
+          unzip -q selene.zip -d "$HOME/.selene"
+          chmod +x "$HOME/.selene/selene"
+          echo "$HOME/.selene" >> "$GITHUB_PATH"
+
+      - name: Lint
+        run: selene lua/ --config .selene.toml
+
+      - name: Lint Tests
+        if: ${{ !cancelled() }}
+        run: selene test/ --config .selene.tests.toml
+
+  test:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    needs: [lint, format, docs]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
+    env:
+      TEST_ALL: ${{ github.event_name == 'pull_request' && github.base_ref == 'release' }}
+      VERBOSE: true
+      TEST_STRICT: true
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libuv1-dev cmake libreadline-dev libncurses-dev
+
+      - uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v6
+        with:
+          luaRocksVersion: "3.13.0"
+
+      - name: Link lua5.1
+        run: |
+          if [ ! -e "/usr/local/bin/lua5.1" ]; then
+            sudo ln -s $(pwd)/.lua/bin/lua /usr/local/bin/lua5.1
+          fi
+
+      - name: Load cache for Test Dependencies
+        id: cache-test-dependencies
+        uses: actions/cache/restore@v6
+        with:
+          path: .luarocks
+          key: luarocks-${{ hashFiles('**/*.rockspec') }}
+
+      - name: Setup Test Dependencies
+        env:
+          LIBUV_DIR: /usr
+        run: |
+          luarocks test --prepare --tree=.luarocks .rockspec/rissue-dev-1.rockspec
+
+      - name: Save cache for Test Dependencies
+        uses: actions/cache/save@v6
+        if: always() && steps.cache-test-dependencies.outputs.cache-hit != 'true'
+        with:
+          path: .luarocks
+          key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
+
+      - name: Run Tests
+        run: |
+          luarocks test --tree=.luarocks .rockspec/rissue-dev-1.rockspec
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: ./test/api/package-lock.json
+
+      - name: Install Node Dependencies
+        working-directory: ./test/api/
+        run: |
+          npm ci
+
+      - name: Load cache for '.test_setup'
+        id: cache-test-setup
+        uses: actions/cache/restore@v6
+        with:
+          path: ./.tmp/test-api
+          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
+
+      - name: Install Specs
+        run: |
+          lua ./test/api/setup_script.lua
+
+      - name: Save cache for '.test_setup'
+        uses: actions/cache/save@v6
+        with:
+          path: ./.tmp/test-api
+          key: ${{ steps.cache-test-setup.outputs.cache-primary-key }}
+
+      - name: Run Api Tests Parallel
+        shell: bash
+        run: |
+          luarocks test --tree=.luarocks .rockspec/rissue-dev-1.rockspec -- --run=api

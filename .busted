@@ -22,17 +22,29 @@ local function list_exclude_cmd()
   return table.concat(res, ",")
 end
 
+local is_test_strict = os.getenv("TEST_STRICT") == "true"
+
 --- Disable excludes if the test is strict (for cloud testing environments)
-local exclude_cmd = os.getenv("TEST_STRICT") and "" or list_exclude_cmd()
+local exclude_cmd = is_test_strict and "" or list_exclude_cmd()
+
+local excluded_tags = {
+  "api",
+}
+
+if not is_test_strict then
+  table.insert(excluded_tags, "blocking")
+end
 
 return {
   _all = {
     lpath = "./lua/?.lua;./lua/?/init.lua;./test/?.lua;./test/?/init.lua",
     ROOT = { "test" },
-    ["exclude-tags"] = "api,"
+    ["exclude-tags"] = table.concat(excluded_tags, ",")
+      .. ","
       .. (is_windows and "unix" or "windows")
       .. (exclude_cmd ~= "" and ("," .. exclude_cmd) or ""),
     lua = "lua5.1",
+    helper = "test/helper.lua",
   },
   default = {
     verbose = true,

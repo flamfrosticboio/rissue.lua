@@ -84,6 +84,7 @@ local function into_merge_requests(raw, settings)
   return base
 end
 
+---@async
 ---@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_issues(info, token, opts)
   return fetch.try_fetch(info, opts.endpoints.issues, {
@@ -96,6 +97,7 @@ local function get_issues(info, token, opts)
   })
 end
 
+---@async
 ---@type rissue.provider.GetMergeRequests<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_merge_requests(info, token, opts)
   return fetch.try_fetch(info, opts.endpoints.merge_requests, {
