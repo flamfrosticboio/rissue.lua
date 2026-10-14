@@ -17,7 +17,34 @@
 ---@class rissue.log
 local M = {
   log_level = 2, -- info
+  builtin_logger = {
+    color_enabled = false,
+  },
 }
+
+---@class rissue.log.Opts
+---@field log_level? rissue.log.level
+--- Replaces the current built-in logger.
+---@field logger? rissue.log.logger
+---Enables/Disables color on the built-in logger.
+---@field builtin_logger_color_enabled? boolean
+
+---@param opts rissue.log.Opts
+function M.setup(opts)
+  if opts.log_level ~= nil then
+    M.log_level = opts.log_level
+  end
+
+  if opts.builtin_logger_color_enabled ~= nil then
+    M.builtin_logger.color_enabled = opts.builtin_logger_color_enabled
+  end
+
+  if opts.logger ~= nil then
+    M._logger = opts.logger
+  else
+    -- default setup for builtin logger
+  end
+end
 
 ---@alias rissue.log.logger fun(msg: string, level: integer)
 
