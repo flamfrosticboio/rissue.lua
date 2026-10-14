@@ -119,27 +119,46 @@ jobs:
       TEST_STRICT: true
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - id: filter
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files=$(git diff --name-only "$BASE" "$HEAD")
+          if grep -qE '^(test|lua)/' <<< "$files"; then
+            echo "src=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "src=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup Dependencies
+        if: steps.filter.outputs.src == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libuv1-dev cmake libreadline-dev libncurses-dev
 
       - uses: leafo/gh-actions-lua@v13
+        if: steps.filter.outputs.src == 'true'
         with:
           luaVersion: "5.1"
 
       - uses: leafo/gh-actions-luarocks@v6
+        if: steps.filter.outputs.src == 'true'
         with:
           luaRocksVersion: "3.13.0"
 
       - name: Link lua5.1
+        if: steps.filter.outputs.src == 'true'
         run: |
           if [ ! -e "/usr/local/bin/lua5.1" ]; then
             sudo ln -s $(pwd)/.lua/bin/lua /usr/local/bin/lua5.1
           fi
 
       - name: Load cache for Test Dependencies
+        if: steps.filter.outputs.src == 'true'
         id: cache-test-dependencies
         uses: actions/cache/restore@v6
         with:
@@ -147,34 +166,39 @@ jobs:
           key: luarocks-${{ hashFiles('**/*.rockspec') }}
 
       - name: Setup Test Dependencies
+        if: steps.filter.outputs.src == 'true'
         env:
           LIBUV_DIR: /usr
         run: |
           luarocks test --prepare --tree=.luarocks .rockspec/rissue-dev-1.rockspec
 
       - name: Save cache for Test Dependencies
+        if: always() && steps.filter.outputs.src == 'true' && steps.cache-test-dependencies.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
-        if: always() && steps.cache-test-dependencies.outputs.cache-hit != 'true'
         with:
           path: .luarocks
           key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
 
       - name: Run Tests
+        if: steps.filter.outputs.src == 'true'
         run: |
           luarocks test --tree=.luarocks .rockspec/rissue-dev-1.rockspec
 
       - uses: actions/setup-node@v7
+        if: steps.filter.outputs.src == 'true'
         with:
           node-version: '24'
           cache: 'npm'
           cache-dependency-path: ./test/api/package-lock.json
 
       - name: Install Node Dependencies
+        if: steps.filter.outputs.src == 'true'
         working-directory: ./test/api/
         run: |
           npm ci
 
       - name: Load cache for '.test_setup'
+        if: steps.filter.outputs.src == 'true'
         id: cache-test-setup
         uses: actions/cache/restore@v6
         with:
@@ -182,16 +206,19 @@ jobs:
           key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
 
       - name: Install Specs
+        if: steps.filter.outputs.src == 'true'
         run: |
           lua ./test/api/setup_script.lua
 
       - name: Save cache for '.test_setup'
+        if: steps.filter.outputs.src == 'true'
         uses: actions/cache/save@v6
         with:
           path: ./.tmp/test-api
           key: ${{ steps.cache-test-setup.outputs.cache-primary-key }}
 
       - name: Run Api Tests Parallel
+        if: steps.filter.outputs.src == 'true'
         shell: bash
         run: |
           luarocks test --tree=.luarocks .rockspec/rissue-dev-1.rockspec -- --run=api
