@@ -128,7 +128,7 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           files=$(git diff --name-only "$BASE" "$HEAD")
-          if grep -qE '^(test|lua)/' <<< "$files"; then
+          if grep -qE '^(test|lua)/.*\.lua$' <<< "$files"; then
             echo "src=true" >> "$GITHUB_OUTPUT"
           else
             echo "src=false" >> "$GITHUB_OUTPUT"
