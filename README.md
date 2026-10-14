@@ -1,17 +1,22 @@
 # RIssue
 
-A nvim plugin that abstracts issues and pull requests from git providers such as:
+A plugin that abstracts issues and pull requests from git providers such as:
 
 - github
-- gitlab
-- gitea
-- forgejo (codeberg)
+- gitlab (planned on v0.3)
+- gitea (planned on v0.4)
+- forgejo (codeberg) (planned on v0.4)
 
 This plugin can be extended for integrations for multiple plugins such as Snacks.
+
+> [!NOTE]
+> This project is still on alpha
 
 ## Documentation
 
 Browse in the [docs folder](./docs) for documentation.
+
+To get started, go to [docs/main.md](./docs/main.md)
 
 ## Setup
 
@@ -32,61 +37,8 @@ On windows, install it with your preferred way (winget, website, choco, etc.)
 
 ## Developing
 
-- [precommit](https://github.com/pre-commit/pre-commit) or
-  [prek](https://github.com/j178/prek) (better)
+Install mise and run in project root:
 
-  Install it with your preferred package manager.
-
-  Afterwards, install precommit/prek in this project.
-
-  ```bash
-  # If using precommit
-  precommit install
-
-  # If using prek
-  prek install
-  ```
-
-- [luals](https://luals.github.io) (language server)
-
-  Install it with in your preferred IDE and use it.
-
-- [stylua](https://github.com/JohnnyMorganz/StyLua) (formatter)
-
-  Install it as a tool with your preferred package manager.
-
-  Alternatively, you can install it with cargo:
-
-  ```bash
-  cargo install stylua
-  ```
-
-- [selene](https://github.com/JohnnyMorganz/StyLua) (linter)
-
-  Install it as a tool with your preferred package manager.
-
-  Alternatively, you can install it with cargo:
-
-  ```bash
-  cargo install selene
-  ```
-
-- [busted](https://github.com/lunarmodules/busted)
-
-  Can be installed with luarocks:
-
-  ```bash
-  luarocks install busted
-  ```
-
-- [node](https://nodejs.org/en) (specifically npm)
-  (markdown format)
-
-  Install node (preferably with the latest LTS version) with your preferred
-  package manager.
-
-  Afterwards, install all node_modules needed:
-
-  ```bash
-  npm install
-  ```
+```bash
+mise setup
+```
