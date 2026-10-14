@@ -17,50 +17,9 @@
 ---@class rissue.log
 local M = {
   log_level = 2, -- info
-  builtin_logger = {
-    color_enabled = false,
-  },
+  --- Read only variable
+  builtin_logger_color_enabled = false,
 }
-
----@class rissue.log.Opts
----@field log_level? rissue.log.level
---- Replaces the current built-in logger.
----@field logger? rissue.log.logger
----Enables/Disables color on the built-in logger.
----@field builtin_logger_color_enabled? boolean
-
----@param opts rissue.log.Opts
-function M.setup(opts)
-  if opts.log_level ~= nil then
-    M.log_level = opts.log_level
-  end
-
-  if opts.builtin_logger_color_enabled ~= nil then
-    M.builtin_logger.color_enabled = opts.builtin_logger_color_enabled
-  end
-
-  if opts.logger ~= nil then
-    M._logger = opts.logger
-  else
-    -- default setup for builtin logger
-  end
-end
-
----@alias rissue.log.logger fun(msg: string, level: integer)
-
---- Sets the current logger
----@param logger rissue.log.logger
-function M.set_logger(logger)
-  M._logger = logger
-end
-
-function M.set_log_level(level)
-  M.log_level = level
-end
-
-M._logger = function(msg)
-  print(msg)
-end
 
 ---@class __rissue.log._levels<T>
 ---@field trace T
@@ -97,8 +56,87 @@ local log_name = {
   [M.levels.error] = "ERROR",
   [M.levels.info] = " INFO",
   [M.levels.warn] = " WARN",
-  [M.levels.off] = "",
+  [M.levels.off] = " USER",
 }
+
+local ansi_colors = {
+  [M.levels.error] = "\27[31m", -- Red
+  [M.levels.warn] = "\27[33m", -- Yellow
+  [M.levels.info] = "\27[34m", -- Blue
+  [M.levels.debug] = "\27[37m", -- White
+  [M.levels.trace] = "\27[90m", -- Gray (Bright Black)
+  [M.levels.off] = "\27[36m", -- cyan (for user)
+}
+
+--- The default logger
+---@param msg string
+---@param level rissue.log.level
+M.default_logger = function(msg, level)
+  local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
+  print(("[%s][%s]: %s"):format(time, log_name[level], msg))
+end
+
+local function load_logger_with_colors()
+  return function(msg, level)
+    local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
+    print(
+      ("[%s][%s%s\27[0m]: %s"):format(
+        time,
+        ansi_colors[level],
+        log_name[level],
+        msg
+      )
+    )
+  end
+end
+
+---@class rissue.log.Opts
+---@field log_level? rissue.log.level
+--- Replaces the current built-in logger.
+---@field logger? rissue.log.logger
+---Enables/Disables color on the built-in logger.
+---@field builtin_logger_color_enabled? boolean
+
+---@param opts rissue.log.Opts
+function M.setup(opts)
+  if opts.log_level ~= nil then
+    M.log_level = opts.log_level
+  end
+
+  if opts.logger ~= nil then
+    M._logger = opts.logger
+  else
+    if opts.builtin_logger_color_enabled ~= nil then
+      M.builtin_logger_color_enabled = opts.builtin_logger_color_enabled
+    else
+      local env_no_color = os.getenv("NO_COLOR")
+      local env_is_term = os.getenv("TERM")
+      local has_colors = env_is_term ~= nil and env_is_term ~= ""
+      if env_no_color and env_no_color ~= "" or env_is_term == "dumb" then
+        has_colors = false
+      end
+      M.builtin_logger_color_enabled = has_colors
+    end
+
+    if M.builtin_logger_color_enabled then
+      M._logger = load_logger_with_colors()
+    end
+  end
+end
+
+---@alias rissue.log.logger fun(msg: string, level: integer)
+
+--- Sets the current logger
+---@param logger rissue.log.logger
+function M.set_logger(logger)
+  M._logger = logger
+end
+
+function M.set_log_level(level)
+  M.log_level = level
+end
+
+M._logger = M.default_logger
 
 --- Logs to logger.
 ---
@@ -107,8 +145,7 @@ local log_name = {
 ---@param msg string
 ---@param level rissue.log.level
 function M.log(msg, level)
-  local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
-  M._logger(("[%s][%s]: %s"):format(time, log_name[level], msg), level)
+  M._logger(msg, level)
 end
 
 --- Checks if the specified level is enabled

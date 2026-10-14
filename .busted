@@ -35,6 +35,10 @@ if not is_test_strict then
   table.insert(excluded_tags, "blocking")
 end
 
+if not (os.getenv("INTERACTIVE") and os.getenv("INTERACTIVE") ~= "") then
+  table.insert(excluded_tags, "interactive_only")
+end
+
 return {
   _all = {
     lpath = "./lua/?.lua;./lua/?/init.lua;./test/?.lua;./test/?/init.lua",

@@ -29,6 +29,11 @@ prek install
 description = "Run tests"
 run = "luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print"
 
+
+[tasks.testi]
+description = "Run tests with interactive tests enabled"
+run = "INTERACTIVE=true luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print"
+
 [tasks.test-api-setup]
 description = "Setup required specs for api tests"
 run = "lua ./test/api/setup_script.lua"
