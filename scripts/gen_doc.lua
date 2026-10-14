@@ -49,6 +49,8 @@
 --   end
 -- end
 
+package.path = "./lua/?.lua;./lua/?/init.lua" .. package.path
+
 --- Do package injection
 package.loaded["luv"] = {}
 
@@ -566,7 +568,7 @@ local function main()
       local result = write_blocks(contents, info)
       write_file(filepath, result)
 
-      os.execute("./node_modules/.bin/prettier --write " .. filepath)
+      os.execute("prettier --write " .. filepath)
 
       local fres, rerr = read_file(filepath)
       if not fres then

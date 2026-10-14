@@ -15,8 +15,8 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local cmd = require("rissue.utils.process")
-local fn = require("api.setup_utils_fn")
 local log = require("rissue.utils.log")
+local utils = require("util")
 local uv = require("luv") ---@type uv
 
 local describe = describe or require("busted").describe
@@ -97,11 +97,15 @@ local function run_mock_server(filepath, port_offset, id, callback)
 
   if log.level_enabled(log.levels.trace) then
     p:register_event("on_stdout", function()
-      print(fn.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id))
+      print(
+        utils.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id)
+      )
     end)
 
     p:register_event("on_stderr", function()
-      print(fn.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id))
+      print(
+        utils.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id)
+      )
     end)
   end
 

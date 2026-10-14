@@ -44,21 +44,21 @@ repos:
     hooks:
       - id: format
         name: Format lua files
-        entry: stylua
+        entry: mise format
         language: system
         types: [lua]
         stages: [pre-commit]
         pass_filenames: true
       - id: autodoc
         name: Run Autodoc
-        entry: ./scripts/doc
+        entry: mise doc
         language: system
         types: [lua]
-        files: ^src/
+        files: ^lua/
         stages: [pre-commit]
       - id: lint
         name: Lint lua files
-        entry: selene --config .selene.toml
+        entry: mise lint-src
         language: system
         types: [lua]
         exclude: ^test/
@@ -66,7 +66,7 @@ repos:
         stages: [pre-commit]
       - id: lint-tests
         name: Lint lua test files
-        entry: selene --config .selene.tests.toml
+        entry: mise lint-test
         language: system
         types: [lua]
         files: ^test/
@@ -74,7 +74,7 @@ repos:
         stages: [pre-commit]
       - id: busted
         name: busted
-        entry: env TEST_STRICT=true busted test/ --defer-print --suppress-pending --lua=lua5.1
+        entry: env TEST_STRICT=true TEST_ALL=true mise test
         language: system
         types: [lua]
         exclude: ^lua/rissue/types/

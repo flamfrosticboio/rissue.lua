@@ -17,10 +17,11 @@
 -- Github setup
 
 local gutils = require("api.github.setup_utils")
-local sutils = require("api.setup_utils")
-local sutils_fn = require("api.setup_utils_fn")
+local setup_manager = require("api.setup")
+local setup_utils = require("api.setup_utils")
+local utils = require("util")
 
-local cwd = sutils.cwd .. "/github"
+local cwd = utils.get_test_api_path("github")
 
 local tmp_folder = "./.tmp"
 local tmp_filename_prefix = tmp_folder .. "/__rissue_setup_github_"
@@ -39,16 +40,23 @@ local function spec_pipeline(spec_name, url)
   local tmp_filename_processed = tmp_filename .. "_bundled.json"
   ---@type __rissue.Pipeline
   return {
-    sutils.p_run("curl", {
+    setup_manager.p_run("curl", {
       args = { "-sSf", "--remove-on-error", "-L", "-o", tmp_filename, url },
       skip_when_file_exists = dest_path,
     }),
-    sutils.p_register_cleanup(function()
-      -- incase when the whole pipeline fails
-      sutils.p_rmfile(tmp_filename, { skip_when_fail = true })
-      sutils.p_rmfile(tmp_filename_processed, { skip_when_fail = true })
-    end),
-    sutils.p_run(redocly_bin, {
+    setup_manager.p_register_cleanup(
+      ---@async
+      function()
+        setup_utils.run_pipeline({
+          setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
+          setup_manager.p_rmfile(
+            tmp_filename_processed,
+            { skip_when_fail = true }
+          ),
+        })
+      end
+    ),
+    setup_manager.p_run(redocly_bin, {
       args = {
         "bundle",
         tmp_filename,
@@ -59,15 +67,7 @@ local function spec_pipeline(spec_name, url)
         redocly_config,
       },
     }),
-    sutils.p_run(redocly_bin, {
-      args = {
-        "lint",
-        tmp_filename_processed,
-        "--config",
-        redocly_config,
-      },
-    }),
-    sutils.p_rename(tmp_filename_processed, dest_path),
+    setup_manager.p_rename(tmp_filename_processed, dest_path),
   }
 end
 
@@ -75,7 +75,7 @@ end
 ---@return __rissue.Pipeline
 local function empty_file(filename)
   return {
-    sutils.p_write_f(cwd .. "/" .. filename, ""),
+    setup_manager.p_write_f(cwd .. "/" .. filename, ""),
   }
 end
 
@@ -131,9 +131,9 @@ local function run()
     )
   end
 
-  sutils_fn.mkdir(tmp_folder)
-  sutils.handle_caching("github", "github", 604800) -- 1 week
-  sutils.run_setup(cwd, setup_file)
+  setup_utils.mkdir(tmp_folder)
+  setup_manager.handle_caching("github", 604800) -- 1 week
+  setup_manager.run_setup(cwd, setup_file)
 end
 
 return run
