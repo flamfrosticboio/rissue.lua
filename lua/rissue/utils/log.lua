@@ -30,8 +30,22 @@ local M = {
 ---@field error T
 ---@field off T
 
+--- Logging levels where:
+--- - off: 5
+--- - error: 4
+--- - warn: 3
+--- - info: 2
+--- - debug: 1
+--- - trace: 0
 ---@class rissue.log.levels: __rissue.log._levels<integer>
 
+--- Logging levels where:
+--- - off: 5
+--- - error: 4
+--- - warn: 3
+--- - info: 2
+--- - debug: 1
+--- - trace: 0
 ---@alias rissue.log.level
 ---| 0 trace
 ---| 1 debug
@@ -90,11 +104,14 @@ end
 --- The default logger
 M.default_logger = log_no_color
 
+--- Options for logger
 ---@class rissue.log.Opts
+--- The current log level. Use `log.levels.<name>` to set up or pass an integer
+--- corresponding to the log level.
 ---@field log_level? rissue.log.level
 --- Replaces the current built-in logger.
 ---@field logger? rissue.log.logger
----Enables/Disables color on the built-in logger.
+--- Enables or disables printing with `colors` on the built-in logger.
 ---@field builtin_logger_color_enabled? boolean
 
 --- Runs the logger setup

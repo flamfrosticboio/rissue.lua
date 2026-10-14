@@ -28,7 +28,7 @@
 --- Specifies the timeout in milliseconds on operations such as `get.issues()`
 --- and `provider.get_provider_info()`
 ---@field timeout integer
----@field log rissue.log.Opts
+---@field log rissue.log.Opts Logging setup opts
 
 ---@class rissue.EndpointShortcut
 --- List of patterns that can be used on `string:match()`
