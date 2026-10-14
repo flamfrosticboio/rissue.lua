@@ -52,7 +52,7 @@ New Features:
   - Improve error logging
   - Improve how many items are fetched on a single page fetch.
 
-Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2](https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2)
+Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2](https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2.0)
 
 ## v0.1
 
