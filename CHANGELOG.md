@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.1
+
+Documentation:
+
+- Fix some documentation on:
+  - `rissue.get_merge_requests()`
+
+Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1](https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1)
+
 ## v0.2
 
 New Features:
