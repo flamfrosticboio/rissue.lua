@@ -190,7 +190,7 @@ end
 --- rissue.get_merge_requests(info, { max_items = 50 })
 --- ```
 ---
----@param remote rissue.ProviderInfo<any> | rissue.RemoteInfo | string # See description
+---@param remote rissue.ProviderInfo | rissue.RemoteInfo | string # See description
 ---@param opts? table<rissue.ProviderName, table?> | table # See description
 ---@return rissue.pr[]? merge_requests List of merge requests. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.
