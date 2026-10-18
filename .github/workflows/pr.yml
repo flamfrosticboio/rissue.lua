@@ -21,7 +21,7 @@ jobs:
               { regex: /^(bugfix|fix)(\(.+\))?!?:/, label: 'bugfix' },
               { regex: /^feat(\(.+\))?!?:/,         label: 'feature' },
               { regex: /^docs(\(.+\))?!?:/,         label: 'documentation' },
-              { regex: /^(chore)(\(.+\))?!?:/,      label: 'chore' },
+              { regex: /^chore(?!\(changelog\))(\(.+\))?!?:/, label: 'chore' },
             ];
             const managed = rules.map(r => r.label);
 
