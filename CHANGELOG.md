@@ -2,7 +2,18 @@
 
 ## v0.2.1
 
-Documentation:
+**Features:**
+
+- Auto enable logging on `process.run()` and `process.run_co()` on process's stdout
+  and stderr when log level is trace.
+- Reduce logging overhead on process's stdout and stderr.
+
+**Fixes:**
+
+- Fix logging on `utils.process` where in using `opts.print_output = true` on
+  `process.run()` and `process.run_co()` would print out `info` instead of `trace`
+
+**Documentation:**
 
 - Fix some documentation on:
   - `rissue.get_merge_requests()`
