@@ -433,7 +433,9 @@ function M.run_co(command_opts, opts)
     safe_co_resume(co)
   end)
 
-  if (opts and opts.print_output) or log.level_enabled(log.levels.trace) then
+  if
+    (opts and opts.print_output == true) or log.level_enabled(log.levels.trace)
+  then
     p:register_event("on_stdout", function()
       log.info("| " .. p:get_last_stdout(true))
     end)
@@ -474,7 +476,10 @@ function M.run(command_opts, timeout, opts)
   p:register_event("on_exit", function()
     finished = true
   end)
-  if opts and opts.print_output then
+  if
+    (opts and opts.print_output == true)
+    or log.level_enabled(log.levels.trace)
+  then
     p:register_event("on_stdout", function()
       log.info("| " .. p:get_last_stdout(true))
     end)
