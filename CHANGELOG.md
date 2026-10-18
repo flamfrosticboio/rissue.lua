@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.0
+
+Features:
+
+- Auto enable logging on process's stdout and stderr when trace is enabled in
+  log level.
+
 ## v0.2.1
 
 Documentation:
