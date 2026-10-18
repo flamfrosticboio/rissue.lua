@@ -437,10 +437,10 @@ function M.run_co(command_opts, opts)
     (opts and opts.print_output == true) or log.level_enabled(log.levels.trace)
   then
     p:register_event("on_stdout", function()
-      log.info("| " .. p:get_last_stdout(true))
+      log.log("| " .. p:get_last_stdout(true), log.levels.trace)
     end)
     p:register_event("on_stderr", function()
-      log.info("@ " .. p:get_last_stderr(true))
+      log.log("@ " .. p:get_last_stderr(true), log.levels.trace)
     end)
   end
 
@@ -481,10 +481,10 @@ function M.run(command_opts, timeout, opts)
     or log.level_enabled(log.levels.trace)
   then
     p:register_event("on_stdout", function()
-      log.info("| " .. p:get_last_stdout(true))
+      log.log("| " .. p:get_last_stdout(true), log.levels.trace)
     end)
     p:register_event("on_stderr", function()
-      log.info("@ " .. p:get_last_stderr(true))
+      log.log("@ " .. p:get_last_stderr(true), log.levels.trace)
     end)
   end
   err = p:run()
