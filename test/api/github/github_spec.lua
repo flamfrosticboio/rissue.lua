@@ -313,7 +313,7 @@ describe("github #api", function()
     function(url, opts)
       if url:match("api.github.com") then
         ---@type rissue.utils.curl.Result
-        return nil, "Proxy block (reason: test mode)"
+        return nil, "Url blocked due to test mode. This is safe!"
       end
       return original_request(url, opts)
     end
