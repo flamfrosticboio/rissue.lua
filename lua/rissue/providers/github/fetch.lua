@@ -276,10 +276,12 @@ function M.try_fetch(info, queries, opts)
 
       xpcall(function()
         parse_items(result.contents.items)
-      end, log.log_func(
-        log.levels.error,
-        { prefix = "Failed to parse: " }
-      ))
+      end, function(xpcall_err)
+        local l = log.levels.error
+        if log.level_enabled(l) then
+          log.log("Failed to parse: " .. xpcall_err, l)
+        end
+      end)
 
       if not result.next_url or is_full() then
         break
