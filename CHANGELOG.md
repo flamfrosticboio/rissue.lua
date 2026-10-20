@@ -2,10 +2,39 @@
 
 ## v0.3.0
 
-Features:
+**Features:**
 
 - Auto enable logging on process's stdout and stderr when trace is enabled in
   log level.
+- `utils/log`
+  - Regular printing functions such as `log.info()`, `log.warn()` and etc.
+    can now take multiple parameters.
+  - New function: `log.get_log_level()` to get current log level.
+  - `log.log()` and `rissue.logger_func` can now take context. This affects
+    setting up custom loggers where you can read the context of the log passed.
+
+    `rissue.logger_func`: `fun(msg: string, level: rissue.log.level, info?: rissue.logger.log_info)`
+
+    This changes enables fine adjustment to the message output. Example:
+
+    ```lua
+    log.set_logger(function(msg, level, info)
+        if info and info.context then
+            msg = "[" .. info.context .. "] " .. msg
+        end
+        vim.notify(msg, level)
+    end)
+    ```
+
+**Changes:**
+
+- Accessing `log_level` (now called `_level`) and `_logger` are tagged protected.
+- `github`:
+  - Updated logging to be more clear and simpler.
+
+**Breaking Changes:**
+
+- Removed `log_func`. Write a manual implementation instead.
 
 ## v0.2.1
 

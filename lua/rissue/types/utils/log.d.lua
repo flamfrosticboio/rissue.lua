@@ -1,0 +1,117 @@
+-- RIssue - Plugin for getting issues and merge requests from git providers
+-- Copyright (C) 2026  flamfrosticboio
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+--- Logging levels where:
+--- - off: 5
+--- - error: 4
+--- - warn: 3
+--- - info: 2
+--- - debug: 1
+--- - trace: 0
+---@alias rissue.log.level
+---| 0 trace
+---| 1 debug
+---| 2 info
+---| 3 warn
+---| 4 error
+---| 5 off
+
+--- Logging levels where:
+--- - off: 5
+--- - error: 4
+--- - warn: 3
+--- - info: 2
+--- - debug: 1
+--- - trace: 0
+---@alias rissue.log.level.named
+---| "trace" trace
+---| "debug" debug
+---| "info" info
+---| "warn" warn
+---| "error" error
+---| "off" off
+
+---@class __rissue.log._levels<T>
+---@field trace T
+---@field debug T
+---@field info T
+---@field warn T
+---@field error T
+---@field off T
+
+---@class rissue.log.builtin
+---@field color_enabled boolean
+
+--- Logging levels where:
+--- - off: 5
+--- - error: 4
+--- - warn: 3
+--- - info: 2
+--- - debug: 1
+--- - trace: 0
+---@class rissue.log.levels: __rissue.log._levels<integer>
+
+---@alias rissue.logger_func fun(msg: string, level: rissue.log.level, info?: rissue.logger.log_info)
+
+---@class rissue.logger.log_info
+---@field context? string
+
+---@class rissue.logger
+--- [Internal]
+---@field protected _level rissue.log.level
+--- [Internal]
+---@field protected _logger rissue.logger_func
+--- List of levels
+---@field levels rissue.log.levels
+--- Logs to logger.
+---
+--- Warning: Does not filter logging based on current log level.
+---          Wrap it with `log.level_enabled()` instead.
+---@field log fun(msg: string, level: rissue.log.level)
+--- Checks if the specified level is enabled.
+---@field level_enabled fun(level: rissue.log.level): boolean
+--- Gets the current log level
+---@field get_log_level fun(): integer
+--- Sets the current log level
+---@field set_log_level fun(level: rissue.log.level | rissue.log.level.named)
+--- Sets the current logger function (e.g. 'print', 'vim.notify')
+---@field set_logger fun(logger: rissue.logger_func)
+---@field info fun(...: any) Log an `info` message
+---@field warn fun(...: any) Log an `warning` message
+---@field error fun(...: any) Log an `error` message
+---@field debug fun(...: any) Log an `debug` statement
+---@field trace fun(...: any) Log an `trace` statement
+
+---@class rissue.mod.logger: rissue.logger
+--- Creates a new logger instance. If logger is not passed from opts, it will
+--- use the global logger.
+---@field new fun(opts?: rissue.log.new.Opts): rissue.logger
+--- Setup the global logger.
+---@field setup fun(opts: rissue.log.Opts)
+
+---@class rissue.log.new.Opts
+---@field context? string
+---@field logger? rissue.logger_func
+
+--- Options for logger
+---@class rissue.log.Opts
+--- The current log level. Use `log.levels.<name>` to set up or pass an integer
+--- corresponding to the log level.
+---@field log_level? rissue.log.level
+--- Replaces the current built-in logger.
+---@field logger? rissue.logger_func
+--- Enables or disables printing with `colors` on the built-in logger.
+---@field builtin_logger_color_enabled? boolean

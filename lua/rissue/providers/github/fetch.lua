@@ -171,20 +171,10 @@ local function try_fetch_page(opts)
       ) or nil,
     } --[[@as __rissue.Github.fetch_page.Result]]
   else
-    local err = (response and response.err or "")
-      .. (fetch_err and (" | " .. fetch_err) or "")
-    err = err ~= "" and err or "unknown error"
+    local err = (response and response.err) or fetch_err or "unknown error"
 
-    if log.level_enabled(log.levels.error) then
-      local message = "Failed to fetch on '"
-        .. opts.query.endpoint
-        .. "': "
-        .. err
-      if response and response.content ~= "" then
-        message = message .. "\nServer responded: " .. response.content
-      end
-
-      log.log(message, log.levels.error)
+    if err and response and response.content ~= "" then
+      err = err .. "\n>>> Server response: " .. response.content
     end
 
     return nil, err
@@ -270,16 +260,23 @@ function M.try_fetch(info, queries, opts)
       })
 
       if not result then
-        log.error("Failed to fetch: " .. (err or "unknown error"))
+        log.error(
+          "Failed to fetch on endpoint '"
+            .. query.endpoint
+            .. "': "
+            .. (err or "unknown error")
+        )
         break
       end
 
       xpcall(function()
         parse_items(result.contents.items)
-      end, log.log_func(
-        log.levels.error,
-        { prefix = "Failed to parse: " }
-      ))
+      end, function(xpcall_err)
+        local l = log.levels.error
+        if log.level_enabled(l) then
+          log.log("Failed to parse: " .. xpcall_err, l)
+        end
+      end)
 
       if not result.next_url or is_full() then
         break
