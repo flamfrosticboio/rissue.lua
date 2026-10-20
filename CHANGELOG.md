@@ -29,6 +29,8 @@
 **Changes:**
 
 - Accessing `log_level` (now called `_level`) and `_logger` are tagged protected.
+- `github`:
+  - Updated logging to be more clear and simpler.
 
 **Breaking Changes:**
 
