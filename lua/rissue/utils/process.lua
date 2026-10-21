@@ -409,11 +409,12 @@ function M.spawn_err(opts)
   return p
 end
 
----@async
 --- Wrapper to M.spawn with `uv.spawn()` that blocks for exit inside coroutines.
 --- Use `process.spawn()` if manually implementing instead.
 ---
 --- Warning: May raise errors
+---@async
+---@deprecated use `process.run_async()` instead
 --- @param command_opts rissue.utils.CommandOpts
 --- @param opts rissue.utils.run.Opts?
 --- @return rissue.utils.CmdResult? result
@@ -456,12 +457,54 @@ function M.run_co(command_opts, opts)
   } --[[@as rissue.utils.CmdResult]]
 end
 
+--- Runs the process until it exits.
+---@async
+---@param async rissue.Async
+---@param command_opts rissue.utils.CommandOpts
+---@param opts rissue.utils.run.Opts?
+---@return rissue.utils.CmdResult? result
+---@return string? error
+function M.run_async(async, command_opts, opts)
+  local p, err = M.spawn(command_opts)
+  if not p then
+    return nil, err
+  end
+
+  p:register_event("on_exit", function()
+    async:resume()
+  end)
+
+  if
+    (opts and opts.print_output == true) or log.level_enabled(log.levels.trace)
+  then
+    p:register_event("on_stdout", function()
+      log.log("| " .. p:get_last_stdout(true), log.levels.trace)
+    end)
+    p:register_event("on_stderr", function()
+      log.log("@ " .. p:get_last_stderr(true), log.levels.trace)
+    end)
+  end
+
+  err = p:run()
+  if err then
+    return nil, err
+  end
+
+  async:yield()
+  return {
+    return_code = p:get_code(),
+    stdout = p:get_stdout(),
+    stderr = p:get_stderr(),
+  } --[[@as rissue.utils.CmdResult]]
+end
+
 --- Blocks the main thread until the process exists.
 --- Recommended on one shot commands such as `mkdir` and `touch`.
 --- Warning: May raise errors! Recommended to wrap in `pcall()`
 ---
 --- Use `process.run_co()` to run blocking on coroutine instead.
 --- Use `os.execute()` for simplicity instead.
+---@deprecated use `process.run_async()` instead
 --- @param command_opts rissue.utils.CommandOpts
 --- @param timeout integer Pass -1 to disable timeout
 --- @param opts rissue.utils.run.Opts?

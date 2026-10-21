@@ -16,8 +16,6 @@
 
 local config = require("rissue.config")
 local env = require("rissue.env")
-local log = require("rissue.utils.log")
-local process = require("rissue.utils.process")
 
 --- Implementations of `rissue.get_provider_info()`
 ---@class rissue.mod.Provider
@@ -60,13 +58,15 @@ end
 --- Gets the provider info based on the remote url.
 --- May trigger api requests to the url if no pattern was found from
 --- `config.options.endpoint_shortcuts`
+---@async
+---@param async rissue.Async
 ---@param remote_info rissue.RemoteInfo
 --- Additional request options passed to providers.
 --- Scoped to provider names (e.g. github, gitlab) to prevent conflicts
 ---@param opts table<rissue.ProviderName, table?>?
 ---@return rissue.ProviderInfo? info
 ---@return string? error
-function provider.provider_info(remote_info, opts)
+function provider.provider_info(async, remote_info, opts)
   local remote_url = remote_info.full_url
 
   -- known public hosting providers - no API call needed
@@ -88,32 +88,13 @@ function provider.provider_info(remote_info, opts)
   end
 
   for provider_name, provider_module in pairs(config.providers) do
-    -- async calling blocking pattern
-    local supported ---@type boolean
-    local additional_info ---@type table?
-    local finished = false
-
     local token = env.get_token(provider_name)
-
-    local thread = coroutine.create(function()
-      supported, additional_info = provider_module.supports(
-        remote_info,
-        token,
-        config.merge_provider_settings(provider_module, opts)
-      )
-      finished = true
-    end)
-    local co_ok, co_error = coroutine.resume(thread)
-    if not co_ok then
-      log.warn(("Failed to process for %s: %s"):format(provider_name, co_error))
-    end
-
-    local success, err = process.wait(function()
-      return finished
-    end, config.options.timeout)
-    if not success then
-      log.warn(("Failed to process for %s: %s"):format(provider_name, err))
-    end
+    local supported, additional_info = provider_module.supports(
+      async,
+      remote_info,
+      token,
+      config.merge_provider_settings(provider_module, opts)
+    )
 
     if supported then
       ---@type rissue.ProviderInfo

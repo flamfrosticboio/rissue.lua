@@ -1,4 +1,3 @@
-local process = require("rissue.utils.process")
 -- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
@@ -15,6 +14,7 @@ local process = require("rissue.utils.process")
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+local process = require("rissue.utils.process")
 ---@alias __rissue.Pack { n: integer, [integer]: any }
 
 ---@type table
@@ -58,6 +58,7 @@ function Async:yield(...)
 end
 
 --- Internal: the only place that calls coroutine.resume.
+---@package
 ---@param ... any
 function Async:_step(...)
   local status = coroutine.status(self.co)
@@ -125,9 +126,10 @@ function M.run(backend, cb)
   return a
 end
 
-local function report(err)
+local function report(err, tb)
   local log = require("rissue.utils.log")
   log.error(err)
+  log.trace(tb)
 end
 
 ---@return __rissue.async.Backend
@@ -140,8 +142,8 @@ function M.default_backend()
       fn()
     end,
     on_error = function(err, tb)
-      err_msg = tostring(tb or err)
-      report(err_msg)
+      err_msg = err
+      report(err, tb)
     end,
     wait = function(cond, timeout, interval)
       if err_msg ~= nil then
