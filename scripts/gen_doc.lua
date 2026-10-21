@@ -240,7 +240,8 @@ local function parse_fields(parent_name, fields, buffer, parent_spec)
         if type(field.extends.args) == "table" then
           lines[#lines + 1] = "\n**Parameters:**\n"
           for _, arg in ipairs(field.extends.args) do
-            local line = string.format("- `%s`: `%s`", arg.name, arg.view)
+            local line =
+              string.format("- `%s`: `%s`", arg.name or "...", arg.view)
 
             if arg.rawdesc then
               line = line .. string.format(" -- %s", arg.rawdesc)
