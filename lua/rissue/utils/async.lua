@@ -1,3 +1,4 @@
+local process = require("rissue.utils.process")
 -- RIssue - Plugin for getting issues and merge requests from git providers
 -- Copyright (C) 2026  flamfrosticboio
 --
@@ -24,6 +25,7 @@ local YIELD = {}
 ---@class __rissue.async.Backend
 ---@field schedule fun(fn: fun()) must defer; never run fn synchronously
 ---@field on_error fun(err: any, tb: string)
+---@field wait fun(cond: (fun(): boolean), timeout: integer, interval: integer?)
 
 ---@class rissue.Async
 ---@field co thread
@@ -121,6 +123,34 @@ function M.run(backend, cb)
   )
   a:_step()
   return a
+end
+
+local function report(err)
+  local log = require("rissue.utils.log")
+  log.error(err)
+end
+
+---@return __rissue.async.Backend
+function M.default_backend()
+  local err_msg = nil
+
+  ---@type __rissue.async.Backend
+  return {
+    schedule = function(fn)
+      fn()
+    end,
+    on_error = function(err, tb)
+      err_msg = tostring(tb or err)
+      report(err_msg)
+    end,
+    wait = function(cond, timeout, interval)
+      if err_msg ~= nil then
+        error(err_msg, 2)
+      else
+        process.wait(cond, timeout, interval)
+      end
+    end,
+  }
 end
 
 return M
