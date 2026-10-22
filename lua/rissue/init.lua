@@ -65,7 +65,7 @@ rissue.get_remote_info = provider.remote_info
 
 ---@param cb async fun(a: rissue.Async)
 local function run_blocking(cb)
-  local backend = async.default_backend()
+  local backend, wait = async.default_backend()
   local done = false
   async.run(
     backend, ---@async
@@ -75,7 +75,7 @@ local function run_blocking(cb)
     end
   )
 
-  backend.wait(function()
+  wait(function()
     return done
   end, config.options.timeout)
 end

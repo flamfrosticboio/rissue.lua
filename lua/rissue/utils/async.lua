@@ -25,7 +25,6 @@ local YIELD = {}
 ---@class __rissue.async.Backend
 ---@field schedule fun(fn: fun()) must defer; never run fn synchronously
 ---@field on_error fun(err: any, tb: string)
----@field wait fun(cond: (fun(): boolean), timeout: integer, interval: integer?)
 
 ---@class rissue.Async
 ---@field co thread
@@ -134,11 +133,12 @@ local function report(err, tb)
 end
 
 ---@return __rissue.async.Backend
+---@return fun(cond: (fun(): boolean), timeout: integer, interval: integer?) wait_fn wait function
 function async.default_backend()
   local err_msg = nil
 
   ---@type __rissue.async.Backend
-  return {
+  local backend = {
     schedule = function(fn)
       fn()
     end,
@@ -146,14 +146,16 @@ function async.default_backend()
       err_msg = err
       report(err, tb)
     end,
-    wait = function(cond, timeout, interval)
-      if err_msg ~= nil then
-        error(err_msg, 2)
-      else
-        process.wait(cond, timeout, interval)
-      end
-    end,
   }
+
+  local function wait(cond, timeout, interval)
+    if err_msg ~= nil then
+      error(err_msg, 2)
+    else
+      process.wait(cond, timeout, interval)
+    end
+  end
+  return backend, wait
 end
 
 return async
