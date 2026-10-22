@@ -104,12 +104,13 @@ function Async:wrap(fn)
   return self:yield()
 end
 
-local M = {}
+---@class rissue.mod.Async
+local async = {}
 
 ---@param backend __rissue.async.Backend
 ---@param cb async fun(a: rissue.Async)
 ---@return rissue.Async
-function M.run(backend, cb)
+function async.run(backend, cb)
   ---@type rissue.Async
   local a = setmetatable({
     backend = backend,
@@ -133,7 +134,7 @@ local function report(err, tb)
 end
 
 ---@return __rissue.async.Backend
-function M.default_backend()
+function async.default_backend()
   local err_msg = nil
 
   ---@type __rissue.async.Backend
@@ -155,4 +156,4 @@ function M.default_backend()
   }
 end
 
-return M
+return async
