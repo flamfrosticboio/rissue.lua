@@ -51,8 +51,10 @@ local function test_version(name, specfile, opts)
     --- you would see in the response, just ignore them.
 
     it("found provider", function()
-      local info, err =
-        rissue.get_provider_info("http://" .. domain .. "/owner/repo.git")
+      local info, err = rissue.get_provider_info(
+        "http://" .. domain .. "/owner/repo.git",
+        opts.request_opts
+      )
       assert(not err, err)
       assert.is_not_nil(info)
       assert.same({
