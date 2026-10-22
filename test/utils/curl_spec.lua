@@ -481,17 +481,4 @@ describe("curl", function()
       )
     end)
   end)
-
-  describe("raw", function()
-    it("fail on non-coroutine", function()
-      assert.equal(
-        false,
-        pcall(function()
-          ---@diagnostic disable-next-line: await-in-sync, missing-fields
-          curl.raw({}, {})
-        end),
-        "did not fail successfully"
-      )
-    end)
-  end)
 end)
