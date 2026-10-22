@@ -91,8 +91,8 @@ end
 function Process:try_exit()
   if not self._complete and table_op.all(self._finished) then
     self._complete = true
-    run_all_events(self._events.on_exit)
     self._running = false
+    run_all_events(self._events.on_exit)
   end
 end
 

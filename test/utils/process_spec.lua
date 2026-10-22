@@ -16,43 +16,58 @@
 
 ---@diagnostic disable: redundant-parameter
 
-local cmd = require("rissue.utils.process")
+local async = require("rissue.utils.async")
+local async_test_backend = require("async_test_backend")
+local process = require("rissue.utils.process")
 
----@param func async fun(co: thread)
-local function with_co(func)
-  local co = coroutine.create(func)
-  local ok, err = coroutine.resume(co, co)
-  if not ok then
-    error(debug.traceback(err))
-  end
+---@param cb async fun(a: rissue.Async)
+local function run_blocking(cb)
+  local done = false
+
+  async_test_backend.reset()
+
+  async.run(
+    async_test_backend,
+    ---@async
+    function(a)
+      cb(a)
+      done = true
+    end
+  )
+
+  async_test_backend.wait(function()
+    return done
+  end)
 end
 
 ---@param opts rissue.utils.CommandOpts
 ---@return rissue.utils.Process
 local function spawn(opts)
-  local process, err = cmd.spawn(opts)
-  assert(process, err or "unknown error")
-  return process
+  local p, err = process.spawn(opts)
+  assert(p, err or "unknown error")
+  return p
 end
 
 describe("cmd", function()
   describe("spawn", function()
-    it("get running ok #blocking", function()
-      local done = false
-      with_co(function()
-        local process = spawn({ cmd = "echo", args = { "Hello world" } })
-        assert.is_false(process:is_running())
-        process:run()
-        assert.is_true(process:is_running())
-        done = true
-      end)
-
-      require("luv").run()
-      cmd.wait(function()
-        return done
-      end, -1)
-      assert.is_true(done, "Process has not yet completed")
+    it("get running ok #blocking #this", function()
+      run_blocking(
+        ---@async
+        function(a)
+          local p = spawn({ cmd = "echo", args = { "Hello world" } })
+          assert.is_false(p:is_running(), "not false before run")
+          p:register_event("on_exit", function()
+            a:resume()
+          end)
+          p:run()
+          assert.is_true(p:is_running(), "not true after run")
+          a:yield()
+          -- should be returned once on_exit was exited
+          assert.is_false(p:is_running(), "not false after close")
+        end
+      )
     end)
+
     it("stdout ok", function()
       local contents = nil
       local co
@@ -60,7 +75,7 @@ describe("cmd", function()
         ---@async
         function()
           local p, spawn_err =
-            cmd.spawn({ cmd = "echo", args = { "Hello World" } })
+            process.spawn({ cmd = "echo", args = { "Hello World" } })
           assert(p ~= nil, spawn_err)
           p:register_event("on_exit", function()
             coroutine.resume(co)
@@ -74,7 +89,8 @@ describe("cmd", function()
       local ok, err = coroutine.resume(co)
       assert(ok == true, err)
 
-      require("luv").run()
+      local uv = require("luv") ---@type uv
+      uv.run()
       assert.equal("Hello World\n", contents)
     end)
 
@@ -84,8 +100,10 @@ describe("cmd", function()
       co = coroutine.create(
         ---@async
         function()
-          local p, spawn_err =
-            cmd.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
+          local p, spawn_err = process.spawn({
+            cmd = "sh",
+            args = { "-c", "echo Hello World 1>&2" },
+          })
           assert(p ~= nil, spawn_err)
           assert(type(p) ~= "string", "cmd.spawn returned a string")
           p:register_event("on_exit", function()
@@ -107,7 +125,7 @@ describe("cmd", function()
     it("return code ok", function()
       local contents = nil
       local p, spawn_err =
-        cmd.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
+        process.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
       assert(p ~= nil, spawn_err)
       local co
       co = coroutine.create(
@@ -136,7 +154,7 @@ describe("cmd", function()
         ---@async
         function()
           local p, spawn_err =
-            cmd.spawn({ cmd = "pwd", args = {}, cwd = "/tmp" })
+            process.spawn({ cmd = "pwd", args = {}, cwd = "/tmp" })
           assert(p ~= nil, spawn_err)
           p:register_event("on_exit", function()
             coroutine.resume(co)
@@ -159,7 +177,7 @@ describe("cmd", function()
       co = coroutine.create(
         ---@async
         function()
-          local p, spawn_err = cmd.spawn({
+          local p, spawn_err = process.spawn({
             cmd = "printenv",
             args = { "HELLO" },
             env = { HELLO = "YES" },
@@ -195,7 +213,7 @@ describe("cmd", function()
       co = coroutine.create(
         ---@async
         function()
-          local p, spawn_err = cmd.spawn({
+          local p, spawn_err = process.spawn({
             cmd = "printenv",
             args = { "HELLO" },
             env = { "HELLO=YES" },
@@ -226,7 +244,7 @@ describe("cmd", function()
 
     it("disable on unknown binary", function()
       local p, spawn_err =
-        cmd.spawn({ cmd = "someRandomBinary29924", args = {} })
+        process.spawn({ cmd = "someRandomBinary29924", args = {} })
       assert(p ~= nil, spawn_err)
       ---@cast p rissue.utils.Process
       local msg = p:run()
@@ -244,7 +262,7 @@ describe("cmd", function()
         ---@async
         function()
           local err
-          result, err = cmd.run_co({
+          result, err = process.run_co({
             cmd = "sh",
             args = {
               "-c",
