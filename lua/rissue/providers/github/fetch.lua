@@ -189,8 +189,8 @@ end
 
 ---@async
 ---@param delay integer Delay in milliseconds
-local function delay_with_warning(delay)
-  local delay_ok, delay_err = process.try_delay(delay)
+local function delay_with_warning(async, delay)
+  local delay_ok, delay_err = process.sleep(async, delay)
   if not delay_ok then
     log.warn("Failed to delay: " .. (delay_err or "unknown error"))
   end
@@ -290,7 +290,7 @@ function M.try_fetch(async, info, queries, opts)
       end
 
       query = { endpoint = result.next_url, param = {} }
-      delay_with_warning(opts.settings.fetch_delay)
+      delay_with_warning(async, opts.settings.fetch_delay)
     end
   end
 

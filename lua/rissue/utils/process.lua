@@ -559,43 +559,26 @@ local function try_stop_timer(timer)
   end
 end
 
---- Delays the coroutine/main thread execution by number of milliseconds
----
---- If not in coroutine mode, it uses `process.wait()` instead
+--- Delays the current async by number of milliseconds
 ---@async
----@param milliseconds integer
+---@param async rissue.Async
+---@param milliseconds integer time in milliseconds
 ---@return boolean success
 ---@return string? error
-function M.try_delay(milliseconds)
+function M.sleep(async, milliseconds)
   local timer, timer_err = uv.new_timer()
   if not timer then
     return false, timer_err
   end
 
-  local co, is_main = coroutine.running()
-
-  if not is_main and co then
-    local start_ok, start_err = timer:start(milliseconds, 0, function()
-      safe_co_resume(co)
-    end)
-    if not start_ok then
-      close_handle(timer)
-      return false, start_err
-    end
-    coroutine.yield()
-  else
-    local done = false
-    local start_ok, start_err = timer:start(milliseconds, 0, function()
-      done = true
-    end)
-    if not start_ok then
-      close_handle(timer)
-      return false, start_err
-    end
-    M.wait(function()
-      return done
-    end, -1)
+  local start_ok, start_err = timer:start(milliseconds, 0, function()
+    async:resume()
+  end)
+  if not start_ok then
+    close_handle(timer)
+    return false, start_err
   end
+  async:yield()
 
   return true
 end
