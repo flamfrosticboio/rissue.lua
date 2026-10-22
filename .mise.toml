@@ -27,12 +27,17 @@ prek install
 
 [tasks.test]
 description = "Run tests"
-run = "luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print"
-
+run = '''
+eval $(luarocks path)
+luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print
+'''
 
 [tasks.testi]
 description = "Run tests with interactive tests enabled"
-run = "INTERACTIVE=true luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print"
+run = '''
+eval $(luarocks path)
+INTERACTIVE=true luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print
+'''
 
 [tasks.test-api-setup]
 description = "Setup required specs for api tests"
@@ -40,7 +45,10 @@ run = "lua ./test/api/setup_script.lua"
 
 [tasks.test-api]
 description = "Run tests on api"
-run = "luarocks test .rockspec/rissue-dev-1.rockspec -- --run=api"
+run = '''
+eval $(luarocks path)
+luarocks test .rockspec/rissue-dev-1.rockspec -- --run=api
+'''
 
 [tasks.doc]
 description = "Run auto documentation generator"
