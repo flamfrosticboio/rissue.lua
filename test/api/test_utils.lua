@@ -144,7 +144,7 @@ local function run_mock_server(filepath, port_offset, id, callback)
             cmd = "timeout",
             args = {
               "1",
-              "bash",
+              "sh", -- sh supports this feature
               "-c",
               "</dev/tcp/" .. M.host .. "/" .. port,
             },
