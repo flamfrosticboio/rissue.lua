@@ -26,9 +26,6 @@ if not CPU_COUNT then
   CPU_COUNT = cpus and #cpus or 1
 end
 
-local log = require("rissue.utils.log")
-log.log_level = log.levels.debug
-
 ---@class __rissue._CmdResult: rissue.utils.CmdResult
 ---@field cmd string[]
 
