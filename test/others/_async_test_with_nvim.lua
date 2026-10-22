@@ -19,7 +19,7 @@
 -- Meant to test nvim async compatibility before running
 --
 -- Run from the project root:
---   nvim --headless -u NONE -l test/utils/_async_test_with_nvim.lua
+--   nvim --headless -u NONE -l test/others/_async_test_with_nvim.lua
 -- Adjust package.path below if your module lives elsewhere.
 
 ---@diagnostic disable: undefined-global, await-in-sync, unused-local
@@ -41,7 +41,7 @@ local function make_backend()
   return {
     schedule = vim.schedule, -- always defers, never inline
     on_error = function(err, tb)
-      errors[#errors + 1] = tostring(err) .. "\n" .. tostring(tb)
+      errors[#errors + 1] = tostring(err)
     end,
   },
     errors
@@ -270,6 +270,46 @@ test("error in fn passed to wrap goes to on_error", function()
 
   eq(#errors, 1, "error count")
   assert(errors[1]:find("fn failed"), "message contains fn failed")
+end)
+
+test("nvim read and write ok", function()
+  local be, errors = make_backend()
+
+  local done = false
+  async.run(be, function(a)
+    local err, fd = a:wrap(function(cb)
+      uv.fs_open(".tmp/test.txt", "w", 420, cb)
+    end)
+
+    if err then
+      error(err)
+    end
+
+    local write_err = a:wrap(function(cb)
+      uv.fs_write(fd, "hello world 2", 0, cb)
+    end)
+
+    if write_err then
+      error(write_err)
+    end
+
+    local close_err = a:wrap(function(cb)
+      uv.fs_close(fd, cb)
+    end)
+
+    if close_err then
+      error(close_err)
+    end
+    done = true
+  end)
+
+  wait_for(function()
+    return done or (#errors > 0)
+  end)
+
+  if #errors > 0 then
+    error("This is an error: " .. errors[1], 0)
+  end
 end)
 
 -- ---------------------------------------------------------------
