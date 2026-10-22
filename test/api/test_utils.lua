@@ -135,34 +135,32 @@ local function run_mock_server(filepath, port_offset, id, callback)
   local function start()
     p:run()
 
-    watch_loop:start(1000, 1000, function()
-      local watch_err = coroutine.wrap(
-        ---@async
-        function()
-          print("Checking...")
-          local result, co_err = cmd.run_co({
-            cmd = "timeout",
-            args = {
-              "1",
-              "sh", -- sh supports this feature
-              "-c",
-              "</dev/tcp/" .. M.host .. "/" .. port,
-            },
-          })
-          if not result then
-            error(co_err)
-          end
-          if result.return_code == 0 then
-            watch_loop:stop()
-            local callback_thread = coroutine.create(function()
-              callback()
-            end)
-            local callback_ok, co_watch_err = coroutine.resume(callback_thread)
-            assert(callback_ok, co_watch_err)
-          end
+    watch_loop:start(250, 250, function()
+      log.trace("Waiting for mock server to be up...")
+      local watch_process, spawn_err = cmd.spawn({
+        cmd = "timeout",
+        args = {
+          "1",
+          "sh", -- sh supports this feature
+          "-c",
+          "</dev/tcp/" .. M.host .. "/" .. port,
+        },
+      })
+      if not watch_process then
+        error(spawn_err)
+      end
+
+      watch_process:register_event("on_exit", function()
+        if watch_process:get_code() == 0 then
+          watch_loop:stop()
+          callback()
         end
-      )()
-      assert(not watch_err, watch_err)
+      end)
+
+      local run_err = watch_process:run()
+      if run_err then
+        error(run_err)
+      end
     end)
   end
 
