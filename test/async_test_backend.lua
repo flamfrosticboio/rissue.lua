@@ -38,6 +38,7 @@ backend = {
     end, 10000)
   end,
   reset = function()
+    ---@diagnostic disable-next-line: inject-field
     backend.err_msg = nil
   end,
 }

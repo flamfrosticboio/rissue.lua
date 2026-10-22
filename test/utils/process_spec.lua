@@ -86,7 +86,7 @@ describe("cmd", function()
       )
     end)
 
-    it("stderr ok (with sh) #unix #this", function()
+    it("stderr ok (with sh) #unix", function()
       run_blocking(
         ---@async
         function(a)
