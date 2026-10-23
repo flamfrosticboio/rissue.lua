@@ -274,7 +274,7 @@ function M.with_server(opts, func)
       end
 
       uv.run("nowait")
-      print(("[%s]: Opening server"):format(opts.name))
+      print(("[%s]: Opening server at port:%d"):format(opts.name, M.port))
       run, server_close = run_mock_server(
         "../../" .. opts.specfile,
         port_offset,
