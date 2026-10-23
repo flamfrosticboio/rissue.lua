@@ -234,7 +234,7 @@ function getProviderVersions() {
             (d) => dirname === d || dirname.startsWith(d + path.sep),
         );
         if (insideVisited) {
-            console.log(`skipped $file`);
+            console.log(`skipped ${file}`);
             continue;
         }
 
