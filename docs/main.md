@@ -41,7 +41,7 @@ config.options = {
   endpoint_shortcuts = {
     github = {
       domain = "api.github.com",
-      patterns = { "github.com" },
+      patterns = { "github%.com" },
       additional_info = {
         api_version = "2026-03-10",
       } --[[@as rissue.Github.supports.AdditionalInfo]],
