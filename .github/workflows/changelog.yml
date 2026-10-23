@@ -2,13 +2,13 @@ name: Changelog
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
-    branches: [main, release]
+    branches: [main, release, version/*]
 
 permissions:
   contents: read
 
 jobs:
-  check:
+  check-changelog:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

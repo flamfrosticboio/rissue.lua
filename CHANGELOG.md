@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.2.1
+
+**Improvements:**
+
+- Reduce logging overhead on process's stdout and stderr.
+
+**Fixes:**
+
+- Fix logging on `utils.process` where in using `opts.print_output = true` on
+  `process.run()` and `process.run_co()` would print out `info` instead of `trace`
+
+**Documentation:**
+
+- Fix some documentation on:
+  - `rissue.get_merge_requests()`
+
+Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1](https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1)
+
 ## v0.2
 
 New Features:
@@ -52,7 +70,7 @@ New Features:
   - Improve error logging
   - Improve how many items are fetched on a single page fetch.
 
-Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2](https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2)
+Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2](https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2.0)
 
 ## v0.1
 
