@@ -26,9 +26,6 @@ if not CPU_COUNT then
   CPU_COUNT = cpus and #cpus or 1
 end
 
-local log = require("rissue.utils.log")
-log.log_level = log.levels.debug
-
 ---@class __rissue._CmdResult: rissue.utils.CmdResult
 ---@field cmd string[]
 
@@ -146,7 +143,7 @@ function M.p_rename(source, dest)
   return { type = "rename", source = source, dest = dest }
 end
 
----@param func async fun(): string? Where the return of the function is error message
+---@param func async fun(a: rissue.Async): string? Where the return of the function is error message
 ---@return __rissue.pipeline.RegisterCleanup
 function M.p_register_cleanup(func)
   ---@type __rissue.pipeline.RegisterCleanup

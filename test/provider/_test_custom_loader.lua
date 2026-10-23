@@ -18,8 +18,9 @@ local viewer = {}
 local luv = require("luv") ---@type uv
 
 ---@async
+---@param async rissue.Async
 ---@param state string
-local function handle_coroutine(state)
+local function handle_coroutine(state, async)
   local hook = viewer.on_coroutine_hook
   viewer.on_coroutine = state
   if type(hook) == "function" then
@@ -35,14 +36,11 @@ local function handle_coroutine(state)
     timer:stop()
     timer:close()
     if coroutine.status(co) == "suspended" then
-      local ok, err = coroutine.resume(co)
-      if not ok then
-        error(debug.traceback(err))
-      end
+      async:resume()
     end
   end)
 
-  coroutine.yield()
+  async:yield()
 
   viewer.on_coroutine = nil
   if type(hook) == "function" then
@@ -56,26 +54,26 @@ return {
   version = "0.1",
   version_code = 1000,
   ---@async
-  supports = function(info, token, opts)
+  supports = function(async, info, token, opts)
     viewer.supports = { info, token, opts }
     if opts.enable_coroutine then
-      handle_coroutine("supports")
+      handle_coroutine("supports", async)
     end
     return true
   end,
   ---@async
-  get_issues = function(info, token, opts)
+  get_issues = function(async, info, token, opts)
     viewer.get_issues = { info, token, opts }
     if opts.enable_coroutine then
-      handle_coroutine("get_issues")
+      handle_coroutine("get_issues", async)
     end
     return {}
   end,
   ---@async
-  get_merge_requests = function(info, token, opts)
+  get_merge_requests = function(async, info, token, opts)
     viewer.get_merge_requests = { info, token, opts }
     if opts.enable_coroutine then
-      handle_coroutine("get_merge_requests")
+      handle_coroutine("get_merge_requests", async)
     end
     return {}
   end,

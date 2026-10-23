@@ -16,6 +16,8 @@
 
 --- A bunch of functions that is used frequently in `setup_utils.lua`
 
+local async_mod = require("rissue.utils.async")
+local log = require("rissue.utils.log")
 local subprocess = require("rissue.utils.process")
 local util = require("util")
 local uv = require("luv") ---@type uv
@@ -26,24 +28,17 @@ local M = {}
 local unpack = table.unpack or unpack
 
 ---@async
-local function await(fn, ...)
-  local co = coroutine.running()
+---@param async rissue.Async
+---@param fn fun(...: any)
+local function await(async, fn, ...)
   local n = select("#", ...)
   local args = { ... }
   args[n + 1] = function(...)
-    local status = coroutine.status(co)
-    if status == "suspended" then
-      local ok, err = coroutine.resume(co, ...)
-      if not ok then
-        error(debug.traceback(co, err), 0)
-      end
-    else
-      print("Warning: Coroutine is not suspended, but " .. status)
-    end
+    async:resume(...)
   end
 
   fn(unpack(args, 1, n + 1))
-  return coroutine.yield()
+  return async:yield()
 end
 
 ---@class __rissue.pipeline._base<T>
@@ -59,7 +54,7 @@ end
 ---@field should_continue boolean | fun(): boolean
 
 ---@class __rissue.pipeline.RegisterCleanup: __rissue.pipeline._base<"reg_cleanup">
----@field func async fun(): string? Where the return value is err_msg
+---@field func async fun(a: rissue.Async): string? Where the return value is err_msg
 
 ---@class __rissue.pipeline.Rename: __rissue.pipeline._base<"rename">
 ---@field source string
@@ -96,15 +91,16 @@ end
 ---@alias __rissue.Pipeline __rissue.PipelineCommands[]
 
 ---@async
+---@param async rissue.Async
 ---@param command __rissue.pipeline.Run
 ---@return boolean success
 ---@return string? err_msg
-local function run_command(command)
+local function run_command(async, command)
   local process = require("rissue.utils.process")
 
   util.print_status("Attempting to run command: " .. command.bin)
 
-  local result, err = process.run_co({
+  local result, err = process.run_async(async, {
     cmd = command.bin,
     args = command.args,
     env = command.env,
@@ -133,12 +129,13 @@ local function run_command(command)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.Rename
 ---@return boolean success
 ---@return string? err_msg
-local function rename(args)
+local function rename(async, args)
   util.print_status("Renaming '" .. args.source .. "' to '" .. args.dest .. "'")
-  local err = await(uv.fs_rename, args.source, args.dest)
+  local err = await(async, uv.fs_rename, args.source, args.dest)
   if err then
     return false, err
   end
@@ -146,10 +143,11 @@ local function rename(args)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.CreateDirectory
 ---@return boolean success
 ---@return string? err_msg
-local function mkdir(args)
+local function mkdir(async, args)
   local mode = args.mode or 493
   local path = args.path:gsub("\\", "/")
 
@@ -162,13 +160,13 @@ local function mkdir(args)
   for part in rest:gmatch("[^/]+") do
     cur = cur .. part
 
-    local err = await(uv.fs_mkdir, cur, mode)
+    local err = await(async, uv.fs_mkdir, cur, mode)
     if err then
       if not err:match("^EEXIST") then
         return false, err
       end
 
-      local serr, stat = await(uv.fs_stat, cur)
+      local serr, stat = await(async, uv.fs_stat, cur)
       if serr or not stat or stat.type ~= "directory" then
         return false, "not a directory: " .. cur
       end
@@ -182,64 +180,63 @@ local function mkdir(args)
   return true
 end
 
----@param func async fun(): boolean, string?
+---@param func async fun(a: rissue.Async): boolean, string?
 ---@return boolean success
 ---@return string? error
 local function into_sync(func)
   local done = false
-  local co = coroutine.create(
+  local backend, wait = async_mod.default_backend()
+  local result_ok, res_err
+  async_mod.run(
+    backend,
     ---@async
-    function()
-      local success, err = func()
+    function(a)
+      result_ok, res_err = func(a)
       done = true
-      if not success then
-        error(err)
-      end
     end
   )
 
-  if coroutine.status(co) == "suspended" then
-    local ok, err = coroutine.resume(co)
-    if not ok then
-      return false, err
-    end
-  end
-
-  local ok, err = subprocess.wait(function()
+  local ok, wait_err = wait(function()
     return done
   end, -1)
 
   if not ok then
-    return false, err
+    return false, wait_err
+  end
+
+  if not result_ok then
+    return false, res_err
   end
 
   return true
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.WriteFile
 ---@return boolean success
 ---@return string? err_msg
-local function write_file(args)
+local function write_file(async, args)
   local mode = args.mode or 493
 
   if args.ensure_directory then
     local dir = args.filepath:match("^(.*)[/\\]")
     if dir and dir ~= "" then
-      local success, err = mkdir({ path = dir, mode = mode, type = "mkdir" })
+      local success, err =
+        mkdir(async, { path = dir, mode = mode, type = "mkdir" })
       if not success then
         return false, err
       end
     end
   end
 
-  local err, fd = await(uv.fs_open, args.filepath, "w", mode)
+  local err, fd = await(async, uv.fs_open, args.filepath, "w", mode)
   if err or not fd then
     return false, err
   end
 
-  local werr = await(uv.fs_write, fd, args.contents, 0)
-  local cerr = await(uv.fs_close, fd)
+  local werr = await(async, uv.fs_write, fd, args.contents, 0)
+  local cerr = await(async, uv.fs_close, fd)
 
   if werr then
     return false, werr
@@ -259,18 +256,19 @@ end
 function M.mkdir(path, mode)
   return into_sync(
     ---@async
-    function()
-      return mkdir({ type = "mkdir", path = path, mode = mode })
+    function(a)
+      return mkdir(a, { type = "mkdir", path = path, mode = mode })
     end
   )
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.RemoveDirectory
 ---@return boolean success
 ---@return string? err_msg
-local function rmdir(args)
-  local err, handle = await(uv.fs_scandir, args.path)
+local function rmdir(async, args)
+  local err, handle = await(async, uv.fs_scandir, args.path)
   if err or not handle then
     if args.skip_when_fail then
       print("Warning: failed to scan directory: " .. err)
@@ -288,7 +286,7 @@ local function rmdir(args)
     local child = args.path .. "/" .. name
 
     if not typ then
-      local lerr, stat = await(uv.fs_lstat, child)
+      local lerr, stat = await(async, uv.fs_lstat, child)
       if lerr or not stat then
         if args.skip_when_fail then
           print("Warning: failed to get stat: " .. lerr)
@@ -300,7 +298,7 @@ local function rmdir(args)
     end
 
     if typ == "directory" then
-      local ok, cerr = rmdir({
+      local ok, cerr = rmdir(async, {
         type = "remove_dir",
         path = child,
         skip_when_fail = args.skip_when_fail,
@@ -313,7 +311,7 @@ local function rmdir(args)
         return false, cerr
       end
     else
-      local uerr = await(uv.fs_unlink, child)
+      local uerr = await(async, uv.fs_unlink, child)
       if uerr then
         if args.skip_when_fail then
           print("Warning: failed to delete file: " .. uerr)
@@ -324,7 +322,7 @@ local function rmdir(args)
     end
   end
 
-  local rerr = await(uv.fs_rmdir, args.path)
+  local rerr = await(async, uv.fs_rmdir, args.path)
   if rerr then
     return false, rerr
   end
@@ -340,8 +338,8 @@ end
 function M.rmdir(path, opts)
   return into_sync(
     ---@async
-    function()
-      return rmdir({
+    function(a)
+      return rmdir(a, {
         type = "remove_dir",
         path = path,
         skip_when_fail = opts and opts.skip_when_fail,
@@ -351,11 +349,12 @@ function M.rmdir(path, opts)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.RemoveFile
 ---@return boolean success
 ---@return string? err_msg
-local function rmfile(args)
-  local err = await(uv.fs_unlink, args.path)
+local function rmfile(async, args)
+  local err = await(async, uv.fs_unlink, args.path)
   if err then
     if args.skip_when_fail then
       return true
@@ -373,8 +372,8 @@ end
 function M.rmfile(path, opts)
   return into_sync(
     ---@async
-    function()
-      return rmfile({
+    function(a)
+      return rmfile(a, {
         type = "remove_file",
         path = path,
         skip_when_fail = opts and opts.skip_when_fail,
@@ -391,8 +390,8 @@ end
 function M.write_file(path, contents, opts)
   return into_sync(
     ---@async
-    function()
-      return write_file({
+    function(a)
+      return write_file(a, {
         type = "write_file",
         contents = contents,
         filepath = path,
@@ -404,16 +403,17 @@ function M.write_file(path, contents, opts)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param pipeline __rissue.Pipeline
 ---@return string? err_msg Error message if available
-function M.run_pipeline(pipeline)
+function M.run_pipeline(async, pipeline)
   local cleanup = {} ---@type __rissue.pipeline.RegisterCleanup[]
   local err = nil ---@type string?
 
   for _, item in ipairs(pipeline) do
     if item.type == "run" then
       ---@cast item __rissue.pipeline.Run
-      local success, run_err = run_command(item)
+      local success, run_err = run_command(async, item)
       if not success then
         err = run_err
         break
@@ -424,35 +424,35 @@ function M.run_pipeline(pipeline)
       util.print_status("Added cleanup item")
     elseif item.type == "rename" then
       ---@cast item __rissue.pipeline.Rename
-      local success, move_err = rename(item)
+      local success, move_err = rename(async, item)
       if not success then
         err = move_err
         break
       end
     elseif item.type == "mkdir" then
       ---@cast item __rissue.pipeline.CreateDirectory
-      local success, mkdir_err = mkdir(item)
+      local success, mkdir_err = mkdir(async, item)
       if not success then
         err = mkdir_err
         break
       end
     elseif item.type == "write_file" then
       ---@cast item __rissue.pipeline.WriteFile
-      local success, write_err = write_file(item)
+      local success, write_err = write_file(async, item)
       if not success then
         err = write_err
         break
       end
     elseif item.type == "remove_file" then
       ---@cast item __rissue.pipeline.RemoveFile
-      local success, rmfile_err = rmfile(item)
+      local success, rmfile_err = rmfile(async, item)
       if not success then
         err = rmfile_err
         break
       end
     elseif item.type == "remove_dir" then
       ---@cast item __rissue.pipeline.RemoveDirectory
-      local success, rmdir_err = rmdir(item)
+      local success, rmdir_err = rmdir(async, item)
       if not success then
         err = rmdir_err
         break
@@ -475,7 +475,7 @@ function M.run_pipeline(pipeline)
   if #cleanup > 0 then
     util.print_status("Running cleanup")
     for _, cleanup_op in ipairs(cleanup) do
-      local errmsg = cleanup_op.func()
+      local errmsg = cleanup_op.func(async)
       if errmsg then
         print("Failed when running cleanup: " .. errmsg)
         if not err then
@@ -494,10 +494,41 @@ function M.run_pipeline(pipeline)
   return err
 end
 
+local function pipeline_backend_schedule(fn)
+  fn()
+end
+
+---@param fn async fun(a: rissue.Async)
+---@param on_finish fun(err_msg: string?)
+local function async_run(fn, on_finish)
+  ---@type __rissue.async.Backend
+  local backend = {
+    schedule = pipeline_backend_schedule,
+    on_error = function(msg, tb)
+      log.trace(msg .. "\n" .. tb)
+      on_finish(msg)
+    end,
+  }
+
+  async_mod.run(
+    backend,
+    ---@async
+    function(a)
+      fn(a)
+      on_finish()
+    end
+  )
+end
+
 ---@param pipelines __rissue.Pipeline[]
 ---@param limit integer
 ---@return string[]? errors
 function M.run_pipelines(pipelines, limit)
+  --- there can be only on instance of run_pipelines since its blocking. so reusing the
+  --- same backend just works
+
+  local err_msgs = {}
+
   if #pipelines <= 0 then
     return
   end
@@ -505,30 +536,16 @@ function M.run_pipelines(pipelines, limit)
   limit = math.max(limit, 1)
 
   local errors = {} ---@type string[]
-  local running = {} ---@type {co: thread, result: {done: boolean, err: string?}}[]
-
-  --- Removes finished tasks and collects their errors
-  local function reap()
-    for i = #running, 1, -1 do
-      local task = running[i]
-      if task.result.done or coroutine.status(task.co) == "dead" then
-        if task.result.err then
-          table.insert(errors, task.result.err)
-        end
-        table.remove(running, i)
-      end
-    end
-  end
+  local running = 0
 
   local next_pipeline = util.iterator(pipelines)
 
   while true do
     -- Wait for a free slot before starting the next pipeline
-    if #running >= limit then
+    if running >= limit then
       subprocess.wait(function()
-        reap()
-        return #running < limit
-      end, -1)
+        return running <= 0
+      end, -1, 1000)
     end
 
     local pipeline = next_pipeline()
@@ -536,30 +553,29 @@ function M.run_pipelines(pipelines, limit)
       break
     end
 
-    local result = { done = false } ---@type {done: boolean, err: string?}
-    local co = coroutine.create(
+    async_run(
       ---@async
-      function()
-        result.err = M.run_pipeline(pipeline)
-        result.done = true
+      function(a)
+        local pipeline_err = M.run_pipeline(a, pipeline)
+        if pipeline_err then
+          error(pipeline_err)
+        end
+      end,
+      function(err)
+        if err then
+          err_msgs[#err_msgs + 1] = err
+        end
+        running = running - 1
       end
     )
 
-    local ok, err = coroutine.resume(co)
-    if not ok then
-      result.err = tostring(err)
-      result.done = true
-    end
-
-    table.insert(running, { co = co, result = result })
-    reap()
+    running = running + 1
   end
 
   -- Wait for everything still running
   subprocess.wait(function()
-    reap()
-    return #running == 0
-  end, -1)
+    return running <= 0
+  end, -1, 1000)
 
   if #errors > 0 then
     return errors

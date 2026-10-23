@@ -33,12 +33,13 @@ local function from_range(range, target)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
 ---@return boolean
 ---@return string? result
-local function check(url, opts)
-  local result, err = curl.request(url, opts)
+local function check(async, url, opts)
+  local result, err = curl.request(async, url, opts)
   if not result then
     log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
   end
@@ -51,14 +52,14 @@ end
 
 ---@async
 ---@type rissue.provider.Supports<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
-function M.main(info, token, opts)
+function M.main(async, info, token, opts)
   local base = info.curl_protocol .. "://" .. info.domain
 
   ---@type rissue.utils.curl.Opts
   local settings = { auth = token, accept = "application/json", method = "GET" }
 
   -- ghes version
-  local is_ghes, ghes_output = check(base .. "/api/v3/meta", settings)
+  local is_ghes, ghes_output = check(async, base .. "/api/v3/meta", settings)
   if is_ghes then
     ---@type rissue.Github.supports.AdditionalInfo
     local additional_info = {}
@@ -81,7 +82,7 @@ function M.main(info, token, opts)
 
   -- ghec or api.github.com version (when checking with url failed)
   -- examples includes: domain proxy, GHEC with Data Residency
-  local res = check(base .. "/meta", settings)
+  local res = check(async, base .. "/meta", settings)
   if res then
     return res, { api_version = "2026-03-10" } --[[@as rissue.Github.supports.AdditionalInfo]]
   end

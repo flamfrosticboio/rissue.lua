@@ -23,14 +23,14 @@
 
 --- Second return is for errors
 ---@alias rissue.provider.GetIssues<I, S>
----| async fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.issue[]?, string?
+---| async fun(async: rissue.Async, info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.issue[]?, string?
 
 --- Second return is for errors
 ---@alias rissue.provider.GetMergeRequests<I, S>
----| async fun(info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.pr[]?, string?
+---| async fun(async: rissue.Async, info: rissue.ProviderInfo<I>, token: string|nil, opts: S): rissue.pr[]?, string?
 
 ---@alias rissue.provider.Supports<I, S>
----| async fun(info: rissue.RemoteInfo<I>, token: string|nil, opts: S): boolean, table?
+---| async fun(async: rissue.Async, info: rissue.RemoteInfo<I>, token: string|nil, opts: S): boolean, table?
 
 --- Specific requirements for a provider
 ---@class (exact) rissue.Provider

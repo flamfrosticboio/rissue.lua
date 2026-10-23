@@ -85,14 +85,15 @@ end
 
 --- Warning: raises errors
 ---@async
+---@param async rissue.Async
 ---@param opts rissue.utils.curl.Opts
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
-local function try_fetch_query(url, param, opts)
+local function try_fetch_query(async, url, param, opts)
   opts.data_type = "urlencode"
   opts.data = param
 
-  local req, err = curl.request(url, opts)
+  local req, err = curl.request(async, url, opts)
   if req then
     req.content = req.content:match("^%s*(.-)%s*$")
     req.err = req.err:match("^%s*(.-)%s*$")
@@ -132,12 +133,17 @@ end
 ---@field next_url string?
 
 ---@async
+---@param async rissue.Async
 ---@param opts __rissue.Github.fetch_page.Opts
 ---@return __rissue.Github.fetch_page.Result? result
 ---@return string? error
-local function try_fetch_page(opts)
-  local response, fetch_err =
-    try_fetch_query(opts.query.endpoint, opts.query.param, opts.curl_opts)
+local function try_fetch_page(async, opts)
+  local response, fetch_err = try_fetch_query(
+    async,
+    opts.query.endpoint,
+    opts.query.param,
+    opts.curl_opts
+  )
 
   if response and response.exitcode == 0 then
     local ok, res = pcall(function()
@@ -183,8 +189,8 @@ end
 
 ---@async
 ---@param delay integer Delay in milliseconds
-local function delay_with_warning(delay)
-  local delay_ok, delay_err = process.try_delay(delay)
+local function delay_with_warning(async, delay)
+  local delay_ok, delay_err = process.sleep(async, delay)
   if not delay_ok then
     log.warn("Failed to delay: " .. (delay_err or "unknown error"))
   end
@@ -198,12 +204,13 @@ end
 
 ---@async
 ---@generic T, K
+---@param async rissue.Async
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 ---@param queries rissue.Query[]
 ---@param opts __rissue.Github.fetch.Opts
 ---@return T[]? results
 ---@return string? error
-function M.try_fetch(info, queries, opts)
+function M.try_fetch(async, info, queries, opts)
   if opts.settings.items_per_page > 100 then
     return nil, "Setting 'items_per_page' cannot be above 100"
   end
@@ -254,7 +261,7 @@ function M.try_fetch(info, queries, opts)
     })
 
     while not is_full() do
-      local result, err = try_fetch_page({
+      local result, err = try_fetch_page(async, {
         query = query,
         curl_opts = curl_opts_reusable,
       })
@@ -283,7 +290,7 @@ function M.try_fetch(info, queries, opts)
       end
 
       query = { endpoint = result.next_url, param = {} }
-      delay_with_warning(opts.settings.fetch_delay)
+      delay_with_warning(async, opts.settings.fetch_delay)
     end
   end
 

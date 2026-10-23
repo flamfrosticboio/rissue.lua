@@ -16,150 +16,140 @@
 
 ---@diagnostic disable: redundant-parameter
 
-local cmd = require("rissue.utils.process")
+local async = require("rissue.utils.async")
+local async_test_backend = require("async_test_backend")
+local process = require("rissue.utils.process")
 
----@param func async fun(co: thread)
-local function with_co(func)
-  local co = coroutine.create(func)
-  local ok, err = coroutine.resume(co, co)
-  if not ok then
-    error(debug.traceback(err))
-  end
+---@param cb async fun(a: rissue.Async)
+local function run_blocking(cb)
+  local done = false
+
+  async_test_backend.reset()
+
+  async.run(
+    async_test_backend,
+    ---@async
+    function(a)
+      cb(a)
+      done = true
+    end
+  )
+
+  async_test_backend.wait(function()
+    return done
+  end)
 end
 
 ---@param opts rissue.utils.CommandOpts
 ---@return rissue.utils.Process
 local function spawn(opts)
-  local process, err = cmd.spawn(opts)
-  assert(process, err or "unknown error")
-  return process
+  local p, err = process.spawn(opts)
+  assert(p, err or "unknown error")
+  return p
 end
 
 describe("cmd", function()
   describe("spawn", function()
     it("get running ok #blocking", function()
-      local done = false
-      with_co(function()
-        local process = spawn({ cmd = "echo", args = { "Hello world" } })
-        assert.is_false(process:is_running())
-        process:run()
-        assert.is_true(process:is_running())
-        done = true
-      end)
-
-      require("luv").run()
-      cmd.wait(function()
-        return done
-      end, -1)
-      assert.is_true(done, "Process has not yet completed")
-    end)
-    it("stdout ok", function()
-      local contents = nil
-      local co
-      co = coroutine.create(
+      run_blocking(
         ---@async
-        function()
-          local p, spawn_err =
-            cmd.spawn({ cmd = "echo", args = { "Hello World" } })
-          assert(p ~= nil, spawn_err)
+        function(a)
+          local p = spawn({ cmd = "echo", args = { "Hello world" } })
+          assert.is_false(p:is_running(), "not false before run")
           p:register_event("on_exit", function()
-            coroutine.resume(co)
+            a:resume()
           end)
           p:run()
-          coroutine.yield()
-          contents = p:get_stdout()
+          assert.is_true(p:is_running(), "not true after run")
+          a:yield()
+          -- should be returned once on_exit was exited
+          assert.is_false(p:is_running(), "not false after close")
         end
       )
+    end)
 
-      local ok, err = coroutine.resume(co)
-      assert(ok == true, err)
-
-      require("luv").run()
-      assert.equal("Hello World\n", contents)
+    it("stdout ok", function()
+      run_blocking(
+        ---@async
+        function(a)
+          local p, spawn_err =
+            process.spawn({ cmd = "echo", args = { "Hello World" } })
+          assert(p ~= nil, spawn_err)
+          p:register_event("on_exit", function()
+            a:resume()
+          end)
+          p:run()
+          a:yield()
+          local contents = p:get_stdout()
+          assert.equal("Hello World\n", contents)
+        end
+      )
     end)
 
     it("stderr ok (with sh) #unix", function()
-      local contents = nil
-      local co
-      co = coroutine.create(
+      run_blocking(
         ---@async
-        function()
-          local p, spawn_err =
-            cmd.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
+        function(a)
+          local p, spawn_err = process.spawn({
+            cmd = "sh",
+            args = { "-c", "echo Hello World 1>&2" },
+          })
           assert(p ~= nil, spawn_err)
           assert(type(p) ~= "string", "cmd.spawn returned a string")
           p:register_event("on_exit", function()
-            coroutine.resume(co)
+            a:resume()
           end)
           p:run()
-          coroutine.yield()
-          contents = p:get_stderr()
+          a:yield()
+          local contents = p:get_stderr()
+          assert.equal("Hello World\n", contents)
         end
       )
-
-      local ok, err = coroutine.resume(co)
-      assert(ok == true, err)
-
-      require("luv").run()
-      assert.equal("Hello World\n", contents)
     end)
 
     it("return code ok", function()
-      local contents = nil
-      local p, spawn_err =
-        cmd.spawn({ cmd = "sh", args = { "-c", "echo Hello World 1>&2" } })
-      assert(p ~= nil, spawn_err)
-      local co
-      co = coroutine.create(
+      run_blocking(
         ---@async
-        function()
+        function(a)
+          local p, spawn_err = process.spawn({
+            cmd = "sh",
+            args = { "-c", "echo Hello World 1>&2" },
+          })
+          assert(p ~= nil, spawn_err)
           p:register_event("on_exit", function()
-            coroutine.resume(co)
+            a:resume()
           end)
           p:run()
-          coroutine.yield()
-          contents = p:get_code()
+          a:yield()
+          local contents = p:get_code()
+          assert.equal(0, contents)
         end
       )
-
-      local ok, err = coroutine.resume(co)
-      assert(ok == true, err)
-
-      require("luv").run()
-      assert.equal(0, contents)
     end)
 
     it("cwd is correct #unix", function()
-      local contents = nil
-      local co
-      co = coroutine.create(
+      run_blocking(
         ---@async
-        function()
+        function(a)
           local p, spawn_err =
-            cmd.spawn({ cmd = "pwd", args = {}, cwd = "/tmp" })
+            process.spawn({ cmd = "pwd", args = {}, cwd = "/tmp" })
           assert(p ~= nil, spawn_err)
           p:register_event("on_exit", function()
-            coroutine.resume(co)
+            a:resume()
           end)
           p:run()
-          coroutine.yield()
-          contents = p:get_stdout()
+          a:yield()
+          local contents = p:get_stdout()
+          assert.equal("/tmp\n", contents)
         end
       )
-      coroutine.resume(co)
-      require("luv").run()
-      assert.equal("/tmp\n", contents)
     end)
 
     it("env tableform is correct #unix #cmd:printenv", function()
-      local contents = nil
-      local code = -1
-      local stderr = ""
-      local co
-      co = coroutine.create(
+      run_blocking(
         ---@async
-        function()
-          local p, spawn_err = cmd.spawn({
+        function(a)
+          local p, spawn_err = process.spawn({
             cmd = "printenv",
             args = { "HELLO" },
             env = { HELLO = "YES" },
@@ -167,35 +157,29 @@ describe("cmd", function()
           assert(p ~= nil, spawn_err)
           assert(type(p) ~= "string", "cmd.spawn returned a string")
           p:register_event("on_exit", function()
-            coroutine.resume(co)
+            a:resume()
           end)
           p:run()
-          coroutine.yield()
-          code = p:get_code()
-          contents = p:get_stdout()
-          stderr = p:get_stderr()
+          a:yield()
+          local code = p:get_code()
+          local contents = p:get_stdout()
+          local stderr = p:get_stderr()
+          assert(
+            code == 0,
+            "Program exited with code "
+              .. tostring(code)
+              .. (stderr ~= "" and (": " .. stderr) or "")
+          )
+          assert.equal("YES\n", contents)
         end
       )
-      coroutine.resume(co)
-      require("luv").run()
-      assert(
-        code == 0,
-        "Program exited with code "
-          .. tostring(code)
-          .. (stderr ~= "" and (": " .. stderr) or "")
-      )
-      assert.equal("YES\n", contents)
     end)
 
     it("env listform is correct #unix #cmd:printenv", function()
-      local contents = nil
-      local code = -1
-      local stderr = ""
-      local co
-      co = coroutine.create(
+      run_blocking(
         ---@async
-        function()
-          local p, spawn_err = cmd.spawn({
+        function(a)
+          local p, spawn_err = process.spawn({
             cmd = "printenv",
             args = { "HELLO" },
             env = { "HELLO=YES" },
@@ -203,30 +187,27 @@ describe("cmd", function()
           assert(p ~= nil, spawn_err)
           assert(type(p) ~= "string", "cmd.spawn returned a string")
           p:register_event("on_exit", function()
-            coroutine.resume(co)
+            a:resume()
           end)
           p:run()
-          coroutine.yield()
-          code = p:get_code()
-          contents = p:get_stdout()
-          stderr = p:get_stderr()
+          a:yield()
+          local code = p:get_code()
+          local contents = p:get_stdout()
+          local stderr = p:get_stderr()
+          assert(
+            code == 0,
+            "Program exited with code "
+              .. tostring(code)
+              .. (stderr ~= "" and (": " .. stderr) or "")
+          )
+          assert.equal("YES\n", contents)
         end
       )
-      local ok, err = coroutine.resume(co)
-      assert(ok == true, err)
-      require("luv").run()
-      assert(
-        code == 0,
-        "Program exited with code "
-          .. tostring(code)
-          .. (stderr ~= "" and (": " .. stderr) or "")
-      )
-      assert.equal("YES\n", contents)
     end)
 
     it("disable on unknown binary", function()
       local p, spawn_err =
-        cmd.spawn({ cmd = "someRandomBinary29924", args = {} })
+        process.spawn({ cmd = "someRandomBinary29924", args = {} })
       assert(p ~= nil, spawn_err)
       ---@cast p rissue.utils.Process
       local msg = p:run()
@@ -237,29 +218,26 @@ describe("cmd", function()
     end)
   end)
 
-  describe("run_co", function()
+  describe("run_async", function()
     it("outputs are correct", function()
-      local result ---@type rissue.utils.CmdResult?
-      local co = coroutine.create(
+      run_blocking(
         ---@async
-        function()
-          local err
-          result, err = cmd.run_co({
+        function(a)
+          local result, err = process.run_async(a, {
+
             cmd = "sh",
             args = {
               "-c",
               'echo "stdout line"; echo "stderr line" >&2; exit 0',
             },
           })
-          assert(result ~= nil, err)
+          assert.is_not_nil(result, err)
+          assert.same({
+            return_code = 0,
+            stdout = "stdout line\n",
+            stderr = "stderr line\n",
+          } --[[@as rissue.utils.CmdResult]], result)
         end
-      )
-      local ok, err = coroutine.resume(co)
-      assert(ok == true, err)
-      require("luv").run()
-      assert.same(
-        { return_code = 0, stdout = "stdout line\n", stderr = "stderr line\n" } --[[@as rissue.utils.CmdResult]],
-        result
       )
     end)
   end)
