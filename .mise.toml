@@ -9,8 +9,8 @@ stylua = "latest"
 
 [env]
 _.file = '.env'
-LUA_CPATH = "{{ exec(command='luarocks --tree lua_modules path --lr-cpath') }}"
-LUA_PATH = "{{ exec(command='luarocks --tree lua_modules path --lr-path') }}"
+LUA_PATH = "{{ exec(command='luarocks --tree lua_modules path --lr-path 2>/dev/null || echo \";;\"') }}"
+LUA_CPATH = "{{ exec(command='luarocks --tree lua_modules path --lr-cpath 2>/dev/null || echo \";;\"') }}"
 
 [settings]
 fetch_remote_versions_cache = "1d"
@@ -51,7 +51,7 @@ luarocks test .rockspec/rissue-dev-1.rockspec -- --run=api
 
 [tasks.doc]
 description = "Run auto documentation generator"
-run = "lua ./scripts/gen_doc.lua"
+run = "node ./scripts/auto_doc.cjs"
 
 [tasks.format]
 description = "Format all source and test files (lua)"
