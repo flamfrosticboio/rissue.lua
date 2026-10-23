@@ -241,13 +241,14 @@ end
 ---
 --- Note: must be in coroutine mode
 ---@async
+---@param async rissue.Async
 ---@param args string[]
 ---@param cwd? string
 ---@param env? string[]|table<string,string?>
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
-function M.raw(args, cwd, env)
-  local result, err = process.run_co({
+function M.raw(async, args, cwd, env)
+  local result, err = process.run_async(async, {
     cmd = "curl",
     args = args,
     cwd = cwd,
@@ -302,28 +303,30 @@ end
 
 --- Runs curl in exclusive coroutine mode.
 ---@async
+---@param async rissue.Async
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
-function M.request(url, opts)
+function M.request(async, url, opts)
   local args = M.construct(url, opts)
-  return M.raw(args, opts.cwd, opts.env)
+  return M.raw(async, args, opts.cwd, opts.env)
 end
 
 --- Helper that curls with POST
 ---@async
+---@param async rissue.Async
 ---@param url string
 ---@param data string | table<string, string?>
 ---@param opts rissue.utils.curl.Opts?
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
-function M.post(url, data, opts)
+function M.post(async, url, data, opts)
   opts = opts or {}
   opts.method = "POST"
   opts.data = data
 
-  return M.request(url, opts)
+  return M.request(async, url, opts)
 end
 
 return M

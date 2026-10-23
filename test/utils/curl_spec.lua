@@ -467,28 +467,17 @@ describe("curl", function()
     it("set ok", function()
       local test = stub(curl, "request")
 
+      local async_object = {}
       ---@diagnostic disable-next-line: await-in-sync
-      curl.post("hello", "my data", {})
+      curl.post(async_object, "hello", "my data", {})
 
       assert.stub(test).called_with(
+        async_object,
         "hello",
         match.is_same({
           method = "POST",
           data = "my data",
         })
-      )
-    end)
-  end)
-
-  describe("raw", function()
-    it("fail on non-coroutine", function()
-      assert.equal(
-        false,
-        pcall(function()
-          ---@diagnostic disable-next-line: await-in-sync
-          curl.raw({})
-        end),
-        "did not fail successfully"
       )
     end)
   end)

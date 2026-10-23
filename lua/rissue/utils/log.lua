@@ -14,49 +14,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@class rissue.log
-local M = {
-  --- Current log level. Default: info
-  log_level = 2,
-  --- Read only variable.
-  builtin_logger_color_enabled = false,
-}
-
----@class __rissue.log._levels<T>
----@field trace T
----@field debug T
----@field info T
----@field warn T
----@field error T
----@field off T
-
---- Logging levels where:
---- - off: 5
---- - error: 4
---- - warn: 3
---- - info: 2
---- - debug: 1
---- - trace: 0
----@class rissue.log.levels: __rissue.log._levels<integer>
-
---- Logging levels where:
---- - off: 5
---- - error: 4
---- - warn: 3
---- - info: 2
---- - debug: 1
---- - trace: 0
----@alias rissue.log.level
----| 0 trace
----| 1 debug
----| 2 info
----| 3 warn
----| 4 error
----| 5 off
+local table_op = require("rissue.utils.table_op")
 
 --- Log levels
 ---@type rissue.log.levels
-M.levels = {
+local levels = {
   trace = 0,
   debug = 1,
   info = 2,
@@ -67,21 +29,21 @@ M.levels = {
 
 ---@type table<integer, string>
 local log_name = {
-  [M.levels.trace] = "TRACE",
-  [M.levels.debug] = "DEBUG",
-  [M.levels.error] = "ERROR",
-  [M.levels.info] = " INFO",
-  [M.levels.warn] = " WARN",
-  [M.levels.off] = " USER",
+  [levels.trace] = "TRACE",
+  [levels.debug] = "DEBUG",
+  [levels.error] = "ERROR",
+  [levels.info] = " INFO",
+  [levels.warn] = " WARN",
+  [levels.off] = " USER",
 }
 
 local ansi_colors = {
-  [M.levels.error] = "\27[31m", -- Red
-  [M.levels.warn] = "\27[33m", -- Yellow
-  [M.levels.info] = "\27[34m", -- Blue
-  [M.levels.debug] = "\27[37m", -- White
-  [M.levels.trace] = "\27[90m", -- Gray (Bright Black)
-  [M.levels.off] = "\27[36m", -- cyan (for user)
+  [levels.error] = "\27[31m", -- Red
+  [levels.warn] = "\27[33m", -- Yellow
+  [levels.info] = "\27[34m", -- Blue
+  [levels.debug] = "\27[37m", -- White
+  [levels.trace] = "\27[90m", -- Gray (Bright Black)
+  [levels.off] = "\27[36m", -- cyan (for user)
 }
 
 local function log_no_color(msg, level)
@@ -101,31 +63,136 @@ local function log_color(msg, level)
   )
 end
 
---- The default logger
-M.default_logger = log_no_color
+---@param ... any
+---@return string
+local function join(...)
+  local n = select("#", ...)
+  if n == 1 then
+    return tostring((...))
+  elseif n == 2 then
+    local a, b = ...
+    return tostring(a) .. " " .. tostring(b)
+  end
+  -- general case
+  local t = { ... }
+  for i = 1, n do
+    t[i] = tostring(t[i])
+  end
+  return table.concat(t, " ")
+end
 
---- Options for logger
----@class rissue.log.Opts
---- The current log level. Use `log.levels.<name>` to set up or pass an integer
---- corresponding to the log level.
----@field log_level? rissue.log.level
---- Replaces the current built-in logger.
----@field logger? rissue.log.logger
---- Enables or disables printing with `colors` on the built-in logger.
----@field builtin_logger_color_enabled? boolean
+---@param opts rissue.log.new.Opts
+local function new_logger(opts)
+  local context_info = {
+    context = opts.context,
+  }
 
---- Runs the logger setup
----@param opts rissue.log.Opts
-function M.setup(opts)
+  ---@type rissue.logger
+  local logger = {
+    _level = 2,
+    _logger = opts.logger or log_no_color,
+    levels = levels,
+
+    --- will be set later
+    log = nil, ---@diagnostic disable-line: assign-type-mismatch
+    info = nil, ---@diagnostic disable-line: assign-type-mismatch
+    warn = nil, ---@diagnostic disable-line: assign-type-mismatch
+    error = nil, ---@diagnostic disable-line: assign-type-mismatch
+    trace = nil, ---@diagnostic disable-line: assign-type-mismatch
+    debug = nil, ---@diagnostic disable-line: assign-type-mismatch
+    level_enabled = nil, ---@diagnostic disable-line: assign-type-mismatch
+    get_log_level = nil, ---@diagnostic disable-line: assign-type-mismatch
+    set_log_level = nil, ---@diagnostic disable-line: assign-type-mismatch
+    set_logger = nil, ---@diagnostic disable-line: assign-type-mismatch
+  }
+
+  if table_op.count(context_info) > 0 then
+    logger.log = function(msg, level)
+      ---@diagnostic disable-next-line: invisible
+      logger._logger(msg, level, context_info)
+    end
+  else
+    logger.log = function(msg, level)
+      ---@diagnostic disable-next-line: invisible
+      logger._logger(msg, level)
+    end
+  end
+
+  logger.level_enabled = function(level)
+    ---@diagnostic disable-next-line: invisible
+    return level >= logger._level
+  end
+  logger.get_log_level = function()
+    ---@diagnostic disable-next-line: invisible
+    return logger._level
+  end
+
+  logger.set_log_level = function(level)
+    if type(level) == "string" then
+      local level_transformed = levels[level]
+      if not level_transformed then
+        error("Invalid level: " .. tostring(level), 2)
+      end
+      ---@diagnostic disable-next-line: invisible
+      logger._level = level_transformed
+    else
+      ---@diagnostic disable-next-line: invisible
+      logger._level = level
+    end
+  end
+
+  logger.set_logger = function(_logger)
+    ---@diagnostic disable-next-line: invisible
+    logger._logger = _logger
+  end
+
+  for name, lvl in pairs(levels) do
+    if name ~= "off" then
+      logger[name] = function(...)
+        if logger.level_enabled(lvl) then
+          logger.log(join(...), lvl)
+        end
+      end
+    end
+  end
+
+  return logger
+end
+
+local logger_mod = new_logger({})
+---@cast logger_mod rissue.mod.logger
+
+---@param opts? rissue.log.new.Opts
+---@diagnostic disable-next-line: inject-field
+logger_mod.new = function(opts)
+  if not opts then
+    opts = {}
+  end
+
+  if not opts.logger then
+    --- logger_mod._logger may change, so we dynamically access it every time
+    opts.logger = function(msg, level, info)
+      ---@diagnostic disable-next-line: invisible
+      logger_mod._logger(msg, level, info)
+    end
+  end
+
+  return new_logger(opts)
+end
+
+---@diagnostic disable-next-line: inject-field
+logger_mod.setup = function(opts)
   if opts.log_level ~= nil then
-    M.log_level = opts.log_level
+    logger_mod.set_log_level(opts.log_level)
   end
 
   if opts.logger ~= nil then
-    M._logger = opts.logger
+    logger_mod.set_logger(opts.logger)
   else
+    local builtin_logger_color_enabled = false
+
     if opts.builtin_logger_color_enabled ~= nil then
-      M.builtin_logger_color_enabled = opts.builtin_logger_color_enabled
+      builtin_logger_color_enabled = opts.builtin_logger_color_enabled
     else
       local env_no_color = os.getenv("NO_COLOR")
       local env_is_term = os.getenv("TERM")
@@ -133,131 +200,16 @@ function M.setup(opts)
       if env_no_color and env_no_color ~= "" or env_is_term == "dumb" then
         has_colors = false
       end
-      M.builtin_logger_color_enabled = has_colors
+      builtin_logger_color_enabled = has_colors
     end
 
-    if M.builtin_logger_color_enabled then
-      M._logger = log_color
+    if builtin_logger_color_enabled then
+      logger_mod.set_logger(log_color)
     else
-      M._logger = log_no_color
+      logger_mod.set_logger(log_no_color)
     end
   end
 end
 
----@alias rissue.log.logger fun(msg: string, level: integer)
-
---- Sets the current logger
----@param logger rissue.log.logger
-function M.set_logger(logger)
-  M._logger = logger
-end
-
---- Sets the current log level
----@param level rissue.log.level
-function M.set_log_level(level)
-  M.log_level = level
-end
-
-M._logger = M.default_logger
-
---- Logs to logger.
----
---- Warning: Does not filter logging based on current log level.
----          Wrap it with `log.level_enabled()` instead.
----@param msg string
----@param level rissue.log.level
-function M.log(msg, level)
-  M._logger(msg, level)
-end
-
---- Checks if the specified level is enabled
----@param level rissue.log.level
----@return boolean
-function M.level_enabled(level)
-  return level >= M.log_level
-end
-
---- Print a message with log level of `log` to the logger
----@param msg string
-function M.info(msg)
-  if not M.level_enabled(M.levels.info) then
-    return
-  end
-  M.log(msg, M.levels.info)
-end
-
---- Print a message with log level of `warning` to the logger
----@param msg string
-function M.warn(msg)
-  if not M.level_enabled(M.levels.warn) then
-    return
-  end
-  M.log(msg, M.levels.warn)
-end
-
---- Print a message with log level of `error` to the logger
----@param msg string
-function M.error(msg)
-  if not M.level_enabled(M.levels.error) then
-    return
-  end
-  M.log(msg, M.levels.error)
-end
-
---- Print a message with log level of `trace` to the logger
----@param msg string
-function M.trace(msg)
-  if not M.level_enabled(M.levels.trace) then
-    return
-  end
-  M.log(msg, M.levels.trace)
-end
-
---- Print a message with log level of `debug` to the logger
----@param msg string
-function M.debug(msg)
-  if not M.level_enabled(M.levels.debug) then
-    return
-  end
-  M.log(msg, M.levels.debug)
-end
-
----@class rissue.utils.log.log_func.Opts
----@field prefix string?
----@field suffix string?
-
---- Returns a fixed logger function. Usually used on xpcalls.
----
---- Example:
----
---- ```lua
---- local log = require("rissue.utils.log")
----
---- local ok = xpcall(function()
----   error("something went wrong")
---- end, log.log_func("error", { prefix = "[sync] " }))
---- ```
----@param level rissue.log.level
----@param opts rissue.utils.log.log_func.Opts?
----@return fun(err: string)
-function M.log_func(level, opts)
-  return function(err)
-    -- there might be cases where the level is changed,
-    -- so we just evaluate every call instead
-    if M.level_enabled(level) then
-      local message = err
-      if opts then
-        if opts.prefix then
-          message = opts.prefix .. message
-        end
-        if opts.suffix then
-          message = message .. opts.suffix
-        end
-      end
-
-      M.log(message, level)
-    end
-  end
-end
-
-return M
+---@type rissue.mod.logger
+return logger_mod

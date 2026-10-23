@@ -29,6 +29,7 @@
 ---@class rissue
 local rissue = {}
 
+local async = require("rissue.utils.async")
 local config = require("rissue.config")
 local env = require("rissue.env")
 local get = require("rissue.get")
@@ -61,6 +62,28 @@ function rissue.setup(opts, cwd)
 end
 
 rissue.get_remote_info = provider.remote_info
+
+---@param cb async fun(a: rissue.Async)
+---@return string? err_msg
+local function run_blocking(cb)
+  local backend, wait = async.default_backend()
+  local done = false
+  async.run(
+    backend, ---@async
+    function(a)
+      cb(a)
+      done = true
+    end
+  )
+
+  local success, err = wait(function()
+    return done
+  end, config.options.timeout)
+
+  if not success then
+    return err
+  end
+end
 
 --- Gets the provider info from remote info or remote url.
 ---
@@ -98,8 +121,15 @@ function rissue.get_provider_info(remote, opts)
     remote = remote_res
   end
 
-  ---@cast remote rissue.RemoteInfo
-  return provider.provider_info(remote, opts)
+  local result, err
+  local run_err = run_blocking(
+    ---@async
+    function(a)
+      result, err = provider.provider_info(a, remote, opts)
+    end
+  )
+
+  return result, run_err or err
 end
 
 ---@param remote string | rissue.RemoteInfo | rissue.ProviderInfo
@@ -160,11 +190,20 @@ end
 ---@return rissue.issue[]? issues List of issues. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.
 function rissue.get_issues(remote, opts)
-  local _remote, new_opts, err = into_provider_info(remote, opts)
-  if not _remote then
-    return nil, err or "unknown error"
+  local provider_info, new_opts, convert_err = into_provider_info(remote, opts)
+  if not provider_info then
+    return nil, convert_err or "unknown error"
   end
-  return get.issues(_remote, new_opts)
+
+  local result, err
+  local run_err = run_blocking(
+    ---@async
+    function(a)
+      result, err = get.issues(a, provider_info, new_opts)
+    end
+  )
+
+  return result, run_err or err
 end
 
 --- Gets merge requests from the remote url, remote info or provider info
@@ -195,11 +234,20 @@ end
 ---@return rissue.pr[]? merge_requests List of merge requests. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.
 function rissue.get_merge_requests(remote, opts)
-  local _remote, new_opts, err = into_provider_info(remote, opts)
-  if not _remote then
-    return nil, err or "unknown error"
+  local provider_info, new_opts, convert_err = into_provider_info(remote, opts)
+  if not provider_info then
+    return nil, convert_err or "unknown error"
   end
-  return get.merge_requests(_remote, new_opts)
+
+  local result, err
+  local run_err = run_blocking(
+    ---@async
+    function(a)
+      result, err = get.merge_requests(a, provider_info, new_opts)
+    end
+  )
+
+  return result, run_err or err
 end
 
 return rissue

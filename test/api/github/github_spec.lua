@@ -35,8 +35,7 @@ local spec_folder = utils.get_test_api_path("github")
 ---@param opts __rissue.github.test_version
 local function test_version(name, specfile, opts)
   local is_proxy = opts.is_proxy
-  local provider = require("rissue.provider")
-  local get = require("rissue.get")
+  local rissue = require("rissue")
   test_utils.with_server({
     name = name,
     specfile = spec_folder .. "/" .. specfile .. ".json",
@@ -52,10 +51,10 @@ local function test_version(name, specfile, opts)
     --- you would see in the response, just ignore them.
 
     it("found provider", function()
-      local remote_info, remote_info_err =
-        provider.remote_info("http://" .. domain .. "/owner/repo.git")
-      assert(remote_info and not remote_info_err, remote_info_err)
-      local info, err = provider.provider_info(remote_info, opts.request_opts)
+      local info, err = rissue.get_provider_info(
+        "http://" .. domain .. "/owner/repo.git",
+        opts.request_opts
+      )
       assert(not err, err)
       assert.is_not_nil(info)
       assert.same({
@@ -73,7 +72,7 @@ local function test_version(name, specfile, opts)
     it("issues ok at /search/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.issues(info_shared, {
+      local issues, err = rissue.get_issues(info_shared, {
         endpoints = {
           issues = {
             { endpoint = "/search/issues", param = { q = "type:issue" } },
@@ -108,7 +107,7 @@ local function test_version(name, specfile, opts)
     it("issues ok at /issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.issues(info_shared, {
+      local issues, err = rissue.get_issues(info_shared, {
         endpoints = {
           issues = {
             { endpoint = "/issues", param = {} },
@@ -144,7 +143,7 @@ local function test_version(name, specfile, opts)
     it("issues ok at /repos/{owner}/{repo}/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.issues(info_shared, {
+      local issues, err = rissue.get_issues(info_shared, {
         endpoints = {
           issues = {
             {
@@ -183,7 +182,7 @@ local function test_version(name, specfile, opts)
     it("issues ok at /user/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.issues(info_shared, {
+      local issues, err = rissue.get_issues(info_shared, {
         endpoints = {
           issues = {
             {
@@ -222,7 +221,7 @@ local function test_version(name, specfile, opts)
     it("merge_requests ok at /search/issues", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local issues, err = get.merge_requests(info_shared, {
+      local issues, err = rissue.get_merge_requests(info_shared, {
         endpoints = {
           issues = {},
           merge_requests = {
@@ -257,7 +256,7 @@ local function test_version(name, specfile, opts)
     it("merge_requests ok at /repos/{owner}/{repo}/pulls", function()
       assert.is_not_nil(info_shared, "provider test was not ok")
       ---@cast info_shared rissue.ProviderInfo
-      local mr, err = get.merge_requests(info_shared, {
+      local mr, err = rissue.get_merge_requests(info_shared, {
         endpoints = {
           issues = {},
           merge_requests = {
@@ -310,12 +309,12 @@ describe("github #api", function()
   ---@diagnostic disable-next-line: duplicate-set-field
   curl.request =
     ---@async
-    function(url, opts)
+    function(a, url, opts)
       if url:match("api.github.com") then
         ---@type rissue.utils.curl.Result
-        return nil, "Proxy block (reason: test mode)"
+        return nil, "Url blocked due to test mode. This is safe!"
       end
-      return original_request(url, opts)
+      return original_request(a, url, opts)
     end
 
   test_utils.with_proxy({

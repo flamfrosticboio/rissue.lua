@@ -26,6 +26,7 @@ end
 
 local this_script = debug.getinfo(1, "S").source:sub(2)
 local this_dir = this_script:match("^(.*[/\\])") or "./"
+local async = require("rissue.utils.async")
 
 describe("remote_info", function()
   reset()
@@ -96,8 +97,19 @@ describe("provider_info", function()
     local url = "https://custom.com/flamfrosticboio/rissue.git"
     local remote_info, err = provider.remote_info(url)
     assert(remote_info and not err, err)
-    local info, err2 = provider.provider_info(remote_info)
-    assert(info and not err2, err2)
+
+    local info
+    local backend = async.default_backend()
+    async.run(
+      backend,
+      ---@async
+      function(a)
+        local _info, err2 = provider.provider_info(a, remote_info)
+        assert(_info and not err2, err2)
+        info = _info
+      end
+    )
+
     assert.same({
       domain = "api.custom.com",
       name = "custom_shortcut",
@@ -111,8 +123,19 @@ describe("provider_info", function()
     local url = "https://github.com/flamfrosticboio/rissue.git"
     local remote_info, err = provider.remote_info(url)
     assert(remote_info and not err, err)
-    local info, err2 = provider.provider_info(remote_info)
-    assert(info and not err2, err2)
+
+    local info
+    local backend = async.default_backend()
+    async.run(
+      backend,
+      ---@async
+      function(a)
+        local _info, err2 = provider.provider_info(a, remote_info)
+        assert(_info and not err2, err2)
+        info = _info
+      end
+    )
+
     assert.same({
       domain = "api.github.com",
       name = "github",

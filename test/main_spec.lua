@@ -70,6 +70,7 @@ describe("rissue", function()
       rissue.get_issues("https://github.com/flamfrosticboio/rissue")
 
       assert.stub(get.issues --[[@as luassert.spy]]).was.called_with(
+        match.is_table(),
         match.same({
           additional_info = {
             api_version = "2026-03-10",
@@ -98,6 +99,7 @@ describe("rissue", function()
       rissue.get_issues(remote_info)
 
       assert.stub(get.issues --[[@as luassert.spy]]).was.called_with(
+        match.is_table(),
         match.same({
           additional_info = {
             api_version = "2026-03-10",
@@ -126,6 +128,7 @@ describe("rissue", function()
       rissue.get_issues(info)
 
       assert.stub(get.issues --[[@as luassert.spy]]).was.called_with(
+        match.is_table(),
         match.same({
           additional_info = {
             api_version = "2026-03-10",
@@ -149,6 +152,7 @@ describe("rissue", function()
       rissue.get_issues("https://github.com/flamfrosticboio/rissue")
 
       assert.stub(get.issues --[[@as luassert.spy]]).was.called_with(
+        match.is_table(),
         match.same({
           additional_info = {
             api_version = "2026-03-10",
@@ -179,6 +183,7 @@ describe("rissue", function()
         rissue.get_issues(remote_info)
 
         assert.stub(get.issues --[[@as luassert.spy]]).was.called_with(
+          match.is_table(),
           match.same({
             additional_info = {
               api_version = "2026-03-10",
@@ -210,6 +215,7 @@ describe("rissue", function()
         rissue.get_issues(info)
 
         assert.stub(get.issues --[[@as luassert.spy]]).was.called_with(
+          match.is_table(),
           match.same({
             additional_info = {
               api_version = "2026-03-10",

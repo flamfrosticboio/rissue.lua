@@ -85,14 +85,15 @@ end
 
 --- Warning: raises errors
 ---@async
+---@param async rissue.Async
 ---@param opts rissue.utils.curl.Opts
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
-local function try_fetch_query(url, param, opts)
+local function try_fetch_query(async, url, param, opts)
   opts.data_type = "urlencode"
   opts.data = param
 
-  local req, err = curl.request(url, opts)
+  local req, err = curl.request(async, url, opts)
   if req then
     req.content = req.content:match("^%s*(.-)%s*$")
     req.err = req.err:match("^%s*(.-)%s*$")
@@ -132,12 +133,17 @@ end
 ---@field next_url string?
 
 ---@async
+---@param async rissue.Async
 ---@param opts __rissue.Github.fetch_page.Opts
 ---@return __rissue.Github.fetch_page.Result? result
 ---@return string? error
-local function try_fetch_page(opts)
-  local response, fetch_err =
-    try_fetch_query(opts.query.endpoint, opts.query.param, opts.curl_opts)
+local function try_fetch_page(async, opts)
+  local response, fetch_err = try_fetch_query(
+    async,
+    opts.query.endpoint,
+    opts.query.param,
+    opts.curl_opts
+  )
 
   if response and response.exitcode == 0 then
     local ok, res = pcall(function()
@@ -171,20 +177,10 @@ local function try_fetch_page(opts)
       ) or nil,
     } --[[@as __rissue.Github.fetch_page.Result]]
   else
-    local err = (response and response.err or "")
-      .. (fetch_err and (" | " .. fetch_err) or "")
-    err = err ~= "" and err or "unknown error"
+    local err = (response and response.err) or fetch_err or "unknown error"
 
-    if log.level_enabled(log.levels.error) then
-      local message = "Failed to fetch on '"
-        .. opts.query.endpoint
-        .. "': "
-        .. err
-      if response and response.content ~= "" then
-        message = message .. "\nServer responded: " .. response.content
-      end
-
-      log.log(message, log.levels.error)
+    if err and response and response.content ~= "" then
+      err = err .. "\n>>> Server response: " .. response.content
     end
 
     return nil, err
@@ -193,8 +189,8 @@ end
 
 ---@async
 ---@param delay integer Delay in milliseconds
-local function delay_with_warning(delay)
-  local delay_ok, delay_err = process.try_delay(delay)
+local function delay_with_warning(async, delay)
+  local delay_ok, delay_err = process.sleep(async, delay)
   if not delay_ok then
     log.warn("Failed to delay: " .. (delay_err or "unknown error"))
   end
@@ -208,12 +204,13 @@ end
 
 ---@async
 ---@generic T, K
+---@param async rissue.Async
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 ---@param queries rissue.Query[]
 ---@param opts __rissue.Github.fetch.Opts
 ---@return T[]? results
 ---@return string? error
-function M.try_fetch(info, queries, opts)
+function M.try_fetch(async, info, queries, opts)
   if opts.settings.items_per_page > 100 then
     return nil, "Setting 'items_per_page' cannot be above 100"
   end
@@ -264,29 +261,36 @@ function M.try_fetch(info, queries, opts)
     })
 
     while not is_full() do
-      local result, err = try_fetch_page({
+      local result, err = try_fetch_page(async, {
         query = query,
         curl_opts = curl_opts_reusable,
       })
 
       if not result then
-        log.error("Failed to fetch: " .. (err or "unknown error"))
+        log.error(
+          "Failed to fetch on endpoint '"
+            .. query.endpoint
+            .. "': "
+            .. (err or "unknown error")
+        )
         break
       end
 
       xpcall(function()
         parse_items(result.contents.items)
-      end, log.log_func(
-        log.levels.error,
-        { prefix = "Failed to parse: " }
-      ))
+      end, function(xpcall_err)
+        local l = log.levels.error
+        if log.level_enabled(l) then
+          log.log("Failed to parse: " .. xpcall_err, l)
+        end
+      end)
 
       if not result.next_url or is_full() then
         break
       end
 
       query = { endpoint = result.next_url, param = {} }
-      delay_with_warning(opts.settings.fetch_delay)
+      delay_with_warning(async, opts.settings.fetch_delay)
     end
   end
 
