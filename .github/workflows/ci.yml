@@ -64,22 +64,6 @@ jobs:
         with:
           ref: ${{ github.head_ref }}
 
-      - name: Setup Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libuv1-dev cmake libreadline-dev libncurses-dev
-
-      - uses: leafo/gh-actions-lua@v10
-        with:
-          luaVersion: "5.1"
-
-      - uses: leafo/gh-actions-luarocks@v4
-
-      - name: Install Luarocks Dependencies
-        run: |
-          luarocks install luafilesystem
-          luarocks install dkjson
-
       - name: Install lua-language-server
         run: |
           set -e
@@ -90,14 +74,19 @@ jobs:
           ln -sf /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server
           rm lls.tar.gz
 
-      - uses: jdx/mise-action@v4
-        env:
-          MISE_AUTO_INSTALL: false
+      - uses: actions/setup-node@v4
         with:
-          install_args: "node@lts prettier@latest"
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: scripts/package-lock.json
+
+      - run: npm ci
+        working-directory: scripts
+
+      - run: echo "$PWD/scripts/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Run Autodoc
-        run: lua ./scripts/gen_doc.lua
+        run: node ./scripts/auto_doc.cjs
 
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
