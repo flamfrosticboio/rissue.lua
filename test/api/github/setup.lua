@@ -46,8 +46,8 @@ local function spec_pipeline(spec_name, url)
     }),
     setup_manager.p_register_cleanup(
       ---@async
-      function()
-        setup_utils.run_pipeline({
+      function(a)
+        setup_utils.run_pipeline(a, {
           setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
           setup_manager.p_rmfile(
             tmp_filename_processed,

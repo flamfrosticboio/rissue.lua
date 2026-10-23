@@ -4,8 +4,12 @@
 
 **Features:**
 
+- Use new async model that is used for rissue.
+  - Refactored all async related code in rissue to use the new async model.
+
 - Auto enable logging on process's stdout and stderr when trace is enabled in
   log level.
+
 - `utils/log`
   - Regular printing functions such as `log.info()`, `log.warn()` and etc.
     can now take multiple parameters.
@@ -32,9 +36,15 @@
 - `github`:
   - Updated logging to be more clear and simpler.
 
+**Bug Fixes:**
+
+- (`utils/process`) Fixed running status is still true when process
+  has exited during the `on_exit` event.
+
 **Breaking Changes:**
 
 - Removed `log_func`. Write a manual implementation instead.
+- Removed `process.run()` and `process.run_co()`. Use `process.run_async()` instead.
 
 ## v0.2.1
 

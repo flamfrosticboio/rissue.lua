@@ -1,5 +1,5 @@
 std = "lua51+.selene/busted+.selene/luajit"
-exclude = [".types/**", "lua/**"]
+exclude = [".types/**", "lua/**", "test/others/**"]
 
 [rules]
 incorrect_standard_library_use = "allow"

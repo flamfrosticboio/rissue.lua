@@ -56,20 +56,6 @@ Process.__index = Process
 
 local wait_co_err = nil ---@type string?
 
----@param co thread
-local function safe_co_resume(co)
-  local ok, err = coroutine.resume(co)
-  if not ok then
-    local _, stop_err = M.try_stop_current_wait(err)
-    if stop_err then
-      log.error(
-        "Failed to send stop signal to current wait thread: "
-          .. (stop_err or "unknown error")
-      )
-    end
-  end
-end
-
 ---@param events fun()[]
 local function run_all_events(events)
   for _, event in ipairs(events) do
@@ -91,8 +77,8 @@ end
 function Process:try_exit()
   if not self._complete and table_op.all(self._finished) then
     self._complete = true
-    run_all_events(self._events.on_exit)
     self._running = false
+    run_all_events(self._events.on_exit)
   end
 end
 
@@ -409,28 +395,21 @@ function M.spawn_err(opts)
   return p
 end
 
+--- Runs the process until it exits.
 ---@async
---- Wrapper to M.spawn with `uv.spawn()` that blocks for exit inside coroutines.
---- Use `process.spawn()` if manually implementing instead.
----
---- Warning: May raise errors
---- @param command_opts rissue.utils.CommandOpts
---- @param opts rissue.utils.run.Opts?
---- @return rissue.utils.CmdResult? result
---- @return string? error
-function M.run_co(command_opts, opts)
-  local co, is_main = coroutine.running()
-  if is_main or not co then
-    error("must be inside a coroutine")
-  end
-
+---@param async rissue.Async
+---@param command_opts rissue.utils.CommandOpts
+---@param opts rissue.utils.run.Opts?
+---@return rissue.utils.CmdResult? result
+---@return string? error
+function M.run_async(async, command_opts, opts)
   local p, err = M.spawn(command_opts)
   if not p then
     return nil, err
   end
 
   p:register_event("on_exit", function()
-    safe_co_resume(co)
+    async:resume()
   end)
 
   if
@@ -448,61 +427,12 @@ function M.run_co(command_opts, opts)
   if err then
     return nil, err
   end
-  coroutine.yield()
+
+  async:yield()
   return {
     return_code = p:get_code(),
     stdout = p:get_stdout(),
     stderr = p:get_stderr(),
-  } --[[@as rissue.utils.CmdResult]]
-end
-
---- Blocks the main thread until the process exists.
---- Recommended on one shot commands such as `mkdir` and `touch`.
---- Warning: May raise errors! Recommended to wrap in `pcall()`
----
---- Use `process.run_co()` to run blocking on coroutine instead.
---- Use `os.execute()` for simplicity instead.
---- @param command_opts rissue.utils.CommandOpts
---- @param timeout integer Pass -1 to disable timeout
---- @param opts rissue.utils.run.Opts?
---- @return rissue.utils.CmdResult? result
---- @return string? error
-function M.run(command_opts, timeout, opts)
-  local finished = false
-  local p, err = M.spawn(command_opts)
-  if not p then
-    return nil, err
-  end
-  p:register_event("on_exit", function()
-    finished = true
-  end)
-  if
-    (opts and opts.print_output == true)
-    or log.level_enabled(log.levels.trace)
-  then
-    p:register_event("on_stdout", function()
-      log.log("| " .. p:get_last_stdout(true), log.levels.trace)
-    end)
-    p:register_event("on_stderr", function()
-      log.log("@ " .. p:get_last_stderr(true), log.levels.trace)
-    end)
-  end
-  err = p:run()
-  if err then
-    return nil, err
-  end
-  local wait_ok = M.wait(function()
-    return finished
-  end, timeout)
-
-  if not wait_ok then
-    return nil, "timeout reached"
-  end
-
-  return {
-    return_code = p:get_code(),
-    stderr = p:get_stderr(),
-    stdout = p:get_stdout(),
   } --[[@as rissue.utils.CmdResult]]
 end
 
@@ -516,43 +446,26 @@ local function try_stop_timer(timer)
   end
 end
 
---- Delays the coroutine/main thread execution by number of milliseconds
----
---- If not in coroutine mode, it uses `process.wait()` instead
+--- Delays the current async by number of milliseconds
 ---@async
----@param milliseconds integer
+---@param async rissue.Async
+---@param milliseconds integer time in milliseconds
 ---@return boolean success
 ---@return string? error
-function M.try_delay(milliseconds)
+function M.sleep(async, milliseconds)
   local timer, timer_err = uv.new_timer()
   if not timer then
     return false, timer_err
   end
 
-  local co, is_main = coroutine.running()
-
-  if not is_main and co then
-    local start_ok, start_err = timer:start(milliseconds, 0, function()
-      safe_co_resume(co)
-    end)
-    if not start_ok then
-      close_handle(timer)
-      return false, start_err
-    end
-    coroutine.yield()
-  else
-    local done = false
-    local start_ok, start_err = timer:start(milliseconds, 0, function()
-      done = true
-    end)
-    if not start_ok then
-      close_handle(timer)
-      return false, start_err
-    end
-    M.wait(function()
-      return done
-    end, -1)
+  local start_ok, start_err = timer:start(milliseconds, 0, function()
+    async:resume()
+  end)
+  if not start_ok then
+    close_handle(timer)
+    return false, start_err
   end
+  async:yield()
 
   return true
 end
