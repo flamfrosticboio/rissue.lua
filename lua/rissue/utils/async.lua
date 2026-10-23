@@ -133,7 +133,7 @@ local function report(err, tb)
 end
 
 ---@return __rissue.async.Backend
----@return fun(cond: (fun(): boolean), timeout: integer, interval: integer?) wait_fn wait function
+---@return fun(cond: (fun(): boolean), timeout: integer, interval: integer?): boolean, string wait_fn wait function
 function async.default_backend()
   local err_msg = nil
 
@@ -150,9 +150,9 @@ function async.default_backend()
 
   local function wait(cond, timeout, interval)
     if err_msg ~= nil then
-      error(err_msg, 2)
+      return err_msg
     else
-      process.wait(cond, timeout, interval)
+      return process.wait(cond, timeout, interval)
     end
   end
   return backend, wait

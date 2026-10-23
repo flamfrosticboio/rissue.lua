@@ -64,6 +64,7 @@ end
 rissue.get_remote_info = provider.remote_info
 
 ---@param cb async fun(a: rissue.Async)
+---@return string? err_msg
 local function run_blocking(cb)
   local backend, wait = async.default_backend()
   local done = false
@@ -75,9 +76,13 @@ local function run_blocking(cb)
     end
   )
 
-  wait(function()
+  local success, err = wait(function()
     return done
   end, config.options.timeout)
+
+  if not success then
+    return err
+  end
 end
 
 --- Gets the provider info from remote info or remote url.
@@ -117,14 +122,14 @@ function rissue.get_provider_info(remote, opts)
   end
 
   local result, err
-  run_blocking(
+  local run_err = run_blocking(
     ---@async
     function(a)
       result, err = provider.provider_info(a, remote, opts)
     end
   )
 
-  return result, err
+  return result, run_err or err
 end
 
 ---@param remote string | rissue.RemoteInfo | rissue.ProviderInfo
@@ -191,14 +196,14 @@ function rissue.get_issues(remote, opts)
   end
 
   local result, err
-  run_blocking(
+  local run_err = run_blocking(
     ---@async
     function(a)
       result, err = get.issues(a, provider_info, new_opts)
     end
   )
 
-  return result, err
+  return result, run_err or err
 end
 
 --- Gets merge requests from the remote url, remote info or provider info
@@ -235,14 +240,14 @@ function rissue.get_merge_requests(remote, opts)
   end
 
   local result, err
-  run_blocking(
+  local run_err = run_blocking(
     ---@async
     function(a)
       result, err = get.merge_requests(a, provider_info, new_opts)
     end
   )
 
-  return result, err
+  return result, run_err or err
 end
 
 return rissue
