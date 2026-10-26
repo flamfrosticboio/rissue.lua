@@ -22,25 +22,17 @@ local config = require("rissue.config")
 local env = require("rissue.env")
 
 ---@async
----@param async rissue.Async
 ---@param info rissue.ProviderInfo
----@param opts table?
----@param command "get_issues" | "get_merge_requests"
----@return any[]? results
+---@return rissue.Provider? results
 ---@return string? errors
-local function get_issues_or_merge(async, info, opts, command)
+local function get_provider(info)
   ---@type rissue.Provider?
   local provider = config.providers[info.name]
   if not provider then
     return nil, "Could not find provider: " .. info.name
   end
 
-  return provider[command](
-    async,
-    info,
-    env.get_token(provider.name),
-    config.merge_provider_settings(provider, opts)
-  )
+  return provider
 end
 
 --- Gets issues specified with info and provider opts
@@ -51,8 +43,15 @@ end
 ---@return rissue.issue[]? results
 ---@return string? errors
 function get.issues(async, info, opts)
-  local res, err = get_issues_or_merge(async, info, opts, "get_issues")
-  return res, err
+  local provider, err = get_provider(info)
+  if not provider then
+    return nil, err
+  end
+
+  local token = env.get_token(provider.name)
+  local settings = config.merge_provider_settings(provider, opts)
+
+  return provider.get_issues(async, info, token, settings)
 end
 
 --- Gets merge requests specified with info and provider opts
@@ -63,8 +62,15 @@ end
 ---@return rissue.pr[]? results
 ---@return string? errors
 function get.merge_requests(async, info, opts)
-  local res, err = get_issues_or_merge(async, info, opts, "get_merge_requests")
-  return res, err
+  local provider, err = get_provider(info)
+  if not provider then
+    return nil, err
+  end
+
+  local token = env.get_token(provider.name)
+  local settings = config.merge_provider_settings(provider, opts)
+
+  return provider.get_merge_requests(async, info, token, settings)
 end
 
 return get
