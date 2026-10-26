@@ -166,4 +166,17 @@ function M.set_into_list(set)
   return result
 end
 
+--- Simple appender function from existing table
+---@generic T
+---@param tbl T[]
+---@return fun(item: T): integer
+function M.appender(tbl)
+  local n = #tbl
+  return function(item)
+    n = n + 1
+    tbl[n] = item
+    return n
+  end
+end
+
 return M
