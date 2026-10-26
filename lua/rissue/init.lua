@@ -34,6 +34,7 @@ local config = require("rissue.config")
 local env = require("rissue.env")
 local get = require("rissue.get")
 local provider = require("rissue.provider")
+local table_op = require("rissue.utils.table_op")
 
 --- Run setup for rissue.
 ---
@@ -195,15 +196,20 @@ function rissue.get_issues(remote, opts)
     return nil, convert_err or "unknown error"
   end
 
-  local result, err
+  local result = {} ---@type rissue.issue[]
+  local pusher = table_op.appender(result)
+
   local run_err = run_blocking(
     ---@async
     function(a)
-      result, err = get.issues(a, provider_info, new_opts)
+      local err = get.issues(a, provider_info, new_opts, pusher)
+      if err then
+        error(err, 0)
+      end
     end
   )
 
-  return result, run_err or err
+  return result, run_err
 end
 
 --- Gets merge requests from the remote url, remote info or provider info
@@ -239,15 +245,24 @@ function rissue.get_merge_requests(remote, opts)
     return nil, convert_err or "unknown error"
   end
 
-  local result, err
+  local result = {} ---@type rissue.pr[]
+  local pusher = table_op.appender(result)
+
   local run_err = run_blocking(
     ---@async
     function(a)
-      result, err = get.merge_requests(a, provider_info, new_opts)
+      local err = get.merge_requests(a, provider_info, new_opts, pusher)
+      if err then
+        error(err, 0)
+      end
     end
   )
 
-  return result, run_err or err
+  if run_err then
+    return nil, run_err
+  end
+
+  return result
 end
 
 return rissue

@@ -40,18 +40,18 @@ end
 ---@param async rissue.Async
 ---@param info rissue.ProviderInfo
 ---@param opts table? Settings that are based on provider
----@return rissue.issue[]? results
+---@param cb fun(item: rissue.issue)
 ---@return string? errors
-function get.issues(async, info, opts)
+function get.issues(async, info, opts, cb)
   local provider, err = get_provider(info)
   if not provider then
-    return nil, err
+    return err
   end
 
   local token = env.get_token(provider.name)
   local settings = config.merge_provider_settings(provider, opts)
 
-  return provider.get_issues(async, info, token, settings)
+  return provider.get_issues(async, info, token, settings, cb)
 end
 
 --- Gets merge requests specified with info and provider opts
@@ -59,18 +59,18 @@ end
 ---@param async rissue.Async
 ---@param info rissue.ProviderInfo
 ---@param opts table? Settings that are based on provider
----@return rissue.pr[]? results
+---@param cb fun(item: rissue.pr)
 ---@return string? errors
-function get.merge_requests(async, info, opts)
+function get.merge_requests(async, info, opts, cb)
   local provider, err = get_provider(info)
   if not provider then
-    return nil, err
+    return err
   end
 
   local token = env.get_token(provider.name)
   local settings = config.merge_provider_settings(provider, opts)
 
-  return provider.get_merge_requests(async, info, token, settings)
+  return provider.get_merge_requests(async, info, token, settings, cb)
 end
 
 return get

@@ -81,7 +81,8 @@ describe("rissue", function()
           protocol = "https",
           repo = "rissue",
         }),
-        match.is_nil()
+        match.is_nil(),
+        match.is_function()
       )
 
       get.issues:revert() ---@diagnostic disable-line: undefined-field
@@ -110,7 +111,8 @@ describe("rissue", function()
           protocol = "https",
           repo = "rissue",
         }),
-        match.is_nil()
+        match.is_nil(),
+        match.is_function()
       )
 
       get.issues:revert() ---@diagnostic disable-line: undefined-field
@@ -139,7 +141,8 @@ describe("rissue", function()
           protocol = "https",
           repo = "rissue",
         }),
-        match.is_nil()
+        match.is_nil(),
+        match.is_function()
       )
 
       get.issues:revert() ---@diagnostic disable-line: undefined-field
@@ -163,7 +166,8 @@ describe("rissue", function()
           protocol = "https",
           repo = "rissue",
         }),
-        match.is_nil()
+        match.is_nil(),
+        match.is_function()
       )
 
       get.issues:revert() ---@diagnostic disable-line: undefined-field
@@ -194,7 +198,8 @@ describe("rissue", function()
             protocol = "https",
             repo = "rissue",
           }),
-          match.is_nil()
+          match.is_nil(),
+          match.is_function()
         )
 
         get.issues:revert() ---@diagnostic disable-line: undefined-field
@@ -226,7 +231,8 @@ describe("rissue", function()
             protocol = "https",
             repo = "rissue",
           }),
-          match.is_nil()
+          match.is_nil(),
+          match.is_function()
         )
 
         get.issues:revert() ---@diagnostic disable-line: undefined-field
