@@ -86,7 +86,7 @@ end
 
 ---@async
 ---@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
-local function get_issues(async, info, token, opts)
+local function get_issues(async, info, token, opts, cb)
   return fetch.try_fetch(async, info, opts.endpoints.issues, {
     parser = into_issue,
     key = function(item)
@@ -94,12 +94,12 @@ local function get_issues(async, info, token, opts)
     end,
     settings = opts,
     token = token,
-  })
+  }, cb)
 end
 
 ---@async
 ---@type rissue.provider.GetMergeRequests<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
-local function get_merge_requests(async, info, token, opts)
+local function get_merge_requests(async, info, token, opts, cb)
   return fetch.try_fetch(async, info, opts.endpoints.merge_requests, {
     parser = into_merge_requests,
     key = function(item)
@@ -107,7 +107,7 @@ local function get_merge_requests(async, info, token, opts)
     end,
     settings = opts,
     token = token,
-  })
+  }, cb)
 end
 
 ---@type rissue.Provider

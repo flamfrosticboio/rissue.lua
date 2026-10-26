@@ -5,15 +5,18 @@
 **Features:**
 
 - Use new async model that is used for rissue.
+
   - Refactored all async related code in rissue to use the new async model.
 
-- Auto enable logging on process's stdout and stderr when trace is enabled in
-  log level.
+- [utils/process]: Add auto enabling on logging on process's stdout and stderr
+  when `trace` is enabled in log level.
 
-- `utils/log`
+- [utils/log]
   - Regular printing functions such as `log.info()`, `log.warn()` and etc.
     can now take multiple parameters.
+
   - New function: `log.get_log_level()` to get current log level.
+
   - `log.log()` and `rissue.logger_func` can now take context. This affects
     setting up custom loggers where you can read the context of the log passed.
 
@@ -22,6 +25,7 @@
     This changes enables fine adjustment to the message output. Example:
 
     ```lua
+    local log = require('rissue.utils.log')
     log.set_logger(function(msg, level, info)
         if info and info.context then
             msg = "[" .. info.context .. "] " .. msg
@@ -30,21 +34,72 @@
     end)
     ```
 
+- [provider]: Upgrade specifications where getting issues and merge requests
+  calls the callback builder function provided. This allows for showing partial
+  results while the items are still fetching.
+
+  ```lua
+  --- module `rissue.get`
+  --- from:
+  get.issues(a, info, opts)
+  get.merge_requests(a, info, opts)
+  --- to:
+  get.issues(a, info, opts, function(issue) ... end)
+  get.merge_requests(a, info, opts, function(pr) ... end)
+  ```
+
+  Example use case (folke/snacks picker):
+
+  ```lua
+  --- inside snacks picker's finder
+  --- wrapped with async.run() and info and opts are provided
+  get.issues(a, info, opts, function(issue)
+    --- callback from snacks picker's callback
+    cb({ text = issue.body, item = issue })
+  end)
+  ```
+
+  - [Github]: updated specifications to conform with this new change.
+
+- [utils/table_op]:
+  - New function: `table_op.appender()`.
+
+    Example Usage:
+
+    ```lua
+    local tbl = {}
+    local pusher = table_op.appender(tbl)
+
+    pusher(1)
+    pusher(2)
+    pusher(3)
+    --- table contains { 1, 2, 3 }
+    ```
+
 **Changes:**
 
-- Accessing `log_level` (now called `_level`) and `_logger` are tagged protected.
-- `github`:
+- [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
+  tagged protected.
+
+- [Github]:
   - Updated logging to be more clear and simpler.
 
 **Bug Fixes:**
 
-- (`utils/process`) Fixed running status is still true when process
+- [utils/process]: Fixed running status is still true when process
   has exited during the `on_exit` event.
 
 **Breaking Changes:**
 
-- Removed `log_func`. Write a manual implementation instead.
-- Removed `process.run()` and `process.run_co()`. Use `process.run_async()` instead.
+- [utils/log]: Removed `log_func`. Write a manual implementation instead.
+
+- [utils/process]: Removed `process.run()` and `process.run_co()`.
+  Use `process.run_async()` instead.
+
+- [provider]: `Provider.get_issues()` and `Provider.get_merge_requests()` will
+  now take a fourth parameter `cb: fun(item: T)` where `T` is `rissue.issue` or
+  `rissue.pr`. The return type is updated from
+  `rissue.issue[]? results, string? err_msg` to `string? err_msg`
 
 ## v0.2.1
 

@@ -132,10 +132,12 @@ local function report(err, tb)
   log.trace(tb)
 end
 
+---@alias __rissue.WaitFunction fun(cond: (fun(): boolean), timeout: integer, interval: integer?): boolean, string?
+
 ---@return __rissue.async.Backend
----@return fun(cond: (fun(): boolean), timeout: integer, interval: integer?): boolean, string wait_fn wait function
+---@return __rissue.WaitFunction wait_fn wait function
 function async.default_backend()
-  local err_msg = nil
+  local err_msg = nil ---@type string?
 
   ---@type __rissue.async.Backend
   local backend = {
@@ -143,18 +145,23 @@ function async.default_backend()
       fn()
     end,
     on_error = function(err, tb)
-      err_msg = err
+      err_msg = tostring(err)
       report(err, tb)
     end,
   }
 
+  ---@type __rissue.WaitFunction
   local function wait(cond, timeout, interval)
+    local ok, err = process.wait(function()
+      return err_msg ~= nil or cond()
+    end, timeout, interval)
+
     if err_msg ~= nil then
-      return err_msg
-    else
-      return process.wait(cond, timeout, interval)
+      return false, err_msg
     end
+    return ok, err
   end
+
   return backend, wait
 end
 

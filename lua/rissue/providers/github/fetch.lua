@@ -208,11 +208,11 @@ end
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 ---@param queries rissue.Query[]
 ---@param opts __rissue.Github.fetch.Opts
----@return T[]? results
+---@param cb fun(item: T)
 ---@return string? error
-function M.try_fetch(async, info, queries, opts)
+function M.try_fetch(async, info, queries, opts, cb)
   if opts.settings.items_per_page > 100 then
-    return nil, "Setting 'items_per_page' cannot be above 100"
+    return "Setting 'items_per_page' cannot be above 100"
   end
 
   local buffer = {}
@@ -247,7 +247,11 @@ function M.try_fetch(async, info, queries, opts)
   local function parse_items(items)
     for _, item in ipairs(items) do
       local parsed = opts.parser(item, opts.settings)
-      buffer[opts.key(parsed)] = parsed
+      local key = opts.key(parsed)
+      if buffer[key] ~= true then
+        buffer[key] = true
+        cb(parsed)
+      end
     end
   end
 
@@ -293,8 +297,6 @@ function M.try_fetch(async, info, queries, opts)
       delay_with_warning(async, opts.settings.fetch_delay)
     end
   end
-
-  return table_op.set_into_list(buffer)
 end
 
 return M
