@@ -14,37 +14,34 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-local ver = {}
+local version_module = {}
 
---- The version code is returned as MMMMmmmmpppp where: M - major; m - minor; p - patch
+---@class rissue.Version
+---@field major integer
+---@field minor integer
+---@field patch integer
+
+--- Returns **true** when:
+--- - required major version is equal to provided major version
+--- - provided minor number is at least the required minor number
 ---
---- ## Bumping rules:
----
---- Major version **should only be bumped** when the specifications contains breaking
---- changes.
----
---- Minor versions **should only be bumped** when the specifications contains new
---- features but does not break any current changes.
----
---- The patch version is bumped when there are **changes within the provider itself**
----@param major integer
----@param minor integer
----@param patch integer
----@return string version_string
----@return integer version_code
-function ver.version(major, minor, patch)
-  assert(
-    major >= 0
-      and minor >= 0
-      and patch >= 0
-      and major <= 9999
-      and minor <= 9999
-      and patch <= 9999,
-    "version fields must be between 0 and 9999"
-  )
-  local code = major * 100000000 + minor * 10000 + patch
-  local str_repr = string.format("%d.%d.%d", major, minor, patch)
-  return str_repr, code
+--- Otherwise, it returns false.
+---@param required rissue.Version
+---@param provided rissue.Version
+---@return boolean
+function version_module.is_compatible(required, provided)
+  if required.major ~= provided.major then
+    return false
+  end
+
+  return provided.minor >= required.minor
 end
 
-return ver
+--- Represent a version
+---@param version rissue.Version
+---@return string
+function version_module.represent(version)
+  return string.format("%d.%d.%d", version.major, version.minor, version.patch)
+end
+
+return version_module
