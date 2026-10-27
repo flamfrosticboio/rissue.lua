@@ -240,10 +240,22 @@ function getProviderVersions() {
 
         const contents = read(file);
         const name = contents.match(CONFIG.providerNameRe)?.[1];
-        const version = contents.match(CONFIG.providerVersionRe)?.[1];
-        if (!name || !version) continue;
+        if (!name) continue;
 
-        versions[name] = version;
+        const block = contents.match(/version\s*=\s*\{([^}]*)\}/)?.[1];
+        if (!block) throw new Error("version table not found");
+
+        const field = (k) => {
+            const v = block.match(new RegExp(`\\b${k}\\s*=\\s*(\\d+)`))?.[1];
+            if (v === undefined) throw new Error(`missing ${k}`);
+            return Number(v);
+        };
+
+        const major = field("major");
+        const minor = field("minor");
+        const patch = field("patch");
+        versions[name] = `${major}.${minor}.${patch}`;
+
         if (isInit(file)) visitedDirs.push(dirname);
     }
 
