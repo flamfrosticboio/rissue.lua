@@ -1,4 +1,4 @@
-name: Changelog
+name: PR checks
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
@@ -8,6 +8,12 @@ permissions:
   contents: read
 
 jobs:
+  check-provider-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
   check-changelog:
     runs-on: ubuntu-latest
     steps:
