@@ -35,8 +35,9 @@
 --- Specific requirements for a provider
 ---@class (exact) rissue.Provider
 ---@field name rissue.ProviderName The provider name
+---Version representation (use utils/versions)
 ---@field version string
----Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
+---Version code (use utils/versions)
 ---@field version_code integer
 ---@field get_issues rissue.provider.GetIssues<unknown, unknown, unknown>
 ---@field get_merge_requests rissue.provider.GetMergeRequests<unknown, unknown, unknown>
