@@ -84,6 +84,26 @@
 - [Github]:
   - Updated logging to be more clear and simpler.
 
+- [specifications/providers]: Simplify versioning system.
+
+  Instead of using `version: string` and `version_code: integer`, it will use
+  `version: {major: integer, minor: integer, patch: integer}` instead.
+
+  ```lua
+  --- from
+  {
+    ...
+    version = "1.0",
+    version_code = 1000,
+  }
+  --- to
+  {
+    version = { major = 1, minor = 0, patch = 0 }
+  }
+
+  - [Github]: updated specifications to conform with this new change.
+  ```
+
 **Bug Fixes:**
 
 - [utils/process]: Fixed running status is still true when process
@@ -100,6 +120,11 @@
   now take a fourth parameter `cb: fun(item: T)` where `T` is `rissue.issue` or
   `rissue.pr`. The return type is updated from
   `rissue.issue[]? results, string? err_msg` to `string? err_msg`
+
+- [specifications/providers]: The versioning system for providers uses
+  `version: {major: integer, minor: integer, patch: integer}` instead of
+  `version: string` and `version_code: integer`. Any existing providers using the
+  old versioning system will not work anymore.
 
 ## v0.2.1
 
