@@ -36,11 +36,39 @@ describe("rissue", function()
     it("Additional providers were provided", function()
       rissue.setup({
         additional_providers = {
-          this_dir .. "/provider/_test_custom_loader.lua",
+          this_dir .. "provider/_test_custom_loader.lua",
         },
       })
 
       assert(config.providers.custom, "'custom' Not found")
+    end)
+
+    it("Additional providers failing", function()
+      local err = rissue.setup({
+        additional_providers = {
+          this_dir .. "provider/_failing_loaders/name_wrong.lua",
+          this_dir .. "provider/_failing_loaders/supports_wrong.lua",
+          this_dir .. "provider/_failing_loaders/settings_wrong.lua",
+          this_dir .. "provider/_failing_loaders/get_issues_wrong.lua",
+          this_dir .. "provider/_failing_loaders/get_merge_requests_wrong.lua",
+          this_dir .. "provider/_failing_loaders/version_wrong.lua",
+        },
+      })
+
+      assert(err, "No error was generated (not expected)")
+      -- very janky but bear with me
+      assert.equal(
+        [[Failed to setup rissue properly:]]
+          .. " \n"
+          .. [[
+
+Module at 'test/provider/_failing_loaders/name_wrong.lua' is not a provider spec: Expecting m.name to be a string, got 2 (type number)
+Module at 'test/provider/_failing_loaders/supports_wrong.lua' is not a provider spec: Expecting m.supports to be a function, got 2 (type number)
+Module at 'test/provider/_failing_loaders/settings_wrong.lua' is not a provider spec: Expecting m.settings to be a table, got 2 (type number)
+Module at 'test/provider/_failing_loaders/get_issues_wrong.lua' is not a provider spec: Expecting m.get_issues to be a function, got 2 (type number)
+Module at 'test/provider/_failing_loaders/get_merge_requests_wrong.lua' is not a provider spec: Expecting m.get_merge_requests to be a function, got 2 (type number)]],
+        err
+      )
     end)
   end)
   describe("functions", function()

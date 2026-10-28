@@ -51,21 +51,26 @@ config.options = {
 ---@type table<rissue.ProviderName, rissue.Provider>
 config.providers = { github = require("rissue.providers.github") }
 
+local matchers = assert_op.matchers
+
 ---@param obj any
----@return rissue.Provider
-local function is_provider_spec(obj)
-  local ok, err = assert_op.check_structure("rissue.provider_spec", obj, {
-    name = "string",
-    version = "table",
-    get_issues = "function",
-    get_merge_requests = "function",
-    supports = "function",
-    settings = "table",
-  }, "module")
+---@param filepath string
+---@return boolean success
+---@return string? err_msg
+local function is_provider_spec(obj, filepath)
+  local ok, err = assert_op.table_expects(obj, {
+    name = matchers.is_string,
+    version = matchers.follows({}, "rissue.Version"),
+    get_issues = matchers.is_function,
+    get_merge_requests = matchers.is_function,
+    supports = matchers.is_function,
+    settings = matchers.is_table,
+  }, "m")
   if not ok then
-    error(err, 2)
+    return false,
+      ("Module at '%s' is not a provider spec: %s"):format(filepath, err)
   end
-  return obj
+  return true
 end
 
 --- Setups settings, scans available providers and configure other
@@ -82,9 +87,11 @@ function config.setup(opts)
     if chunk then
       local load_ok, load_err = pcall(function()
         local mod = chunk()
-        if not is_provider_spec(mod) then
-          return
+        local ok, err_msg = is_provider_spec(mod, filepath)
+        if ok ~= true then
+          error(err_msg, 0)
         end
+
         ---@cast mod rissue.Provider
         config.providers[mod.name] = mod
       end)
