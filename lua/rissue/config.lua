@@ -56,8 +56,7 @@ config.providers = { github = require("rissue.providers.github") }
 local function is_provider_spec(obj)
   local ok, err = assert_op.check_structure("rissue.provider_spec", obj, {
     name = "string",
-    version = "string",
-    version_code = "number",
+    version = "table",
     get_issues = "function",
     get_merge_requests = "function",
     supports = "function",

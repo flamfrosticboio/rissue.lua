@@ -51,8 +51,7 @@ end
 ---@type rissue.Provider
 return {
   name = "custom",
-  version = "0.1",
-  version_code = 1000,
+  version = { major = 0, minor = 1, patch = 0 },
   ---@async
   supports = function(async, info, token, opts)
     viewer.supports = { info, token, opts }
@@ -67,7 +66,6 @@ return {
     if opts.enable_coroutine then
       handle_coroutine("get_issues", async)
     end
-    return {}
   end,
   ---@async
   get_merge_requests = function(async, info, token, opts)
@@ -75,7 +73,6 @@ return {
     if opts.enable_coroutine then
       handle_coroutine("get_merge_requests", async)
     end
-    return {}
   end,
   settings = {
     my_setting = false,

@@ -35,9 +35,19 @@
 --- Specific requirements for a provider
 ---@class (exact) rissue.Provider
 ---@field name rissue.ProviderName The provider name
----@field version string
----Version code in MMmmmmppp (e.g. 3.14.0 -> 03014000 or 3014000)
----@field version_code integer
+--- Current version of the provider.
+---
+--- **Bumping rules:**
+---
+--- Major version **should only be bumped** when the specifications contains breaking
+--- changes.
+---
+--- Minor versions **should only be bumped** when the specifications contains new
+--- features but does not break any current changes.
+---
+--- The patch version is bumped when there are **changes within the provider itself
+--- without affecting the results**
+---@field version { major: integer, minor: integer, patch: integer }
 ---@field get_issues rissue.provider.GetIssues<unknown, unknown, unknown>
 ---@field get_merge_requests rissue.provider.GetMergeRequests<unknown, unknown, unknown>
 ---Runs inside a coroutine (use `mod.run_co()` instead or `mod.run()`)
