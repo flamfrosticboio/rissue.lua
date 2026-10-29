@@ -596,7 +596,7 @@ function M.run_pipeline(async, pipeline, limiters)
     for cleanup_id, cleanup_op in ipairs(cleanup) do
       local errmsg = cleanup_op.func(async, limiters)
       if errmsg then
-        print("Failed when running cleanup: " .. errmsg)
+        log.error("Failed when running cleanup: " .. errmsg)
         err = (err and (err .. "\n") or "")
           .. "["
           .. tostring(cleanup_id)

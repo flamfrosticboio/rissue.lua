@@ -55,11 +55,11 @@ function M.handle_caching(folder, duration)
       if not ok then
         error(("Failed to delete folder %s: %s"):format(folder_path, errmsg), 0)
       end
-      print("Removed old setup folder: " .. folder_path)
+      log.info("Removed old setup folder: " .. folder_path)
     end
   end
 
-  print("Warning: No cache file found. Running full setup...")
+  log.warn("No cache file found. Running full setup...")
   local ok, err_msg = setup_utils.mkdir(utils.config.api)
   if not ok then
     error("Failed to make directory: " .. err_msg, 0)
@@ -88,13 +88,13 @@ function M.run_setup(cwd, pipelines)
     { cpu_limit = CPU_CORES, io_limit = IO_CORES }
   )
   if err_msg then
-    print(
-      "\n\nError: An error occurred while running pipelines:\n\t"
-        .. table.concat(err_msg, "\n\t")
+    log.error(
+      "\n\nError: An error occurred while running pipelines:\n"
+        .. table.concat(err_msg, "\n\n")
     )
   end
 
-  print("Done")
+  log.trace("Done")
 end
 
 ---@param name string
@@ -136,7 +136,7 @@ function M.p_run(bin, opts)
     if filepath then
       local stat = uv.fs_stat(filepath)
       if stat and stat.type == "file" then
-        print("Skipping file: " .. filepath)
+        log.info("Skipping file: " .. filepath)
         ---@type __rissue.pipeline.Operation
         return { type = "op", should_continue = false }
       end
@@ -185,9 +185,8 @@ function M.p_curl(url, out_filepath, curl_opts, opts)
     cb = function(done, ctx)
       ---@type __rissue.async.Backend
       local backend = {
-        on_error = function(err, tb)
+        on_error = function(err)
           err = tostring(err)
-          log.error(err .. "\n" .. tb)
           done(err)
         end,
         schedule = function(cb)
@@ -210,9 +209,9 @@ function M.p_curl(url, out_filepath, curl_opts, opts)
           end
 
           if result.exitcode ~= 0 then
-            local msg = ("Curl failed (code %d): \n%s"):format(
+            local msg = ("Curl failed (code %d)\n| %s"):format(
               result.exitcode,
-              result.err:match("^%s*(.-)%s*$"):gsub("\n", "\n\t")
+              result.err:match("^%s*(.-)%s*$"):gsub("\n", "\n| ")
             )
             error(msg, 0)
           end

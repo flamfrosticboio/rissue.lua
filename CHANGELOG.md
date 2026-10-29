@@ -8,8 +8,23 @@
 
   - Refactored all async related code in rissue to use the new async model.
 
-- [utils/process]: Add auto enabling on logging on process's stdout and stderr
-  when `trace` is enabled in log level.
+- [utils/process]:
+  - Add auto enabling on logging on process's stdout and stderr
+    when `trace` is enabled in log level.
+
+  - Add new option `newline_on_multiline_output` on `Process.get_last_stdout()`
+    and `Process.get_last_stderr()`. This change also updates how to pass options
+    to these functions.
+
+    ```lua
+    --- previously
+    process:get_last_stdout(true) -- strip lines when passed true
+    --- now
+    process:get_last_stdout({
+      strip_new_lines = true,
+      newline_on_multiline_output = true
+    })
+    ```
 
 - [utils/log]
   - Regular printing functions such as `log.info()`, `log.warn()` and etc.
@@ -76,6 +91,18 @@
     --- table contains { 1, 2, 3 }
     ```
 
+- [utils/curl]:
+  - Add new options: `retry_all_errors` and `outfile`
+
+  The `outfile` option is a `-o <file>` in the hood, but when using this option,
+  it makes the return's contents to empty string because the file is not outputted
+  to stdout.
+
+  Notes: it also passes `--create-dirs` and `--remove-on-error` flags when used.
+
+  The `retry_all_errors` option is built-in to curl where it attempts to retru when
+  if fails to fetch. The retries are controlled by `retries` and `retry_delay` option.
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
@@ -105,6 +132,10 @@
   ```
 
 **Bug Fixes:**
+
+- [utils/process, utils/async]: Fix unpack is unavailable on other lua versions.
+
+- [utils/curl]: Fix constant variable mutation errors when using lua5.5
 
 - [utils/process]: Fixed running status is still true when process
   has exited during the `on_exit` event.
