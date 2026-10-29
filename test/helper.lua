@@ -16,9 +16,13 @@
 
 require("luv")
 
+local inspect_ok, inspect = pcall(require, "inspect")
+if not inspect_ok then
+  inspect = tostring
+end
+
 ---@param arg any
 local function write(arg)
-  local inspect = require("inspect")
   if type(arg) == "string" then
     io.write(arg)
   else
