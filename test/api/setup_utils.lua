@@ -84,7 +84,7 @@ end
 ---@field mode __rissue.pipeline.SwitchMode.mode
 
 ---@class __rissue.pipeline.AsyncStep: __rissue.pipeline._base<"async_step">
----@field cb fun(done: fun(err_msg?: string))
+---@field cb fun(done: fun(err_msg?: string), ctx: __rissue.pipeline.context)
 
 ---@alias __rissue.PipelineCommands
 ---| __rissue.pipeline.Run
@@ -109,15 +109,22 @@ end
 ---@field io __rissue.FIFOLimiter
 ---@field cpu __rissue.FIFOLimiter
 
+---@class __rissue.pipeline.context
+---@field print_context __rissue.PrintStatus.Opts?
+
 ---@async
 ---@param async rissue.Async
 ---@param command __rissue.pipeline.Run
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function run_command(async, command)
+local function run_command(async, command, context)
   local process = require("rissue.utils.process")
 
-  util.print_status("Attempting to run command: " .. command.bin)
+  util.print_status(
+    "Attempting to run command: " .. command.bin,
+    context and context.print_context
+  )
 
   local result, err = process.run_async(async, {
     cmd = command.bin,
@@ -150,23 +157,30 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param args __rissue.pipeline.Rename
+---@param context __rissue.pipeline.context?
 ---@return boolean success
 ---@return string? err_msg
-local function rename(async, args)
-  util.print_status("Renaming '" .. args.source .. "' to '" .. args.dest .. "'")
+local function rename(async, args, context)
   local err = await(async, uv.fs_rename, args.source, args.dest)
   if err then
     return false, err
   end
+
+  util.print_status(
+    "Renamed '" .. args.source .. "' to '" .. args.dest .. "'",
+    context and context.print_context
+  )
+
   return true
 end
 
 ---@async
 ---@param async rissue.Async
 ---@param args __rissue.pipeline.CreateDirectory
+---@param context __rissue.pipeline.context?
 ---@return boolean success
 ---@return string? err_msg
-local function mkdir(async, args)
+local function mkdir(async, args, context)
   local mode = args.mode or 493
   local path = args.path:gsub("\\", "/")
 
@@ -194,7 +208,10 @@ local function mkdir(async, args)
     cur = cur .. "/"
   end
 
-  util.print_status("Directory created at " .. args.path)
+  util.print_status(
+    "Directory created at " .. args.path,
+    context and context.print_context
+  )
 
   return true
 end
@@ -233,9 +250,10 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param args __rissue.pipeline.WriteFile
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function write_file(async, args)
+local function write_file(async, args, context)
   local mode = args.mode or 493
 
   if args.ensure_directory then
@@ -264,7 +282,10 @@ local function write_file(async, args)
     return false, cerr
   end
 
-  util.print_status("Wrote contents to " .. args.filepath)
+  util.print_status(
+    "Wrote contents to " .. args.filepath,
+    context and context.print_context
+  )
   return true
 end
 
@@ -284,13 +305,14 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param args __rissue.pipeline.RemoveDirectory
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function rmdir(async, args)
+local function rmdir(async, args, context)
   local err, handle = await(async, uv.fs_scandir, args.path)
   if err or not handle then
     if args.skip_when_fail then
-      print("Warning: failed to scan directory: " .. err)
+      log.warn("Warning: failed to scan directory: " .. err)
       return true
     end
     return false, err
@@ -308,7 +330,7 @@ local function rmdir(async, args)
       local lerr, stat = await(async, uv.fs_lstat, child)
       if lerr or not stat then
         if args.skip_when_fail then
-          print("Warning: failed to get stat: " .. lerr)
+          log.warn("Warning: failed to get stat: " .. lerr)
           return true
         end
         return false, lerr
@@ -324,7 +346,7 @@ local function rmdir(async, args)
       })
       if not ok then
         if args.skip_when_fail then
-          print("Warning: failed to delete directory: " .. cerr)
+          log.warn("Warning: failed to delete directory: " .. cerr)
           return true
         end
         return false, cerr
@@ -333,7 +355,7 @@ local function rmdir(async, args)
       local uerr = await(async, uv.fs_unlink, child)
       if uerr then
         if args.skip_when_fail then
-          print("Warning: failed to delete file: " .. uerr)
+          log.warn("Warning: failed to delete file: " .. uerr)
           return true
         end
         return false, uerr
@@ -346,7 +368,10 @@ local function rmdir(async, args)
     return false, rerr
   end
 
-  util.print_status("Removed directory: " .. args.path)
+  util.print_status(
+    "Removed directory: " .. args.path,
+    context and context.print_context
+  )
   return true
 end
 
@@ -370,9 +395,10 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param args __rissue.pipeline.RemoveFile
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function rmfile(async, args)
+local function rmfile(async, args, context)
   local err = await(async, uv.fs_unlink, args.path)
   if err then
     if args.skip_when_fail then
@@ -380,7 +406,10 @@ local function rmfile(async, args)
     end
     return false, err
   end
-  util.print_status("Removed file: " .. args.path)
+  util.print_status(
+    "Removed file: " .. args.path,
+    context and context.print_context
+  )
   return true
 end
 
@@ -461,10 +490,25 @@ function M.run_pipeline(async, pipeline, limiters)
   local current_limiter = limiters.io ---@type __rissue.FIFOLimiter
   acquire_async(async, current_limiter)
 
-  for _, item in ipairs(pipeline) do
+  local metadata = getmetatable(pipeline)
+  local name = metadata and metadata.name or "??"
+  local color = metadata and metadata.color
+
+  ---@type __rissue.pipeline.context
+  local context = {
+    print_context = {
+      name = name, -- note: modified on every step in pipeline below
+      color = color,
+    },
+  }
+
+  for __step, item in ipairs(pipeline) do
+    local step_name = name .. ":" .. tostring(__step)
+    context.print_context.name = step_name
+
     if item.type == "run" then
       ---@cast item __rissue.pipeline.Run
-      local success, run_err = run_command(async, item)
+      local success, run_err = run_command(async, item, context)
       if not success then
         err = run_err
         break
@@ -475,35 +519,35 @@ function M.run_pipeline(async, pipeline, limiters)
       util.print_status("Added cleanup item")
     elseif item.type == "rename" then
       ---@cast item __rissue.pipeline.Rename
-      local success, move_err = rename(async, item)
+      local success, move_err = rename(async, item, context)
       if not success then
         err = move_err
         break
       end
     elseif item.type == "mkdir" then
       ---@cast item __rissue.pipeline.CreateDirectory
-      local success, mkdir_err = mkdir(async, item)
+      local success, mkdir_err = mkdir(async, item, context)
       if not success then
         err = mkdir_err
         break
       end
     elseif item.type == "write_file" then
       ---@cast item __rissue.pipeline.WriteFile
-      local success, write_err = write_file(async, item)
+      local success, write_err = write_file(async, item, context)
       if not success then
         err = write_err
         break
       end
     elseif item.type == "remove_file" then
       ---@cast item __rissue.pipeline.RemoveFile
-      local success, rmfile_err = rmfile(async, item)
+      local success, rmfile_err = rmfile(async, item, context)
       if not success then
         err = rmfile_err
         break
       end
     elseif item.type == "remove_dir" then
       ---@cast item __rissue.pipeline.RemoveDirectory
-      local success, rmdir_err = rmdir(async, item)
+      local success, rmdir_err = rmdir(async, item, context)
       if not success then
         err = rmdir_err
         break
@@ -515,12 +559,12 @@ function M.run_pipeline(async, pipeline, limiters)
       end
 
       if not should_continue then
-        util.print_status("Stopping pipeline...")
+        util.print_status("Stopping pipeline...", context.print_context)
         break
       end
     elseif item.type == "async_step" then
       local async_step_err = async:wrap(function(cb)
-        item.cb(cb)
+        item.cb(cb, context)
       end)
       if async_step_err then
         err = tostring(async_step_err)
@@ -547,22 +591,24 @@ function M.run_pipeline(async, pipeline, limiters)
   release(current_limiter)
 
   if #cleanup > 0 then
-    util.print_status("Running cleanup")
-    for _, cleanup_op in ipairs(cleanup) do
+    context.print_context.name = name .. ":cleanup"
+    util.print_status("Running cleanup", context.print_context)
+    for cleanup_id, cleanup_op in ipairs(cleanup) do
       local errmsg = cleanup_op.func(async, limiters)
       if errmsg then
         print("Failed when running cleanup: " .. errmsg)
-        if not err then
-          err = ""
-        end
-        err = err .. "\n\t" .. errmsg
+        err = (err and (err .. "\n") or "")
+          .. "["
+          .. tostring(cleanup_id)
+          .. "]"
+          .. errmsg
       end
     end
-    util.print_status("Cleanup complete!")
+    util.print_status("Cleanup complete!", context.print_context)
   end
 
   if err then
-    print("!!! " .. err)
+    log.error("Pipeline failed: " .. err)
   end
 
   return err
@@ -648,7 +694,16 @@ function M.run_pipelines(pipelines, opts)
       end,
       function(err)
         if err then
-          errors[#errors + 1] = err
+          local metadata = getmetatable(pipeline)
+          local name = metadata and metadata.name or "??"
+          local color = metadata and metadata.color or ""
+
+          errors[#errors + 1] = ("%s[%s]: %s%s"):format(
+            color,
+            name,
+            err,
+            util.ANSI_RESET
+          )
         end
         running = running - 1
       end

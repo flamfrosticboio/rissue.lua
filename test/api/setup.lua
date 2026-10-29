@@ -97,6 +97,18 @@ function M.run_setup(cwd, pipelines)
   print("Done")
 end
 
+---@param name string
+---@param opts? { color: string? }
+---@param pipeline __rissue.Pipeline
+---@return __rissue.Pipeline
+function M.new_pipeline(name, pipeline, opts)
+  setmetatable(pipeline, {
+    name = name,
+    color = opts and opts.color,
+  })
+  return pipeline
+end
+
 ---@param path string
 ---@return __rissue.pipeline.CreateDirectory
 function M.p_new_dir(path)
@@ -170,7 +182,7 @@ function M.p_curl(url, out_filepath, curl_opts, opts)
   ---@type __rissue.pipeline.AsyncStep
   return {
     type = "async_step",
-    cb = function(done)
+    cb = function(done, ctx)
       ---@type __rissue.async.Backend
       local backend = {
         on_error = function(err, tb)
@@ -188,8 +200,10 @@ function M.p_curl(url, out_filepath, curl_opts, opts)
         ---@async
         function(a)
           utils.print_status(
-            "Curling '" .. url .. "' into '" .. out_filepath .. "'"
+            "Curling '" .. url .. "' into '" .. out_filepath .. "'",
+            ctx.print_context
           )
+
           local result, err = curl.request(a, url, curl_opts)
           if not result then
             error(err or "unknown error", 0)
@@ -202,6 +216,8 @@ function M.p_curl(url, out_filepath, curl_opts, opts)
             )
             error(msg, 0)
           end
+
+          utils.print_status("Curl completed", ctx.print_context)
 
           done()
         end
