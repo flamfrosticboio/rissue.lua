@@ -139,6 +139,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Refresh apt index
+        run: sudo apt-get update
+
       - uses: leafo/gh-actions-lua@v13
         with:
           luaVersion: ${{ matrix.luaVersion }}
@@ -159,7 +162,6 @@ jobs:
       - name: Setup Dependencies
         if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update
           sudo apt-get install -y --no-install-recommends cmake
 
       - name: Setup Test Dependencies
