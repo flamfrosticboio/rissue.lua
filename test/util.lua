@@ -110,6 +110,12 @@ function M.ccolor(str, id)
   return ansi_colors[id] .. str .. M.ANSI_RESET
 end
 
+local l = 0
+function M.assign_color()
+  l = (l % ansi_colors_len) + 1
+  return ansi_colors[l]
+end
+
 ---@generic T
 ---@param list T[]
 ---@return fun(): T|nil
