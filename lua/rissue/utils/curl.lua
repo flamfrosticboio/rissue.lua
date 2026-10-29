@@ -226,8 +226,8 @@ end
 ---@param raw string
 local function parse_received_headers(raw)
   local res = {}
-  for name, value in raw:gmatch("\n(%S-):[ \t]*([^\r\n]*)") do
-    name = name:lower()
+  for raw_name, value in raw:gmatch("\n(%S-):[ \t]*([^\r\n]*)") do
+    local name = raw_name:lower()
     if res[name] then
       res[name] = res[name] .. ", " .. value -- merge duplicates per RFC 9110
     else
