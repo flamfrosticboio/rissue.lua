@@ -16,6 +16,8 @@
 
 local M = {}
 
+local async = require("rissue.utils.async")
+local curl = require("rissue.utils.curl")
 local log = require("rissue.utils.log")
 local setup_utils = require("api.setup_utils")
 local utils = require("util")
@@ -150,6 +152,76 @@ function M.p_run(bin, opts)
     args = args,
     cwd = opts and opts.cwd,
     env = opts and opts.env,
+  }
+end
+
+---@class __rissue.pipeline.curl.Opts
+---@field skip_when_file_exists string?
+
+---@param url string
+---@param out_filepath string
+---
+---@param curl_opts rissue.utils.curl.Opts
+---@param opts __rissue.pipeline.curl.Opts
+---@return __rissue.pipeline.AsyncStep | __rissue.pipeline.Operation
+function M.p_curl(url, out_filepath, curl_opts, opts)
+  if opts then
+    local filepath = opts.skip_when_file_exists
+    if filepath then
+      local stat = uv.fs_stat(filepath)
+      if stat and stat.type == "file" then
+        print("Skipping file: " .. filepath)
+        ---@type __rissue.pipeline.Operation
+        return { type = "op", should_continue = false }
+      end
+    end
+  end
+
+  curl_opts.outfile = out_filepath
+
+  ---@type __rissue.pipeline.AsyncStep
+  return {
+    type = "async_step",
+    cb = function(done, ctx)
+      ---@type __rissue.async.Backend
+      local backend = {
+        on_error = function(err)
+          err = tostring(err)
+          done(err)
+        end,
+        schedule = function(cb)
+          cb()
+        end,
+      }
+
+      async.run(
+        backend,
+        ---@async
+        function(a)
+          utils.print_status(
+            "Curling '" .. url .. "' into '" .. out_filepath .. "'",
+            ctx.print_context
+          )
+
+          local result, err = curl.request(a, url, curl_opts)
+          if not result then
+            error(err or "unknown error", 0)
+          end
+
+          if result.exitcode ~= 0 then
+            local msg = ("Curl failed (code %d)\n| %s"):format(
+              result.exitcode,
+              result.err:match("^%s*(.-)%s*$"):gsub("\n", "\n| ")
+            )
+            error(msg, 0)
+          end
+
+          utils.print_status("Curl completed", ctx.print_context)
+
+          done()
+        end
+      )
+    end,
   }
 end
 
