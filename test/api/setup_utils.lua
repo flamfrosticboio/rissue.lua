@@ -529,7 +529,8 @@ function M.run_pipeline(async, pipeline, limiters)
     elseif item.type == "switch_mode" then
       local limiter = limiters[item.mode]
       if not limiter then
-        error("Invalid mode: " .. tostring(item.mode), 0)
+        err = "Invalid mode: " .. tostring(item.mode)
+        break
       end
 
       if limiter ~= current_limiter then
@@ -538,7 +539,8 @@ function M.run_pipeline(async, pipeline, limiters)
         current_limiter = limiter
       end
     else
-      error("Unknown type: " .. tostring(item.type), 0)
+      err = "Unknown type: " .. tostring(item.type)
+      break
     end
   end
 
