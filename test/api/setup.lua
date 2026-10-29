@@ -200,4 +200,11 @@ function M.p_switch_mode(mode)
   return { type = "switch_mode", mode = mode }
 end
 
+---@param cb fun(done: fun())
+---@return __rissue.pipeline.AsyncStep
+function M.p_async_step(cb)
+  ---@type __rissue.pipeline.AsyncStep
+  return { type = "async_step", cb = cb }
+end
+
 return M
