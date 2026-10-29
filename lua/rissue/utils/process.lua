@@ -297,46 +297,72 @@ function Process:get_stderr()
   return table.concat(self._stderr_raw)
 end
 
---- Gets the latest stdout output
---- Used with relation to `on_stdout` or `on_output` event (e.g. print output)
---- @param strip_newline boolean? No by default
-function Process:get_last_stdout(strip_newline)
+---@class rissue.utils.Process.last_output.Opts
+--- Strips all \r\n` on each end.
+--- Default: false
+---@field strip_newlines boolean?
+--- Adds a newline when the body contains a newline after being stripped (if enabled).
+--- Used for logging
+--- Default: false
+---@field newline_on_multiline_output boolean? No by default
+
+---@param self rissue.utils.Process
+---@param method_name string
+local function warn_if_not_running(self, method_name)
   if
     log.level_enabled(log.levels.warn)
-    and self._exit_code == -1
-    and self._running == false
+    and self._exit_code == -1 -- not yet finished
+    and self._running == false -- process is not running
   then
     log.log(
-      "Calling 'process:get_last_stdout()' when process has not started.",
+      ("Calling 'process:%s()' when process has not started."):format(
+        method_name
+      ),
       log.levels.warn
     )
   end
-  local line = self._stdout_raw[#self._stdout_raw]
-  if strip_newline then
-    line = line:match("^%s*(.-)%s*$")
+end
+
+---@param line string
+---@param opts rissue.utils.Process.last_output.Opts
+local function prepare_line(line, opts)
+  if opts.strip_newlines then
+    line = line:match("^[\r\n]*(.-)[\r\n]*$")
   end
+
+  if opts.newline_on_multiline_output and line:find("\n") then
+    line = "\n" .. line
+  end
+
   return line
+end
+
+--- Gets the latest stdout output
+--- Used with relation to `on_stdout` or `on_output` event (e.g. print output)
+---@param opts? rissue.utils.Process.last_output.Opts
+function Process:get_last_stdout(opts)
+  warn_if_not_running(self, "get_last_stdout")
+
+  local line = self._stdout_raw[#self._stdout_raw]
+  if not opts then
+    return line
+  end
+
+  return prepare_line(line, opts)
 end
 
 --- Gets the latest stderr output
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
---- @param strip_newline boolean? No by default
-function Process:get_last_stderr(strip_newline)
-  if
-    log.level_enabled(log.levels.warn)
-    and self._exit_code == -1
-    and self._running == false
-  then
-    log.log(
-      "Calling 'process:get_last_stderr()' when process has not started.",
-      log.levels.warn
-    )
-  end
+---@param opts? rissue.utils.Process.last_output.Opts
+function Process:get_last_stderr(opts)
+  warn_if_not_running(self, "get_last_stderr")
+
   local line = self._stderr_raw[#self._stderr_raw]
-  if strip_newline then
-    line = line:match("^%s*(.-)%s*$")
+  if not opts then
+    return line
   end
-  return line
+
+  return prepare_line(line, opts)
 end
 
 ---Spawns a process (without running)
@@ -418,11 +444,15 @@ function M.run_async(async, command_opts, opts)
   if
     (opts and opts.print_output == true) or log.level_enabled(log.levels.trace)
   then
+    ---@type rissue.utils.Process.last_output.Opts
+    local print_opts =
+      { strip_newlines = true, newline_on_multiline_output = true }
     p:register_event("on_stdout", function()
-      log.log("| " .. p:get_last_stdout(true), log.levels.trace)
+      log.log("| " .. p:get_last_stdout(print_opts), log.levels.trace)
     end)
+
     p:register_event("on_stderr", function()
-      log.log("@ " .. p:get_last_stderr(true), log.levels.trace)
+      log.log("@ " .. p:get_last_stderr(print_opts), log.levels.trace)
     end)
   end
 
