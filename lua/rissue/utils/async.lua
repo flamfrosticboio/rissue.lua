@@ -17,6 +17,8 @@
 local process = require("rissue.utils.process")
 ---@alias __rissue.Pack { n: integer, [integer]: any }
 
+local unpack = unpack or table.unpack
+
 ---@type table
 local RESUME = {}
 ---@type table
