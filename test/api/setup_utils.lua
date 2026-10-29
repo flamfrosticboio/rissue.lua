@@ -54,7 +54,7 @@ end
 ---@field should_continue boolean | fun(): boolean
 
 ---@class __rissue.pipeline.RegisterCleanup: __rissue.pipeline._base<"reg_cleanup">
----@field func async fun(a: rissue.Async, limiters: __rissue.Limiters): string? Where the return value is err_msg
+---@field func async fun(a: rissue.Async, limiters: __rissue.Limiters, ctx: __rissue.pipeline.context?): string? Where the return value is err_msg
 
 ---@class __rissue.pipeline.Rename: __rissue.pipeline._base<"rename">
 ---@field source string
@@ -590,11 +590,17 @@ function M.run_pipeline(async, pipeline, limiters)
 
   release(current_limiter)
 
-  if #cleanup > 0 then
-    context.print_context.name = name .. ":cleanup"
-    util.print_status("Running cleanup", context.print_context)
+  local cleanup_len = #cleanup
+  if cleanup_len > 0 then
+    context.print_context.name = name .. "/cleanup"
+    util.print_status(
+      ("Running cleanup (%d item/s)"):format(cleanup_len),
+      context.print_context
+    )
+
     for cleanup_id, cleanup_op in ipairs(cleanup) do
-      local errmsg = cleanup_op.func(async, limiters)
+      context.print_context.name = name .. "/cleanup@" .. tostring(cleanup_id)
+      local errmsg = cleanup_op.func(async, limiters, context)
       if errmsg then
         log.error("Failed when running cleanup: " .. errmsg)
         err = (err and (err .. "\n") or "")
@@ -604,6 +610,8 @@ function M.run_pipeline(async, pipeline, limiters)
           .. errmsg
       end
     end
+
+    context.print_context.name = name .. "/cleanup"
     util.print_status("Cleanup complete!", context.print_context)
   end
 

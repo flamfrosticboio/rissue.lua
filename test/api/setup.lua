@@ -233,7 +233,7 @@ function M.p_rename(source, dest)
   return { type = "rename", source = source, dest = dest }
 end
 
----@param func async fun(a: rissue.Async, limiters: __rissue.Limiters): string? Where the return of the function is error message
+---@param func async fun(a: rissue.Async, limiters: __rissue.Limiters, ctx: __rissue.pipeline.context?): string? Where the return of the function is error message
 ---@return __rissue.pipeline.RegisterCleanup
 function M.p_register_cleanup(func)
   ---@type __rissue.pipeline.RegisterCleanup
