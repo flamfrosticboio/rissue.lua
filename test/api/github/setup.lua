@@ -38,8 +38,7 @@ local function spec_pipeline(spec_name, url)
   local dest_path = cwd .. "/" .. spec_name
   local tmp_filename = tmp_filename_prefix .. spec_name
   local tmp_filename_processed = tmp_filename .. "_bundled.json"
-  ---@type __rissue.Pipeline
-  return {
+  return setup_manager.new_pipeline(spec_name, {
     setup_manager.p_switch_mode("io"),
     setup_manager.p_run("curl", {
       args = { "-sSf", "--remove-on-error", "-L", "-o", tmp_filename, url },
@@ -71,7 +70,7 @@ local function spec_pipeline(spec_name, url)
     }),
     setup_manager.p_switch_mode("io"),
     setup_manager.p_rename(tmp_filename_processed, dest_path),
-  }
+  }, { color = utils.assign_color() })
 end
 
 ---@param filename string

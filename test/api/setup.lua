@@ -16,6 +16,7 @@
 
 local M = {}
 
+local log = require("rissue.utils.log")
 local setup_utils = require("api.setup_utils")
 local utils = require("util")
 
@@ -52,11 +53,11 @@ function M.handle_caching(folder, duration)
       if not ok then
         error(("Failed to delete folder %s: %s"):format(folder_path, errmsg), 0)
       end
-      print("Removed old setup folder: " .. folder_path)
+      log.info("Removed old setup folder: " .. folder_path)
     end
   end
 
-  print("Warning: No cache file found. Running full setup...")
+  log.warn("No cache file found. Running full setup...")
   local ok, err_msg = setup_utils.mkdir(utils.config.api)
   if not ok then
     error("Failed to make directory: " .. err_msg, 0)
@@ -85,13 +86,25 @@ function M.run_setup(cwd, pipelines)
     { cpu_limit = CPU_CORES, io_limit = IO_CORES }
   )
   if err_msg then
-    print(
-      "\n\nError: An error occurred while running pipelines:\n\t"
-        .. table.concat(err_msg, "\n\t")
+    log.error(
+      "\n\nError: An error occurred while running pipelines:\n"
+        .. table.concat(err_msg, "\n\n")
     )
   end
 
-  print("Done")
+  log.trace("Done")
+end
+
+---@param name string
+---@param opts? { color: string? }
+---@param pipeline __rissue.Pipeline
+---@return __rissue.Pipeline
+function M.new_pipeline(name, pipeline, opts)
+  setmetatable(pipeline, {
+    name = name,
+    color = opts and opts.color,
+  })
+  return pipeline
 end
 
 ---@param path string
@@ -121,7 +134,7 @@ function M.p_run(bin, opts)
     if filepath then
       local stat = uv.fs_stat(filepath)
       if stat and stat.type == "file" then
-        print("Skipping file: " .. filepath)
+        log.info("Skipping file: " .. filepath)
         ---@type __rissue.pipeline.Operation
         return { type = "op", should_continue = false }
       end
