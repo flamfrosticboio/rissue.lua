@@ -40,22 +40,24 @@ local function spec_pipeline(spec_name, url)
   local tmp_filename_processed = tmp_filename .. "_bundled.json"
   ---@type __rissue.Pipeline
   return {
+    setup_manager.p_switch_mode("io"),
     setup_manager.p_run("curl", {
       args = { "-sSf", "--remove-on-error", "-L", "-o", tmp_filename, url },
       skip_when_file_exists = dest_path,
     }),
     setup_manager.p_register_cleanup(
       ---@async
-      function(a)
+      function(a, limiters)
         setup_utils.run_pipeline(a, {
           setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
           setup_manager.p_rmfile(
             tmp_filename_processed,
             { skip_when_fail = true }
           ),
-        })
+        }, limiters)
       end
     ),
+    setup_manager.p_switch_mode("cpu"),
     setup_manager.p_run(redocly_bin, {
       args = {
         "bundle",
@@ -67,6 +69,7 @@ local function spec_pipeline(spec_name, url)
         redocly_config,
       },
     }),
+    setup_manager.p_switch_mode("io"),
     setup_manager.p_rename(tmp_filename_processed, dest_path),
   }
 end
