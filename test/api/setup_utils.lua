@@ -84,7 +84,7 @@ end
 ---@field mode __rissue.pipeline.SwitchMode.mode
 
 ---@class __rissue.pipeline.AsyncStep: __rissue.pipeline._base<"async_step">
----@field cb fun(done: fun())
+---@field cb fun(done: fun(err_msg?: string))
 
 ---@alias __rissue.PipelineCommands
 ---| __rissue.pipeline.Run
@@ -519,9 +519,13 @@ function M.run_pipeline(async, pipeline, limiters)
         break
       end
     elseif item.type == "async_step" then
-      async:wrap(function(cb)
+      local async_step_err = async:wrap(function(cb)
         item.cb(cb)
       end)
+      if async_step_err then
+        err = tostring(async_step_err)
+        break
+      end
     elseif item.type == "switch_mode" then
       local limiter = limiters[item.mode]
       if not limiter then
@@ -573,7 +577,8 @@ local function async_run(fn, on_finish)
   local backend = {
     schedule = pipeline_backend_schedule,
     on_error = function(msg, tb)
-      log.trace(msg .. "\n" .. tb)
+      msg = tostring(msg)
+      log.trace(msg .. "\n" .. tostring(tb))
       on_finish(msg)
     end,
   }
