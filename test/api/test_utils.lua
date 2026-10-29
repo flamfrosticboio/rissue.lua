@@ -96,15 +96,17 @@ local function run_mock_server(filepath, port_offset, id, callback)
   end)
 
   if log.level_enabled(log.levels.trace) then
+    ---@type rissue.utils.Process.last_output.Opts
+    local opts = { newline_on_multiline_output = true, strip_newlines = true }
     p:register_event("on_stdout", function()
       print(
-        utils.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id)
+        utils.ccolor("| " .. p:get_last_stdout(opts):gsub("\n", "\n| "), id)
       )
     end)
 
     p:register_event("on_stderr", function()
       print(
-        utils.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id)
+        utils.ccolor("@ " .. p:get_last_stderr(opts):gsub("\n", "\n@ "), id)
       )
     end)
   end
@@ -197,7 +199,7 @@ local function run_proxy(opts)
 
   p:register_event("on_exit", function()
     if p:get_code() ~= 0 then
-      error(p:get_last_stderr(true), 0)
+      error(p:get_stderr(), 0)
     end
   end)
 
