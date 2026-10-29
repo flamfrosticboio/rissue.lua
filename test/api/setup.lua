@@ -20,11 +20,12 @@ local setup_utils = require("api.setup_utils")
 local utils = require("util")
 local uv = require("luv") ---@type uv
 
-local CPU_COUNT = tonumber(os.getenv("CORES"))
-if not CPU_COUNT then
+local CPU_CORES = tonumber(os.getenv("CPU_CORES"))
+if not CPU_CORES then
   local cpus = uv.cpu_info()
-  CPU_COUNT = cpus and #cpus or 1
+  CPU_CORES = cpus and #cpus or 1
 end
+local IO_CORES = tonumber(os.getenv("IO_CORES")) or (CPU_CORES * 2)
 
 ---@class __rissue._CmdResult: rissue.utils.CmdResult
 ---@field cmd string[]
@@ -78,7 +79,10 @@ function M.run_setup(cwd, pipelines)
     error(err, 0)
   end
 
-  local err_msg = setup_utils.run_pipelines(pipelines, CPU_COUNT)
+  local err_msg = setup_utils.run_pipelines(
+    pipelines,
+    { cpu_limit = CPU_CORES, io_limit = IO_CORES }
+  )
   if err_msg then
     print(
       "\n\nError: An error occurred while running pipelines:\n\t"
@@ -143,7 +147,7 @@ function M.p_rename(source, dest)
   return { type = "rename", source = source, dest = dest }
 end
 
----@param func async fun(a: rissue.Async): string? Where the return of the function is error message
+---@param func async fun(a: rissue.Async, limiters: __rissue.Limiters): string? Where the return of the function is error message
 ---@return __rissue.pipeline.RegisterCleanup
 function M.p_register_cleanup(func)
   ---@type __rissue.pipeline.RegisterCleanup
@@ -187,6 +191,13 @@ end
 function M.p_write_f(filepath, contents)
   ---@type __rissue.pipeline.WriteFile
   return { type = "write_file", filepath = filepath, contents = contents }
+end
+
+---@param mode __rissue.pipeline.SwitchMode.mode
+---@return __rissue.pipeline.SwitchMode
+function M.p_switch_mode(mode)
+  ---@type __rissue.pipeline.SwitchMode
+  return { type = "switch_mode", mode = mode }
 end
 
 return M

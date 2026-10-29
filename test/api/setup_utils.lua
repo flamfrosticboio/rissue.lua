@@ -54,7 +54,7 @@ end
 ---@field should_continue boolean | fun(): boolean
 
 ---@class __rissue.pipeline.RegisterCleanup: __rissue.pipeline._base<"reg_cleanup">
----@field func async fun(a: rissue.Async): string? Where the return value is err_msg
+---@field func async fun(a: rissue.Async, limiters: __rissue.Limiters): string? Where the return value is err_msg
 
 ---@class __rissue.pipeline.Rename: __rissue.pipeline._base<"rename">
 ---@field source string
@@ -78,6 +78,10 @@ end
 ---@field path string
 ---@field skip_when_fail? boolean
 
+---@alias __rissue.pipeline.SwitchMode.mode "io" | "cpu"
+
+---@class __rissue.pipeline.SwitchMode: __rissue.pipeline._base<"switch_mode">
+---@field mode __rissue.pipeline.SwitchMode.mode
 ---@alias __rissue.PipelineCommands
 ---| __rissue.pipeline.Run
 ---| __rissue.pipeline.Rename
@@ -87,8 +91,18 @@ end
 ---| __rissue.pipeline.WriteFile
 ---| __rissue.pipeline.RemoveFile
 ---| __rissue.pipeline.RemoveDirectory
+---| __rissue.pipeline.SwitchMode
 
 ---@alias __rissue.Pipeline __rissue.PipelineCommands[]
+
+---@class __rissue.FIFOLimiter
+---@field n integer
+---@field used integer
+---@field waiters fun()[]
+
+---@class __rissue.Limiters
+---@field io __rissue.FIFOLimiter
+---@field cpu __rissue.FIFOLimiter
 
 ---@async
 ---@param async rissue.Async
@@ -402,13 +416,45 @@ function M.write_file(path, contents, opts)
   )
 end
 
+local function new_limiter(n)
+  return { n = math.max(n, 1), used = 0, waiters = {} }
+end
+
+---@param lim __rissue.FIFOLimiter
+local function release(lim)
+  local next_cb = table.remove(lim.waiters, 1)
+  if next_cb then
+    next_cb() -- hand the slot over directly; used stays the same
+  else
+    lim.used = lim.used - 1
+  end
+end
+
+---@async
+---@param async rissue.Async
+local function acquire_async(async, lim)
+  if lim.used < lim.n then
+    lim.used = lim.used + 1
+    return
+  end
+  -- no free slot: queue a resume callback and suspend
+  async:wrap(function(resume) -- placeholder name for your suspend primitive
+    lim.waiters[#lim.waiters + 1] = resume
+  end)
+
+  -- when resumed, release() has already handed us the slot
+end
+
 ---@async
 ---@param async rissue.Async
 ---@param pipeline __rissue.Pipeline
+---@param limiters __rissue.Limiters
 ---@return string? err_msg Error message if available
-function M.run_pipeline(async, pipeline)
+function M.run_pipeline(async, pipeline, limiters)
   local cleanup = {} ---@type __rissue.pipeline.RegisterCleanup[]
   local err = nil ---@type string?
+  local current_limiter = limiters.io ---@type __rissue.FIFOLimiter
+  acquire_async(async, current_limiter)
 
   for _, item in ipairs(pipeline) do
     if item.type == "run" then
@@ -467,15 +513,28 @@ function M.run_pipeline(async, pipeline)
         util.print_status("Stopping pipeline...")
         break
       end
+    elseif item.type == "switch_mode" then
+      local limiter = limiters[item.mode]
+      if not limiter then
+        error("Invalid mode: " .. tostring(item.mode), 0)
+      end
+
+      if limiter ~= current_limiter then
+        release(current_limiter) -- release first, to avoid deadlock
+        acquire_async(async, limiter)
+        current_limiter = limiter
+      end
     else
       error("Unknown type: " .. tostring(item.type), 0)
     end
   end
 
+  release(current_limiter)
+
   if #cleanup > 0 then
     util.print_status("Running cleanup")
     for _, cleanup_op in ipairs(cleanup) do
-      local errmsg = cleanup_op.func(async)
+      local errmsg = cleanup_op.func(async, limiters)
       if errmsg then
         print("Failed when running cleanup: " .. errmsg)
         if not err then
@@ -520,20 +579,29 @@ local function async_run(fn, on_finish)
   )
 end
 
+---@class __rissue.RunPipelines.Opts
+---@field io_limit integer
+---@field cpu_limit integer
+
 ---@param pipelines __rissue.Pipeline[]
----@param limit integer
+---@param opts __rissue.RunPipelines.Opts
 ---@return string[]? errors
-function M.run_pipelines(pipelines, limit)
+function M.run_pipelines(pipelines, opts)
   --- there can be only on instance of run_pipelines since its blocking. so reusing the
   --- same backend just works
-
-  local err_msgs = {}
 
   if #pipelines <= 0 then
     return
   end
 
-  limit = math.max(limit, 1)
+  local io_limit = math.max(opts.io_limit, 1)
+  local cpu_limit = math.max(opts.cpu_limit, 1)
+  local inflight_limit = io_limit + cpu_limit
+
+  local limiters = {
+    io = new_limiter(io_limit),
+    cpu = new_limiter(cpu_limit),
+  }
 
   local errors = {} ---@type string[]
   local running = 0
@@ -542,9 +610,9 @@ function M.run_pipelines(pipelines, limit)
 
   while true do
     -- Wait for a free slot before starting the next pipeline
-    if running >= limit then
+    if running >= inflight_limit then
       subprocess.wait(function()
-        return running <= 0
+        return running < inflight_limit
       end, -1, 1000)
     end
 
@@ -553,23 +621,22 @@ function M.run_pipelines(pipelines, limit)
       break
     end
 
+    running = running + 1
     async_run(
       ---@async
       function(a)
-        local pipeline_err = M.run_pipeline(a, pipeline)
+        local pipeline_err = M.run_pipeline(a, pipeline, limiters)
         if pipeline_err then
           error(pipeline_err)
         end
       end,
       function(err)
         if err then
-          err_msgs[#err_msgs + 1] = err
+          errors[#errors + 1] = err
         end
         running = running - 1
       end
     )
-
-    running = running + 1
   end
 
   -- Wait for everything still running
