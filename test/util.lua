@@ -27,9 +27,16 @@ function M.get_test_api_path(folder)
   return M.config.api .. "/" .. folder
 end
 
+---@class __rissue.PrintStatus.Opts
+---@field name string?
+---@field color string?
+
 ---@param msg string
-function M.print_status(msg)
-  print(">>> " .. msg)
+---@param opts? __rissue.PrintStatus.Opts
+function M.print_status(msg, opts)
+  local color = (opts and opts.color) or ""
+  local header = (opts and opts.name and ("[%s]"):format(opts.name)) or ">>>"
+  print(("%s%s %s%s"):format(color, header, msg, M.ANSI_RESET))
 end
 
 --- Replaces an value in the list
