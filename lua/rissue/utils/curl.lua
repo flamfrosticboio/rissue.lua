@@ -85,6 +85,10 @@ local M = {}
 --- Lists and parses the received headers from the server.
 --- Provides `headers` in the `results`
 ---@field include_result_headers? boolean
+--- The output filepath.
+---
+--- Note: Will disable result.content if this is used.
+---@field outfile string?
 
 ---@type __rissue.curl.DataTypeMap
 local _data_type_arg = {
@@ -212,6 +216,13 @@ function M.construct(url, opts)
   if opts.include_result_headers then
     args[#args + 1] = "--dump-header"
     args[#args + 1] = os.tmpname()
+  end
+
+  if opts.outfile then
+    args[#args + 1] = "-o"
+    args[#args + 1] = opts.outfile
+    args[#args + 1] = "--create-dirs"
+    args[#args + 1] = "--remove-on-error"
   end
 
   if opts.raw_args then
