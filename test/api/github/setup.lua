@@ -16,6 +16,7 @@
 
 -- Github setup
 
+local env = require("rissue.env")
 local gutils = require("api.github.setup_utils")
 local setup_manager = require("api.setup")
 local setup_utils = require("api.setup_utils")
@@ -38,24 +39,27 @@ local function spec_pipeline(spec_name, url)
   local dest_path = cwd .. "/" .. spec_name
   local tmp_filename = tmp_filename_prefix .. spec_name
   local tmp_filename_processed = tmp_filename .. "_bundled.json"
-  ---@type __rissue.Pipeline
-  return {
-    setup_manager.p_run("curl", {
-      args = { "-sSf", "--remove-on-error", "-L", "-o", tmp_filename, url },
-      skip_when_file_exists = dest_path,
-    }),
+  return setup_manager.new_pipeline(spec_name, {
+    setup_manager.p_switch_mode("io"),
+    setup_manager.p_curl(
+      url,
+      tmp_filename,
+      { auth = env.get_token("github") },
+      { skip_when_file_exists = dest_path }
+    ),
     setup_manager.p_register_cleanup(
       ---@async
-      function(a)
+      function(a, limiters)
         setup_utils.run_pipeline(a, {
           setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
           setup_manager.p_rmfile(
             tmp_filename_processed,
             { skip_when_fail = true }
           ),
-        })
+        }, limiters)
       end
     ),
+    setup_manager.p_switch_mode("cpu"),
     setup_manager.p_run(redocly_bin, {
       args = {
         "bundle",
@@ -67,8 +71,9 @@ local function spec_pipeline(spec_name, url)
         redocly_config,
       },
     }),
+    setup_manager.p_switch_mode("io"),
     setup_manager.p_rename(tmp_filename_processed, dest_path),
-  }
+  }, { color = utils.assign_color() })
 end
 
 ---@param filename string
