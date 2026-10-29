@@ -89,6 +89,7 @@ local M = {}
 ---
 --- Note: Will disable result.content if this is used.
 ---@field outfile string?
+---@field retry_all_errors boolean? Retries when it fails. default=true
 
 ---@type __rissue.curl.DataTypeMap
 local _data_type_arg = {
@@ -111,6 +112,7 @@ function M.construct(url, opts)
   opts.retries = opts.retries or 3
   opts.retry_delay = opts.retry_delay or 1
   opts.data_type = opts.data_type or "default"
+  opts.retry_all_errors = opts.retry_all_errors ~= false
 
   local args = {}
 
@@ -223,6 +225,10 @@ function M.construct(url, opts)
     args[#args + 1] = opts.outfile
     args[#args + 1] = "--create-dirs"
     args[#args + 1] = "--remove-on-error"
+  end
+
+  if opts.retry_all_errors then
+    args[#args + 1] = "--retry-all-errors"
   end
 
   if opts.raw_args then
