@@ -82,6 +82,10 @@ end
 
 ---@class __rissue.pipeline.SwitchMode: __rissue.pipeline._base<"switch_mode">
 ---@field mode __rissue.pipeline.SwitchMode.mode
+
+---@class __rissue.pipeline.AsyncStep: __rissue.pipeline._base<"async_step">
+---@field cb fun(done: fun(err_msg?: string))
+
 ---@alias __rissue.PipelineCommands
 ---| __rissue.pipeline.Run
 ---| __rissue.pipeline.Rename
@@ -92,6 +96,7 @@ end
 ---| __rissue.pipeline.RemoveFile
 ---| __rissue.pipeline.RemoveDirectory
 ---| __rissue.pipeline.SwitchMode
+---| __rissue.pipeline.AsyncStep
 
 ---@alias __rissue.Pipeline __rissue.PipelineCommands[]
 
@@ -510,6 +515,14 @@ function M.run_pipeline(async, pipeline, limiters)
 
       if not should_continue then
         util.print_status("Stopping pipeline...")
+        break
+      end
+    elseif item.type == "async_step" then
+      local async_step_err = async:wrap(function(cb)
+        item.cb(cb)
+      end)
+      if async_step_err then
+        err = tostring(async_step_err)
         break
       end
     elseif item.type == "switch_mode" then
