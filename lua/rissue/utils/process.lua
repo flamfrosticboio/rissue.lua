@@ -21,6 +21,7 @@ local log = require("rissue.utils.log")
 local table_op = require("rissue.utils.table_op")
 local uv = require("luv") ---@type uv
 
+---@diagnostic disable-next-line: deprecated
 local unpack = unpack or table.unpack
 
 ---@alias rissue.utils.process.Event
