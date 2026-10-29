@@ -97,18 +97,17 @@ local ansi_colors = {
   "\27[94m",
   "\27[95m",
   "\27[96m",
-  "\27[0m",
 }
 local ansi_colors_len = #ansi_colors
 
-local RESET = "\27[0m"
+M.ANSI_RESET = "\27[0m"
 
 --- Colors the text with a cyclic colors based on id
 ---@param str string
 ---@param id integer
 function M.ccolor(str, id)
   id = (id % ansi_colors_len) + 1
-  return ansi_colors[id] .. str .. RESET
+  return ansi_colors[id] .. str .. M.ANSI_RESET
 end
 
 ---@generic T
