@@ -17,6 +17,7 @@
 local process = require("rissue.utils.process")
 ---@alias __rissue.Pack { n: integer, [integer]: any }
 
+---@diagnostic disable-next-line: deprecated
 local unpack = unpack or table.unpack
 
 ---@type table
