@@ -313,3 +313,16 @@ jobs:
         shell: bash
         run: |
           luarocks test --tree=${{ env.LUAROCKS_TREE }} .rockspec/rissue-dev-1.rockspec -- --run=api
+
+  test-status:
+    runs-on: ubuntu-slim
+    if: ${{ always() && needs.tests.result != 'skipped' }}
+    needs: [tests]
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || \
+                "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "::error::A required test failed"
+            exit 1
+          fi
