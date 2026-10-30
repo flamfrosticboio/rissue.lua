@@ -103,6 +103,9 @@
   The `retry_all_errors` option is built-in to curl where it attempts to retru when
   if fails to fetch. The retries are controlled by `retries` and `retry_delay` option.
 
+- [utils/assert_op]: Refactor `check_structure` (now called `table_expects`) to
+  use matchers for support for literals and more complicated checking.
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
@@ -140,6 +143,8 @@
 - [utils/process]: Fixed running status is still true when process
   has exited during the `on_exit` event.
 
+- [config]: fix additional providers getting wrong checks [#72](https://github.com/flamfrosticboio/rissue.lua/issues/72)
+
 **Breaking Changes:**
 
 - [utils/log]: Removed `log_func`. Write a manual implementation instead.
@@ -156,6 +161,21 @@
   `version: {major: integer, minor: integer, patch: integer}` instead of
   `version: string` and `version_code: integer`. Any existing providers using the
   old versioning system will not work anymore.
+
+- [utils/assert_op]: `assert_op.check_structure()` is now migrated to `assert_op.table_expects()`
+  which has a different structure. See more on [this commit](https://github.com/flamfrosticboio/rissue.lua/pull/73/changes/b875e7cd6c1fbf1ebd6c873d5b7a887edbaabf6f).
+
+  New Usage Example:
+
+  ```lua
+  local obj_to_compare = {} -- the table object to compare
+  local structure = {
+    name = "hello", -- a literal
+    full_name = assert_op.matchers.is_string() -- or any type which is a string
+    --- see more on assert_op.matchers to see how much you can do.
+  }
+  assert_op.check_structure(obj_to_compare, structure, name)
+  ```
 
 ## v0.2.1
 
