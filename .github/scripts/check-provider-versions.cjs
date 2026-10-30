@@ -9,6 +9,19 @@ const BASE = process.env.BASE_SHA;
 const HEAD = process.env.HEAD_SHA;
 const ROOT = "lua/rissue/providers";
 
+const TITLE = "Provider Version Check";
+
+const escData = (s) =>
+    String(s).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+const escProp = (s) => escData(s).replace(/:/g, "%3A").replace(/,/g, "%2C");
+
+function annotateError(file, message) {
+    console.log(
+        `::error title=${escProp(TITLE)},file=${escProp(file)}::${escData(message)}`,
+    );
+    failed = true;
+}
+
 function git(...args) {
     const r = spawnSync("git", args, { encoding: "utf8" });
     return r.status === 0 ? r.stdout : "";
@@ -54,22 +67,16 @@ for (const line of git("ls-tree", HEAD, `${ROOT}/`)
     const baseV = parseVersion(baseSrc);
     const headV = parseVersion(git("show", `${HEAD}:${verFile}`));
 
-    if (baseV !== null && headV !== null) {
-        if (isVersionEqual(baseV, headV)) {
-            console.log(
-                `${provider_name}: version not bumped (still at ${headV[0]}.${headV[1]}.${headV[2]})`,
-            );
-            failed = true;
-        }
-    } else if (!baseV) {
-        console.log(`${path}: could not parse version (base is broken)`);
-        failed = true;
-    } else if (!headV) {
-        console.log(`${path}: could not parse version (head is broken)`);
-        failed = true;
-    } else {
-        console.log(`${path}: could not parse version (unknown error)`);
-        failed = true;
+    if (!baseV)
+        annotateError(verFile, "Could not parse version (base is broken)");
+    if (!headV)
+        annotateError(verFile, "Could not parse version (head is broken)");
+
+    if (baseV && headV && isVersionEqual(baseV, headV)) {
+        annotateError(
+            verFile,
+            `${provider_name}: version not bumped (still at ${headV[0]}.${headV[1]}.${headV[2]})`,
+        );
     }
 }
 
