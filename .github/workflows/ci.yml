@@ -55,7 +55,7 @@ jobs:
       tests: ${{ steps.f.outputs.tests }}
     steps:
       - id: f
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             src:
@@ -85,7 +85,7 @@ jobs:
           ln -sf /opt/lua-language-server/bin/lua-language-server /usr/local/bin/lua-language-server
           rm lls.tar.gz
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: lts/*
           cache: npm
