@@ -573,7 +573,7 @@ describe("assert_op check_structure", function()
         base2,
         {
           follows = {
-            name = false,
+            name = true,
             str = test_table,
             others = 10,
           },
