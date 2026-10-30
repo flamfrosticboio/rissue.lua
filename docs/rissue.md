@@ -135,20 +135,11 @@ config.options = {
         api_version = "2026-03-10",
       } --[[@as rissue.Github.supports.AdditionalInfo]],
     },
-<<<<<<< HEAD
-||||||| parent of 9492824 (fix(config): fix temporary pattern gitlab%.com2 on matching gitlab for endpoint shortcuts)
-    {
-      name = "gitlab",
-      domain = "gitlab.com",
-      patterns = { "gitlab%.com2" },
-    },
-=======
     {
       name = "gitlab",
       domain = "gitlab.com",
       patterns = { "gitlab%.com" },
     },
->>>>>>> 9492824 (fix(config): fix temporary pattern gitlab%.com2 on matching gitlab for endpoint shortcuts)
   },
   timeout = 60000,
   log = {},

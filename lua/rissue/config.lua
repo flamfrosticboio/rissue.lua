@@ -55,7 +55,10 @@ config.options = {
 
 --- Table of available providers
 ---@type table<rissue.ProviderName, rissue.Provider>
-config.providers = { github = require("rissue.providers.github") }
+config.providers = {
+  github = require("rissue.providers.github"),
+  gitlab = require("rissue.providers.gitlab"),
+}
 
 local matchers = assert_op.matchers
 

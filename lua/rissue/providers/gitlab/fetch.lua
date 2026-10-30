@@ -44,7 +44,7 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param endpoint string
----@param opts rissue.utils.curl.Opts
+---@param opts rissue.curl.Opts
 ---@return string? err_msg
 ---@return string? result
 ---@return table<string, string>? headers
@@ -104,7 +104,7 @@ local function decode(response)
     log.trace(
       msg
         .. "\n"
-        .. "Failing decode result:"
+        .. "Failing decode result: "
         .. (response ~= "" and response or "<empty response>")
     )
     return nil, msg
@@ -153,8 +153,11 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param opts __rissue.Gitlab.FetchOpts
+---@return string? err_msgs
 local function fetch(async, opts)
   local curl_headers = {}
+  local error_messages = {} ---@type string[]
+  local add_error_message = table_op.appender(error_messages)
   if opts.token then
     table.insert(curl_headers, "PRIVATE-TOKEN: " .. opts.token)
   end
@@ -181,13 +184,17 @@ local function fetch(async, opts)
       local err, res, headers = run_query(async, query.endpoint, curl_opts)
       if not res then
         --- we only need to log the errors and proceed to next base query.
-        log.warn(("Failed to fetch %s: %s"):format(query.endpoint, err))
+        local msg = ("Failed to fetch %s: %s"):format(query.endpoint, err)
+        log.warn(msg)
+        add_error_message(msg)
         break
       end
 
       local decoded, decode_err = decode(res)
       if not decoded then
-        log.warn(decode_err)
+        local msg = decode_err or "unknown error while decoding"
+        log.warn(msg)
+        add_error_message(msg)
         break
       end
 
@@ -203,6 +210,10 @@ local function fetch(async, opts)
       curl_opts.data = nil -- already encoded in the next-page URL
       delay(async, opts.config.delay)
     end
+  end
+
+  if #error_messages > 0 then
+    return table.concat(error_messages, "\n")
   end
 end
 
