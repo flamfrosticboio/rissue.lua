@@ -49,14 +49,18 @@ local function spec_pipeline(spec_name, url)
     ),
     setup_manager.p_register_cleanup(
       ---@async
-      function(a, limiters)
-        setup_utils.run_pipeline(a, {
-          setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
-          setup_manager.p_rmfile(
-            tmp_filename_processed,
-            { skip_when_fail = true }
-          ),
-        }, limiters)
+      function(a, limiters, ctx)
+        setup_utils.run_pipeline(
+          a,
+          setup_manager.new_pipeline(ctx and ctx.print_context.name or "??", {
+            setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
+            setup_manager.p_rmfile(
+              tmp_filename_processed,
+              { skip_when_fail = true }
+            ),
+          }, { color = ctx and ctx.print_context.color }),
+          limiters
+        )
       end
     ),
     setup_manager.p_switch_mode("cpu"),
