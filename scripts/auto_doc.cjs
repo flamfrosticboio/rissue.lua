@@ -66,7 +66,12 @@ function walk(dir) {
 }
 
 const read = (file) => fs.readFileSync(file, "utf8");
-const formatDesc = (desc) => desc.trim().replace(/\n /g, "\n");
+const formatDesc = (desc) =>
+  desc
+    .trim()
+    .replace(/\n /g, "\n")
+    .replace(/file:\/\/[^)\s]*?\/lua\/rissue\/types\/(?=docs\/)/g, "")
+    .replace(/%23/g, "#");
 
 const escapeHtml = (s) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
