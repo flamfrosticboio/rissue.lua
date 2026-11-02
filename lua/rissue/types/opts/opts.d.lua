@@ -20,19 +20,31 @@
 --- List of provider's filepaths to import with `loadfile()`
 ---@field additional_providers string[]
 ---@field env_file string The name of the env file
----@field env rissue.config.Env
+---@field env rissue.config.Env Environment settings
+--- Quick pattern based shortcuts to a provider without calling `Provider.supports`
+---
+--- Example:
+--- ```lua
+--- { github = {
+---     patterns = { "github%.com" },
+---     domain = "api.github.com",
+--- } }
+--- ```
 ---@field endpoint_shortcuts table<rissue.ProviderName, rissue.EndpointShortcut>
---- List of options for a provider. See the provider's documentation for the
---- list of options that is supported.
----@field provider_options table<string, table>
---- Specifies the timeout in milliseconds on operations such as `get.issues()`
+--- User defined settings for a specific provider.
+---
+--- See the provider's documentation for the list of options that is supported.
+---@field provider_options table<rissue.ProviderName, table?>
+--- Specifies the max timeout in milliseconds on operations such as `get.issues()`
 --- and `provider.get_provider_info()`
 ---@field timeout integer
----@field log rissue.log.Opts Logging setup opts
+---@field log rissue.log.Opts Logging setup options
 
+--- An endpoint shortcut struct
 ---@class rissue.EndpointShortcut
---- List of patterns that can be used on `string:match()`
+--- List of patterns that can be used with lua regex.
 ---@field patterns string[]
+--- Api base endpoint (e.g. "api.github.com")
 ---@field domain   rissue.url
 --- Additional info to pass to an endpoint shortcut
 ---@field additional_info table?

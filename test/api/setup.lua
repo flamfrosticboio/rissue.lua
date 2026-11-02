@@ -31,9 +31,6 @@ if not CPU_CORES then
 end
 local IO_CORES = tonumber(os.getenv("IO_CORES")) or (CPU_CORES * 2)
 
----@class __rissue._CmdResult: rissue.utils.CmdResult
----@field cmd string[]
-
 ---@param folder string folder path
 ---@param duration number duration in seconds
 ---@return boolean cache_is_valid
@@ -183,7 +180,7 @@ function M.p_curl(url, out_filepath, curl_opts, opts)
   return {
     type = "async_step",
     cb = function(done, ctx)
-      ---@type __rissue.async.Backend
+      ---@type rissue.async.Backend
       local backend = {
         on_error = function(err)
           err = tostring(err)

@@ -40,7 +40,7 @@ local function run_blocking(cb)
   end)
 end
 
----@param opts rissue.utils.CommandOpts
+---@param opts rissue.utils.process.Opts
 ---@return rissue.utils.Process
 local function spawn(opts)
   local p, err = process.spawn(opts)
@@ -236,7 +236,7 @@ describe("cmd", function()
             return_code = 0,
             stdout = "stdout line\n",
             stderr = "stderr line\n",
-          } --[[@as rissue.utils.CmdResult]], result)
+          } --[[@as rissue.utils.process.Result]], result)
         end
       )
     end)

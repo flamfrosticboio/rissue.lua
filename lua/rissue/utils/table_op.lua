@@ -16,6 +16,7 @@
 
 ---@diagnostic disable: undefined-global
 
+---@class rissue.mod.TableOperations
 local M = {}
 
 ---@param t any
@@ -166,7 +167,9 @@ function M.set_into_list(set)
   return result
 end
 
---- Simple appender function from existing table
+--- Basic appender function from existing table.
+---
+--- Note: Does not track additional inserted items not updated by appender.
 ---@generic T
 ---@param tbl T[]
 ---@return fun(item: T): integer

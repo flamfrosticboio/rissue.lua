@@ -17,7 +17,9 @@ Minimum active support for ghes: 3.16
 Theoretical support for ghes: 3.0
 
 > [!NOTE]
+>
 > **Support for ghes versions below 3.16**
+>
 > There is has no active maintenance for versions lower than 3.16, but is
 > ensured compatibility starting from 3.0.
 
@@ -92,115 +94,6 @@ M.default = {
 ```
 
 <!-- *github.conf -->
-
-## Types
-
-<!-- &rissue.Github.Settings@docs -->
-
-### `rissue.Github.Settings`
-
-Type: `class`
-
-Note: use `rissue.Github.Opts` for a partial version of
-`rissue.Github.Settings`
-
-- api_version: `("2022-11-28"|"2026-03-10"|false)?`
-  -- Override the api version to be used.
-  Most commonly used when doing requests like `get.issues()` or
-  `get.merge_requests()`
-
-  Setting it to false removes the api_version header to be sent to the server.
-
-  _It is not recommended for the api_version to be set as a permanent setting,
-  but rather a request option_
-
-- endpoints: `rissue.Github.opts.Endpoints`
-  -- Required field on param in each query: `q`.
-
-  The query field supports template strings:
-  - `{owner}` - Repository owner
-  - `{repo}` - Repository name
-
-  See the default settings for examples.
-
-- fetch_delay: `integer`
-  -- The delay between fetching in each endpoints/pages
-
-- items_per_page: `integer`
-  -- Defines how many items are fetched per page when performing pagination
-  requests in github. Limit=100 (enforced by github)
-
-- max_items: `integer`
-  -- Limits how many items will be fetched and rendered.
-
-  Note: This does not guarantee the output size of the result to be exactly
-  `max_items` and may have more items than requested
-
-- media_type: `"full"|"html"|"raw"|"text"`
-  -- The type of media to request from issues and pull requests.
-
-  Attaches a header to the requests:
-
-  ```text
-  -H "Accept: application/vnd.github.<media_type>+json"
-  ```
-
-  Options:
-  - "raw" -- Enables `body` in the api response
-  - "text" -- Enables `body_text` in the api response
-  - "html" -- Enables `body_html` in the api response
-  - "full" -- Combination of `raw`, `text`, and `html`.
-
-  _Note: It is not possible to access to `body_text` and `body_html` when
-  `full` is selected. Enable the `store_raw` option instead and access it from
-  raw response_
-
-  See more on [github docs](https://docs.github.com/en/).
-  - [Issues](https://docs.github.com/en/rest/issues/issues)
-  - [Pull Requests](https://docs.github.com/en/rest/pulls/pulls)
-
-- store_raw: `boolean`
-  -- Store the raw response from the server in the results
-
-<!-- &rissue.Github.Settings@docs -->
-
-<!-- &rissue.Github.opts.Endpoints@docs -->
-
-### `rissue.Github.opts.Endpoints`
-
-Type: `class`
-
-- issues: `rissue.Query[]`
-- merge_requests: `rissue.Query[]`
-
-<!-- &rissue.Github.opts.Endpoints@docs -->
-
-<!-- &rissue.Github.supports.AdditionalInfo@docs -->
-
-### `rissue.Github.supports.AdditionalInfo`
-
-Type: `class`
-
-- api_version: `("2022-11-28"|"2026-03-10")?`
-- ghes: `string?` -- The Github Enterprise Version (3.x)
-- ghes_code: `integer?` -- Typically represented as 3xxx (e.g. 3.14 -> 03014)
-
-<!-- &rissue.Github.supports.AdditionalInfo@docs -->
-
-#### From rissue
-
-<!-- &rissue.Query@docs -->
-
-### `rissue.Query`
-
-Type: `class`
-
-- endpoint: `string`
-  -- The endpoint url appended after the api endpoint from `rissue.ProviderInfo`
-- param: `table<string, string>`
-  -- The query parameters. Behavior differs between each provider.
-
-<!-- &rissue.Query@docs -->
 
 ## Technical
 

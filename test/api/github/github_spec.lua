@@ -286,7 +286,7 @@ local function test_version(name, specfile, opts)
           url = "https://api.github.com/repos/octocat/Hello-World/pulls/1347",
           web_url = "https://github.com/octocat/Hello-World/pull/1347",
         },
-      } --[=[@as rissue.pr[]]=], mr)
+      } --[=[@as rissue.MergeRequest[]]=], mr)
     end)
   end)
 end

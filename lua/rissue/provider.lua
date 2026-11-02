@@ -58,12 +58,20 @@ end
 --- Gets the provider info based on the remote url.
 --- May trigger api requests to the url if no pattern was found from
 --- `config.options.endpoint_shortcuts`
+---
+--- The `opts` argument are request options passed to providers. They are
+--- scoped to provider names (e.g. github, gitlab) to prevent conflicts
+---
+--- Example:
+---
+--- ```lua
+--- --- github and gitlab have similar options but does completely different
+--- { github = { ... }, gitlab = { ... } }
+--- ```
 ---@async
----@param async rissue.Async
----@param remote_info rissue.RemoteInfo
---- Additional request options passed to providers.
---- Scoped to provider names (e.g. github, gitlab) to prevent conflicts
----@param opts table<rissue.ProviderName, table?>?
+---@param async rissue.Async Async handler
+---@param remote_info rissue.RemoteInfo Remote information
+---@param opts table<rissue.ProviderName, table?>? Request options to specific providers.
 ---@return rissue.ProviderInfo? info
 ---@return string? error
 function provider.provider_info(async, remote_info, opts)

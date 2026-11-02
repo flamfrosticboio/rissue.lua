@@ -16,6 +16,8 @@
 
 ---@meta
 
----@alias rissue.url string An alias to url
+--- An alias to url
+---@alias rissue.url string
 
----@alias rissue.timestamp integer An alias to timestamp (os.time())
+--- An alias to timestamp (os.time())
+---@alias rissue.timestamp integer

@@ -30,28 +30,29 @@ local unpack = unpack or table.unpack
 ---| "on_stderr" When the process writes to stderr
 ---| "on_output" When the process writes to stdout or stderr
 
----@class rissue.utils.process._FinishedTracker
+---@class __rissue.utils.process.FinishedTracker
 ---@field handle boolean
 ---@field stdout boolean
 ---@field stderr boolean
 
----@class rissue.utils.process._EventsTable
+---@class __rissue.utils.process.EventsTable
 ---@field on_exit fun()[]
 ---@field on_stdout fun()[]
 ---@field on_stderr fun()[]
 ---@field on_output fun()[]
 
+--- A process handler
 ---@class rissue.utils.Process
----@field package _events rissue.utils.process._EventsTable List of events
+---@field package _events __rissue.utils.process.EventsTable List of events
 ---@field package _handle uv.uv_process_t?
 ---@field package _stdout_pipe uv.uv_pipe_t?
 ---@field package _stderr_pipe uv.uv_pipe_t?
 ---@field package _exit_code integer -1 means not finished
 ---@field package _stdout_raw string[]
 ---@field package _stderr_raw string[]
----@field package _finished rissue.utils.process._FinishedTracker
+---@field package _finished __rissue.utils.process.FinishedTracker
 ---@field package _complete boolean
----@field package _opts rissue.utils.CommandOpts
+---@field package _opts rissue.utils.process.Opts
 ---@field package __index table? Stub to avoid listing in IDE
 ---@field package _running boolean
 local Process = {}
@@ -116,7 +117,9 @@ local function close_handle(h, callback, ...)
   end
 end
 
---- Closes the process by killing it. Requires waiting for the process to finish
+--- Closes the process by sending a signal. Requires waiting for the process to finish
+---
+--- Optionally, you can send other signals that is supported by the os.
 ---@param callback fun()?
 ---@param signal string | integer | nil
 function Process:close(callback, signal)
@@ -263,10 +266,13 @@ function Process:run()
   end
 end
 
+--- Gets the exit code of the process. If the exit code is -1, it means it has not yet
+--- finished.
 function Process:get_code()
   return self._exit_code
 end
 
+--- Gets the stdout output of the process.
 ---@return string
 function Process:get_stdout()
   if
@@ -282,6 +288,7 @@ function Process:get_stdout()
   return table.concat(self._stdout_raw)
 end
 
+--- Gets the stderr output of the process.
 ---@return string
 function Process:get_stderr()
   if
@@ -337,7 +344,7 @@ local function prepare_line(line, opts)
   return line
 end
 
---- Gets the latest stdout output
+--- Gets the latest stdout output line.
 --- Used with relation to `on_stdout` or `on_output` event (e.g. print output)
 ---@param opts? rissue.utils.Process.last_output.Opts
 function Process:get_last_stdout(opts)
@@ -351,7 +358,7 @@ function Process:get_last_stdout(opts)
   return prepare_line(line, opts)
 end
 
---- Gets the latest stderr output
+--- Gets the latest stderr output line.
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
 ---@param opts? rissue.utils.Process.last_output.Opts
 function Process:get_last_stderr(opts)
@@ -365,8 +372,8 @@ function Process:get_last_stderr(opts)
   return prepare_line(line, opts)
 end
 
----Spawns a process (without running)
----@param opts rissue.utils.CommandOpts
+---Creates a process handler
+---@param opts rissue.utils.process.Opts
 ---@return rissue.utils.Process? spawned_process
 ---@return string? error
 function M.spawn(opts)
@@ -413,8 +420,8 @@ function M.spawn(opts)
   return setmetatable(process, Process), nil
 end
 
---- A lightweight wrapper that calls `error()` on error
----@param opts rissue.utils.CommandOpts
+--- A lightweight wrapper that throws an exception when it generates an error
+---@param opts rissue.utils.process.Opts
 ---@return rissue.utils.Process
 function M.spawn_err(opts)
   local p, err = M.spawn(opts)
@@ -424,12 +431,12 @@ function M.spawn_err(opts)
   return p
 end
 
---- Runs the process until it exits.
+--- Runs the process and asynchronously waits until it finishes.
 ---@async
 ---@param async rissue.Async
----@param command_opts rissue.utils.CommandOpts
----@param opts rissue.utils.run.Opts?
----@return rissue.utils.CmdResult? result
+---@param command_opts rissue.utils.process.Opts
+---@param opts rissue.utils.run_process.Opts?
+---@return rissue.utils.process.Result? result
 ---@return string? error
 function M.run_async(async, command_opts, opts)
   local p, err = M.spawn(command_opts)
@@ -466,7 +473,7 @@ function M.run_async(async, command_opts, opts)
     return_code = p:get_code(),
     stdout = p:get_stdout(),
     stderr = p:get_stderr(),
-  } --[[@as rissue.utils.CmdResult]]
+  } --[[@as rissue.utils.process.Result]]
 end
 
 ---@param timer uv.uv_timer_t?
@@ -479,7 +486,7 @@ local function try_stop_timer(timer)
   end
 end
 
---- Delays the current async by number of milliseconds
+--- Delays the current async thread by number of milliseconds
 ---@async
 ---@param async rissue.Async
 ---@param milliseconds integer time in milliseconds
@@ -506,7 +513,7 @@ end
 local waiting = false
 local force_stop_waiting = false
 
---- Stops the current `process.wait`
+--- Stops the active `process.wait()`
 ---@param reason string Reason for stopping current waiting loop
 ---@return boolean success
 ---@return string? error
@@ -526,6 +533,38 @@ function M.try_stop_current_wait(reason)
   return false
 end
 
+--- Performs the luv event loop until the specified condition to be true.
+---
+--- Example:
+---
+--- ```lua
+--- local done = false
+--- async.run(function()
+---   -- do async task
+---   done = true
+--- end)
+---
+--- --- check condition for every 5 seconds. Timeout is 1 minute
+--- process.wait(function() return done end, 60000, 5000)
+--- ```
+---
+--- To stop the current `process.wait()` due to an error (without using `error()`),
+--- use `process.try_stop_current_wait()`
+---
+--- It is also possible to not specify the interval if the async task completion state
+--- is tied to luv (e.g. reading a file, finishing a process).
+---
+--- Example:
+---
+--- ```lua
+--- local done = false
+--- async.run(function(a)
+---   --- do uv readfile
+---   done = true
+--- end)
+---
+--- process.wait(function() return done end, -1)
+--- ```
 ---@param condition fun(): boolean
 ---@param timeout integer  Pass -1 to disable timeout
 ---@param interval integer?
@@ -599,8 +638,7 @@ local function shell_escape(arg)
   return arg
 end
 
---- A utility function that constructs a command line string that can be used to print
---- into console for debugging purposes
+--- A utility function that represents command line arguments.
 ---@param cmd string
 ---@param args string[]
 ---@return string

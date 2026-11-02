@@ -14,13 +14,9 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
---- Logging levels where:
---- - off: 5
---- - error: 4
---- - warn: 3
---- - info: 2
---- - debug: 1
---- - trace: 0
+---@meta
+
+--- Logging levels
 ---@alias rissue.log.level
 ---| 0 trace
 ---| 1 debug
@@ -30,19 +26,13 @@
 ---| 5 off
 
 --- Logging levels where:
---- - off: 5
---- - error: 4
---- - warn: 3
---- - info: 2
---- - debug: 1
---- - trace: 0
----@alias rissue.log.level.named
----| "trace" trace
----| "debug" debug
----| "info" info
----| "warn" warn
----| "error" error
----| "off" off
+---@alias rissue.log.named_level
+---| "trace" # trace
+---| "debug" # debug
+---| "info" # info
+---| "warn" # warn
+---| "error" # error
+---| "off" # off
 
 ---@class __rissue.log._levels<T>
 ---@field trace T
@@ -52,31 +42,28 @@
 ---@field error T
 ---@field off T
 
----@class rissue.log.builtin
----@field color_enabled boolean
-
---- Logging levels where:
---- - off: 5
---- - error: 4
---- - warn: 3
---- - info: 2
---- - debug: 1
---- - trace: 0
----@class rissue.log.levels: __rissue.log._levels<integer>
-
 ---@alias rissue.logger_func fun(msg: string, level: rissue.log.level, info?: rissue.logger.log_info)
 
+--- Logging information
 ---@class rissue.logger.log_info
 ---@field context? string
 
----@class rissue.logger
+--- A logger object
+---@class rissue.Logger
 --- [Internal]
 ---@field protected _level rissue.log.level
 --- [Internal]
 ---@field protected _logger rissue.logger_func
---- List of levels
----@field levels rissue.log.levels
---- Logs to logger.
+--- List of levels from error to trace.
+---
+--- Example:
+---
+--- ```lua
+--- local log = require('rissue.utils.log')
+--- log.log("my warning statement", log.levels.warn)
+--- ```
+---@field levels __rissue.log._levels<integer>
+--- Logs to current logger primitively.
 ---
 --- Warning: Does not filter logging based on current log level.
 ---          Wrap it with `log.level_enabled()` instead.
@@ -86,7 +73,7 @@
 --- Gets the current log level
 ---@field get_log_level fun(): integer
 --- Sets the current log level
----@field set_log_level fun(level: rissue.log.level | rissue.log.level.named)
+---@field set_log_level fun(level: rissue.log.level | rissue.log.named_level)
 --- Sets the current logger function (e.g. 'print', 'vim.notify')
 ---@field set_logger fun(logger: rissue.logger_func)
 ---@field info fun(...: any) Log an `info` message
@@ -95,16 +82,17 @@
 ---@field debug fun(...: any) Log an `debug` statement
 ---@field trace fun(...: any) Log an `trace` statement
 
----@class rissue.mod.logger: rissue.logger
+---@class rissue.mod.logger: rissue.Logger
 --- Creates a new logger instance. If logger is not passed from opts, it will
 --- use the global logger.
----@field new fun(opts?: rissue.log.new.Opts): rissue.logger
+---@field new fun(opts?: rissue.log.new.Opts): rissue.Logger
 --- Setup the global logger.
 ---@field setup fun(opts: rissue.log.Opts)
 
+--- Options when creating a new logger with `require('rissue.utils.log').new()`
 ---@class rissue.log.new.Opts
----@field context? string
----@field logger? rissue.logger_func
+---@field context? string logger context
+---@field logger? rissue.logger_func logger function
 
 --- Options for logger
 ---@class rissue.log.Opts

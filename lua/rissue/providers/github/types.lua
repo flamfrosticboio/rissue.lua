@@ -20,12 +20,12 @@
 ---| "raw" # Enables `body` in the response
 ---| "text" # Enables `body_text` in the response
 ---| "html" # Enables `body_html` in the response
----| "full" # Combination of `raw`, `text`, and `html`
+---| "full" # Combination of `raw`, `text`, and `html`. Read more on [rissue.Github.Opts](docs.types.md#rissuegithubopts)
 
 ---@class rissue.Github.supports.AdditionalInfo
 ---@field ghes string? The Github Enterprise Version (3.x)
 ---@field ghes_code integer? Typically represented as 3xxx (e.g. 3.14 -> 03014)
----@field api_version rissue.Github.ApiVersion?
+---@field api_version rissue.Github.ApiVersion? The named api version
 
 ---@class rissue.Github.opts.Endpoints
 ---@field issues rissue.Query[]
@@ -86,10 +86,8 @@
 ---
 ---@field media_type rissue.Github.MediaType
 --- Store the raw response from the server in the results
----
 ---@field store_raw boolean
 --- The delay between fetching in each endpoints/pages
----
 ---@field fetch_delay integer
 
 --- Partial version of rissue.Github.Settings
