@@ -145,6 +145,8 @@
 
 - [config]: fix additional providers getting wrong checks [#72](https://github.com/flamfrosticboio/rissue.lua/issues/72)
 
+- [provider]: scope opts properly by provider name [#76](https://github.com/flamfrosticboio/rissue.lua/issues/76)
+
 **Breaking Changes:**
 
 - [utils/log]: Removed `log_func`. Write a manual implementation instead.
