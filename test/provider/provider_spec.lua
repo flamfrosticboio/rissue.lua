@@ -147,4 +147,32 @@ describe("provider_info", function()
       },
     }, info)
   end)
+
+  it("Settings are properly scoped", function()
+    local url = "https://customnot.com/flamfrosticboio/rissue.git"
+    local remote_info, err = provider.remote_info(url)
+    assert(remote_info and not err, err)
+
+    local config = require("rissue.config")
+    spy.on(config, "merge_provider_settings")
+
+    local backend = async.default_backend()
+    async.run(
+      backend,
+      ---@async
+      function(a)
+        provider.provider_info(a, remote_info, { custom = { my_opts = true } })
+      end
+    )
+
+    ---@diagnostic disable-next-line: param-type-mismatch
+    assert.spy(config.merge_provider_settings).was.called(1)
+    assert
+      ---@diagnostic disable-next-line: param-type-mismatch
+      .spy(config.merge_provider_settings)
+      .was
+      .called_with(match.is_table(), match.same({ my_opts = true }))
+
+    config.merge_provider_settings:revert()
+  end)
 end)
