@@ -389,8 +389,10 @@ function getTypes() {
   const spec = JSON.parse(read(path.join(CONFIG.tmpDir, CONFIG.docJsonName)));
   if (!Array.isArray(spec)) throw new Error("doc.json is not an array");
 
+  const sorted_spec = [...spec].sort((a, b) => a.name.localeCompare(b.name));
+
   const buffer = {};
-  for (const item of spec) {
+  for (const item of sorted_spec) {
     if (
       typeof item.name === "string" &&
       item.name.startsWith(CONFIG.typePrefix)
