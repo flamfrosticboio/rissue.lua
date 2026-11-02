@@ -53,7 +53,7 @@ local function test_version(name, specfile, opts)
     it("found provider", function()
       local info, err = rissue.get_provider_info(
         "http://" .. domain .. "/owner/repo.git",
-        opts.request_opts
+        { github = opts.request_opts }
       )
       assert(not err, err)
       assert.is_not_nil(info)
