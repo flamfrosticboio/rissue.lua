@@ -93,7 +93,10 @@ function provider.provider_info(async, remote_info, opts)
       async,
       remote_info,
       token,
-      config.merge_provider_settings(provider_module, opts)
+      config.merge_provider_settings(
+        provider_module,
+        opts and opts[provider_name]
+      )
     )
 
     if supported then
