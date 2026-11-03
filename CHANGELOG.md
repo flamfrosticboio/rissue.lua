@@ -192,6 +192,19 @@
     rather than a table.
   - `rissue.EndpointShortcut` requires the `name: rissue.ProviderName` field.
 
+- [docs]: Type names are updated to reflect to its use case better.
+  - `rissue.pr` -> `rissue.MergeRequest`
+  - `rissue.issue` -> `rissue.Issue`
+  - `rissue.item.base` -> `rissue.CommonItem`
+  - `rissue.pr.State` -> `rissue.mr.State`
+  - `rissue.label` -> `rissue.Label`
+  - `rissue.user` -> `rissue.User`
+  - `rissue.logger` -> `rissue.Logger`
+  - `rissue.log.level.named` -> `rissue.log.named_level`
+  - `rissue.utils.CmdResult` -> `rissue.utils.process.Result`
+  - `rissue.utils.CommandOpts` -> `rissue.utils.process.Opts`
+  - `rissue.utils.run.Opts` -> `rissue.utils.run_process.Opts`
+
 ## v0.2.1
 
 **Improvements:**
