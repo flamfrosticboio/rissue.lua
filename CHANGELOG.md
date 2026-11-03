@@ -9,12 +9,12 @@
   - Refactored all async related code in rissue to use the new async model.
 
 - [utils/process]:
-  - Add auto enabling on logging on process's stdout and stderr
-    when `trace` is enabled in log level.
+  - Add auto enabling on logging on process's stdout and stderr when `trace` is
+    enabled in log level.
 
   - Add new option `newline_on_multiline_output` on `Process.get_last_stdout()`
-    and `Process.get_last_stderr()`. This change also updates how to pass options
-    to these functions.
+    and `Process.get_last_stderr()`. This change also updates how to pass
+    options to these functions.
 
     ```lua
     --- previously
@@ -27,15 +27,16 @@
     ```
 
 - [utils/log]
-  - Regular printing functions such as `log.info()`, `log.warn()` and etc.
-    can now take multiple parameters.
+  - Regular printing functions such as `log.info()`, `log.warn()` and etc. can
+    now take multiple parameters.
 
   - New function: `log.get_log_level()` to get current log level.
 
   - `log.log()` and `rissue.logger_func` can now take context. This affects
     setting up custom loggers where you can read the context of the log passed.
 
-    `rissue.logger_func`: `fun(msg: string, level: rissue.log.level, info?: rissue.logger.log_info)`
+    `rissue.logger_func`:
+    `fun(msg: string, level: rissue.log.level, info?: rissue.logger.log_info)`
 
     This changes enables fine adjustment to the message output. Example:
 
@@ -95,13 +96,14 @@
   - Add new options: `retry_all_errors` and `outfile`
 
   The `outfile` option is a `-o <file>` in the hood, but when using this option,
-  it makes the return's contents to empty string because the file is not outputted
-  to stdout.
+  it makes the return's contents to empty string because the file is not
+  outputted to stdout.
 
   Notes: it also passes `--create-dirs` and `--remove-on-error` flags when used.
 
-  The `retry_all_errors` option is built-in to curl where it attempts to retru when
-  if fails to fetch. The retries are controlled by `retries` and `retry_delay` option.
+  The `retry_all_errors` option is built-in to curl where it attempts to retru
+  when if fails to fetch. The retries are controlled by `retries` and
+  `retry_delay` option.
 
 - [utils/assert_op]: Refactor `check_structure` (now called `table_expects`) to
   use matchers for support for literals and more complicated checking.
@@ -140,19 +142,21 @@
 
 - [utils/curl]: Fix constant variable mutation errors when using lua5.5
 
-- [utils/process]: Fixed running status is still true when process
-  has exited during the `on_exit` event.
+- [utils/process]: Fixed running status is still true when process has exited
+  during the `on_exit` event.
 
-- [config]: fix additional providers getting wrong checks [#72](https://github.com/flamfrosticboio/rissue.lua/issues/72)
+- [config]: fix additional providers getting wrong checks
+  [#72](https://github.com/flamfrosticboio/rissue.lua/issues/72)
 
-- [provider]: scope opts properly by provider name [#76](https://github.com/flamfrosticboio/rissue.lua/issues/76)
+- [provider]: scope opts properly by provider name
+  [#76](https://github.com/flamfrosticboio/rissue.lua/issues/76)
 
 **Breaking Changes:**
 
 - [utils/log]: Removed `log_func`. Write a manual implementation instead.
 
-- [utils/process]: Removed `process.run()` and `process.run_co()`.
-  Use `process.run_async()` instead.
+- [utils/process]: Removed `process.run()` and `process.run_co()`. Use
+  `process.run_async()` instead.
 
 - [provider]: `Provider.get_issues()` and `Provider.get_merge_requests()` will
   now take a fourth parameter `cb: fun(item: T)` where `T` is `rissue.issue` or
@@ -161,11 +165,12 @@
 
 - [specifications/providers]: The versioning system for providers uses
   `version: {major: integer, minor: integer, patch: integer}` instead of
-  `version: string` and `version_code: integer`. Any existing providers using the
-  old versioning system will not work anymore.
+  `version: string` and `version_code: integer`. Any existing providers using
+  the old versioning system will not work anymore.
 
-- [utils/assert_op]: `assert_op.check_structure()` is now migrated to `assert_op.table_expects()`
-  which has a different structure. See more on [this commit](https://github.com/flamfrosticboio/rissue.lua/pull/73/changes/b875e7cd6c1fbf1ebd6c873d5b7a887edbaabf6f).
+- [utils/assert_op]: `assert_op.check_structure()` is now migrated to
+  `assert_op.table_expects()` which has a different structure. See more on
+  [this commit](https://github.com/flamfrosticboio/rissue.lua/pull/73/changes/b875e7cd6c1fbf1ebd6c873d5b7a887edbaabf6f).
 
   New Usage Example:
 
@@ -179,6 +184,19 @@
   assert_op.check_structure(obj_to_compare, structure, name)
   ```
 
+- [docs]: Type names are updated to reflect to its use case better.
+  - `rissue.pr` -> `rissue.MergeRequest`
+  - `rissue.issue` -> `rissue.Issue`
+  - `rissue.item.base` -> `rissue.CommonItem`
+  - `rissue.pr.State` -> `rissue.mr.State`
+  - `rissue.label` -> `rissue.Label`
+  - `rissue.user` -> `rissue.User`
+  - `rissue.logger` -> `rissue.Logger`
+  - `rissue.log.level.named` -> `rissue.log.named_level`
+  - `rissue.utils.CmdResult` -> `rissue.utils.process.Result`
+  - `rissue.utils.CommandOpts` -> `rissue.utils.process.Opts`
+  - `rissue.utils.run.Opts` -> `rissue.utils.run_process.Opts`
+
 ## v0.2.1
 
 **Improvements:**
@@ -188,14 +206,16 @@
 **Fixes:**
 
 - Fix logging on `utils.process` where in using `opts.print_output = true` on
-  `process.run()` and `process.run_co()` would print out `info` instead of `trace`
+  `process.run()` and `process.run_co()` would print out `info` instead of
+  `trace`
 
 **Documentation:**
 
 - Fix some documentation on:
   - `rissue.get_merge_requests()`
 
-Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1](https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1)
+Full changelog:
+[https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1](https://github.com/flamfrosticboio/rissue.lua/compare/v0.2.0...v0.2.1)
 
 ## v0.2
 
@@ -224,13 +244,15 @@ New Features:
 - Integrate logging setup to `rissue.setup()`
 
 - `utils/process`
-  - Added `Process:is_running()` which checks if the process is currently running.
+  - Added `Process:is_running()` which checks if the process is currently
+    running.
   - Improved debugging by changing log levels on certain statements.
 
 - `utils/log` [Breaking Changes]
   - Add setup.
-  - Separate logging with timestamp and error level into its own function
-    (as builtin logger) [#27](https://github.com/flamfrosticboio/rissue.lua/issues/27).
+  - Separate logging with timestamp and error level into its own function (as
+    builtin logger)
+    [#27](https://github.com/flamfrosticboio/rissue.lua/issues/27).
 
     When setting logger with `log.set_logger()` or `log.setup()`, it no longer
     gives you the timestamp and log level prefixes in the message.
@@ -249,7 +271,8 @@ New Features:
   - Improve error logging
   - Improve how many items are fetched on a single page fetch.
 
-Full changelog: [https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2](https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2.0)
+Full changelog:
+[https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2](https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2.0)
 
 ## v0.1
 
