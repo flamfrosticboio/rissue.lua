@@ -12,14 +12,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  LUAROCKS_VERSION: "3.13.0"
+  # Note: when updating luarocks version, update it from job "prepare-tests" also
+  LUAROCKS_VERSION: ${{ vars.LUAROCKS_VERSION || '3.13.0' }}
   LUAROCKS_TREE: ".luarocks"
   TEST_ALL: ${{ github.event_name == 'pull_request' && github.base_ref == 'release' }}
   VERBOSE: true
   TEST_STRICT: true
-  IO_CORES: 8 # cores to use for io tasks
-  CPU_CORES: 4 # use this much for cpu tasks
-  PREPARE_LUA_VERSION: "luajit" # use luajit for best performance
   API_TEST_FOLDER: "./.tmp/test-api"
 
 jobs:
@@ -126,139 +124,18 @@ jobs:
         if: ${{ !cancelled() }}
         run: selene test/ --config .selene.tests.toml
 
-  prepare-test:
-    runs-on: ubuntu-slim
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        luaVersion: ${{ fromJSON(github.event_name == 'pull_request' && github.base_ref == 'release' && '["5.1","luajit","5.2","5.3","5.4","5.5"]' || '["5.1", "luajit", "5.5"]') }}
-    needs: [lint, format, docs, check-changes]
+  prepare-tests:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.check-changes.outputs.tests == 'true' }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Refresh apt index
-        run: sudo apt-get update
-
-      - uses: leafo/gh-actions-lua@v13
-        with:
-          luaVersion: ${{ matrix.luaVersion }}
-
-      - uses: leafo/gh-actions-luarocks@v6
-        with:
-          luaRocksVersion: ${{ env.LUAROCKS_VERSION }}
-
-      # Explicitly use restore and save caching since we want to save cache even
-      # when the tests fails
-      - name: Load Luarocks Dependencies Cache
-        uses: actions/cache/restore@v6
-        id: cache-test-dependencies
-        with:
-          path: ${{ env.LUAROCKS_TREE }}
-          key: luarocks-${{ matrix.luaVersion }}-${{ runner.os }}-${{ hashFiles('.rockspec/*.rockspec') }}
-
-      - name: Setup Dependencies
-        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get install -y --no-install-recommends cmake
-
-      - name: Setup Test Dependencies
-        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
-        run: |
-          luarocks test --prepare --tree=${{ env.LUAROCKS_TREE }} .rockspec/rissue-dev-1.rockspec
-
-      - name: Save Luarocks Dependencies Cache
-        uses: actions/cache/save@v6
-        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
-        with:
-          path: ${{ env.LUAROCKS_TREE }}
-          key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
-
-  prepare-test-api:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
     needs: [lint, format, docs, check-changes]
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.check-changes.outputs.tests == 'true' }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Refresh apt index
-        run: sudo apt-get update
-
-      - uses: leafo/gh-actions-lua@v13
-        with:
-          luaVersion: ${{ env.PREPARE_LUA_VERSION }}
-
-      - uses: leafo/gh-actions-luarocks@v6
-        with:
-          luaRocksVersion: ${{ env.LUAROCKS_VERSION }}
-
-      - name: Load Luarocks Dependencies Cache
-        uses: actions/cache/restore@v6
-        id: cache-test-dependencies
-        with:
-          path: ${{ env.LUAROCKS_TREE }}
-          key: luarocks-${{ env.PREPARE_LUA_VERSION }}_api_setup-${{ runner.os }}-${{ hashFiles('.rockspec/*.rockspec') }}
-
-      - name: Setup Dependencies
-        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends cmake
-
-      - name: Setup Test Dependencies
-        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
-        run: |
-          luarocks test --prepare --tree=${{ env.LUAROCKS_TREE }} .rockspec/rissue-dev-1.rockspec
-
-      - name: Save Luarocks Dependencies Cache
-        uses: actions/cache/save@v6
-        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
-        with:
-          path: ${{ env.LUAROCKS_TREE }}
-          key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: ./test/api/package-lock.json
-
-      - name: Install Node Dependencies
-        working-directory: ./test/api/
-        run: |
-          npm ci
-
-      - name: Load cache for Api Specs
-        id: cache-test-setup
-        uses: actions/cache/restore@v6
-        with:
-          path: ${{ env.API_TEST_FOLDER }}
-          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
-
-      # Has built-in caching validation (dependent on provider's settings)
-      # So this must be run everytime
-      - name: Install Specs
-        run: |
-          eval "$(luarocks path --tree=${{ env.LUAROCKS_TREE }})"
-          lua ./test/api/setup_script.lua
-
-      # Intentional: Save since there install specs might have modified the specs.
-      - name: Save cache for Api Specs
-        uses: actions/cache/save@v6
-        with:
-          path: ${{ env.API_TEST_FOLDER }}
-          key: ${{ steps.cache-test-setup.outputs.cache-primary-key }}
+    uses: ./.github/workflows/cache-priming.yml
+    with:
+        prime-all: ${{ github.event_name == 'pull_request' && github.base_ref == 'release' }}
 
   tests:
     runs-on: ubuntu-slim
     permissions:
       contents: read
-    needs: [prepare-test, prepare-test-api]
-    if: ${{ !cancelled() && needs.prepare-test.result == 'success' && needs.prepare-test-api.result == 'success' }}
+    needs: [prepare-tests]
     strategy:
       fail-fast: true
       matrix:
@@ -289,12 +166,17 @@ jobs:
         run: |
           luarocks test --tree=${{ env.LUAROCKS_TREE }} .rockspec/rissue-dev-1.rockspec -- --defer-print
 
+      - name: Get week number
+        id: week
+        run: |
+          echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - name: Load cache for Api Specs
         id: cache-test-setup
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.API_TEST_FOLDER }}
-          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
+          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}-${{ steps.week.outputs.week }}
           fail-on-cache-miss: true
 
       # Install other npm tools that are used in api tests like http-proxy
