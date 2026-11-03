@@ -53,6 +53,7 @@ local function path_join(...)
   return table.concat({ ... }, sep)
 end
 
+--- Run setup.
 --- Default: cwd='.'
 ---@param env_filename string
 ---@param cwd          string?
@@ -61,12 +62,16 @@ function M.setup(env_filename, cwd)
   M.env = load_env(env_path)
 end
 
+--- Get an environment variable
 ---@param name string
 ---@return string?
 function M.get(name)
   return M.env[name] or os.getenv(name)
 end
 
+--- Get a token from environment variable.
+---
+--- Note: uses `config` and `env.get()` under the hood
 ---@param provider rissue.ProviderName
 ---@return string?
 function M.get_token(provider)

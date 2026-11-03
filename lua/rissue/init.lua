@@ -188,7 +188,7 @@ end
 --- ```
 ---@param remote rissue.ProviderInfo | rissue.RemoteInfo | string # See description
 ---@param opts? table<rissue.ProviderName, table?> | table # See description
----@return rissue.issue[]? issues List of issues. `nil` when it fails.
+---@return rissue.Issue[]? issues List of issues. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.
 function rissue.get_issues(remote, opts)
   local provider_info, new_opts, convert_err = into_provider_info(remote, opts)
@@ -196,7 +196,7 @@ function rissue.get_issues(remote, opts)
     return nil, convert_err or "unknown error"
   end
 
-  local result = {} ---@type rissue.issue[]
+  local result = {} ---@type rissue.Issue[]
   local pusher = table_op.appender(result)
 
   local run_err = run_blocking(
@@ -237,7 +237,7 @@ end
 ---
 ---@param remote rissue.ProviderInfo | rissue.RemoteInfo | string # See description
 ---@param opts? table<rissue.ProviderName, table?> | table # See description
----@return rissue.pr[]? merge_requests List of merge requests. `nil` when it fails.
+---@return rissue.MergeRequest[]? merge_requests List of merge requests. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.
 function rissue.get_merge_requests(remote, opts)
   local provider_info, new_opts, convert_err = into_provider_info(remote, opts)
@@ -245,7 +245,7 @@ function rissue.get_merge_requests(remote, opts)
     return nil, convert_err or "unknown error"
   end
 
-  local result = {} ---@type rissue.pr[]
+  local result = {} ---@type rissue.MergeRequest[]
   local pusher = table_op.appender(result)
 
   local run_err = run_blocking(

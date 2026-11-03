@@ -36,112 +36,40 @@ Its possible to setup logger in multiple ways:
   end)
   ```
 
-## Types
+## Usage
 
-<!-- &rissue.log.level@docs -->
+To use this logger, you have multiple ways depending on use case:
 
-### `rissue.log.level`
+### Calling predefined functions directly
 
-Type: `alias` -- `0|1|2|3|4...(+1)`
+`log.warn()`, `log.info()`, `log.error()`, `log.trace()`, `log.debug()` all take
+multiple arguments where each argument is converted into string. They are each
+combined with a space in between.
 
-Logging levels where:
+Example:
 
-- off: 5
-- error: 4
-- warn: 3
-- info: 2
-- debug: 1
-- trace: 0
+```lua
+local name = "yourname"
+log.info("My name is", name)
+--- outputs "My name is yourname"
+```
 
-<!-- &rissue.log.level@docs -->
+### Calling `log.log()`
 
-<!-- &rissue.log.Opts@docs -->
+`log.log(msg: string, level: rissue.log.level)` is a function that takes two
+arguments only and does not respect the current log level (combine it with
+`log.level_enabled()`).
 
-### `rissue.log.Opts`
+This is used when your logging statements needs expensive computation but not
+necessary use it when that log level is not enabled.
 
-Type: `class`
+Example:
 
-Options for logger
+```lua
+if log.level_enabled(log.levels.trace) then
+    local debug_statement = expensive_computation(data)
+    log.log(debug_statement, log.levels.trace)
+end
+```
 
-- builtin_logger_color_enabled: `boolean?`
-  -- Enables or disables printing with `colors` on the built-in logger.
-- log_level: `(0|1|2|3|4...(+1))?`
-  -- The current log level. Use `log.levels.<name>` to set up or pass an integer
-  corresponding to the log level.
-- logger: `fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info)?`
-  -- Replaces the current built-in logger.
-
-<!-- &rissue.log.Opts@docs -->
-<!-- &rissue.logger@docs -->
-
-### `rissue.logger`
-
-Type: `class`
-
-- debug: `fun(...any)` -- Log an `debug` statement
-- error: `fun(...any)` -- Log an `error` message
-- get_log_level: `fun():integer` -- Gets the current log level
-- info: `fun(...any)` -- Log an `info` message
-- level_enabled: `fun(level: 0|1|2|3|4...(+1)):boolean`
-- levels: `rissue.log.levels` -- List of levels
-- log: `fun(msg: string, level: 0|1|2|3|4...(+1))`
-  -- Logs to logger.
-
-  Warning: Does not filter logging based on current log level.
-  Wrap it with `log.level_enabled()` instead.
-
-- set_log_level: `fun(level: "debug"|"error"|"info"|"off"|"trace"...(+7))`
-  -- Sets the current log level
-- set_logger: `fun(logger: fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info))`
-- trace: `fun(...any)` -- Log an `trace` statement
-- warn: `fun(...any)` -- Log an `warning` message
-
-<!-- &rissue.logger@docs -->
-
-<!-- &rissue.mod.logger@docs -->
-
-### `rissue.mod.logger`
-
-Type: `class`
-
-- debug: `fun(...any)` -- Log an `debug` statement
-- error: `fun(...any)` -- Log an `error` message
-- get_log_level: `fun():integer` -- Gets the current log level
-- info: `fun(...any)` -- Log an `info` message
-- level_enabled: `fun(level: 0|1|2|3|4...(+1)):boolean`
-- levels: `rissue.log.levels` -- List of levels
-- log: `fun(msg: string, level: 0|1|2|3|4...(+1))`
-  -- Logs to logger.
-
-  Warning: Does not filter logging based on current log level.
-  Wrap it with `log.level_enabled()` instead.
-
-- new: `fun(opts?: rissue.log.new.Opts):rissue.logger`
-  -- Creates a new logger instance. If logger is not passed from opts, it will
-  use the global logger.
-- set_log_level: `fun(level: "debug"|"error"|"info"|"off"|"trace"...(+7))`
-  -- Sets the current log level
-- set_logger: `fun(logger: fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info))`
-- setup: `fun(opts: rissue.log.Opts)` -- Setup the global logger.
-- trace: `fun(...any)` -- Log an `trace` statement
-- warn: `fun(...any)` -- Log an `warning` message
-
-<!-- &rissue.mod.logger@docs -->
-
-<!-- &rissue.log.new.Opts@docs -->
-
-### `rissue.log.new.Opts`
-
-Type: `class`
-
-- context: `string?`
-- logger: `fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info)?`
-
-<!-- &rissue.log.new.Opts@docs -->
-<!-- &rissue.logger_func@docs -->
-
-### `rissue.logger_func`
-
-Type: `alias` -- `fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info)`
-
-<!-- &rissue.logger_func@docs -->
+See more on [docs/types.md#rissue.Logger](#docs/types.md#rissuelogger)

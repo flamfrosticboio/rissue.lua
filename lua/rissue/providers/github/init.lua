@@ -21,9 +21,9 @@ local time = require("rissue.utils.time")
 
 ---@param raw table
 ---@param settings rissue.Github.Settings
----@return rissue.item.base
+---@return rissue.CommonItem
 local function into_base(raw, settings)
-  ---@type rissue.label[]
+  ---@type rissue.Label[]
   local labels = {}
 
   for _, label in ipairs(raw.labels) do
@@ -34,7 +34,7 @@ local function into_base(raw, settings)
     }
   end
 
-  ---@type rissue.item.base
+  ---@type rissue.CommonItem
   return {
     title = raw.title,
     web_url = raw.html_url,
@@ -54,16 +54,16 @@ end
 
 ---@param raw table
 ---@param settings rissue.Github.Settings
----@return rissue.issue
+---@return rissue.Issue
 local function into_issue(raw, settings)
   local base = into_base(raw, settings)
-  ---@cast base rissue.issue
+  ---@cast base rissue.Issue
   base.is_open = raw.state == "open"
   return base
 end
 
 ---@param raw table
----@return rissue.pr.State
+---@return rissue.mr.State
 local function pr_state(raw)
   if raw.state == "open" then
     return "open"
@@ -76,16 +76,16 @@ end
 
 ---@param raw table
 ---@param settings rissue.Github.Settings
----@return rissue.pr
+---@return rissue.MergeRequest
 local function into_merge_requests(raw, settings)
   local base = into_base(raw, settings)
-  ---@cast base rissue.pr
+  ---@cast base rissue.MergeRequest
   base.state = pr_state(raw)
   return base
 end
 
 ---@async
----@type rissue.provider.GetIssues<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
+---@type rissue.provider.GetMergeRequests<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 local function get_issues(async, info, token, opts, cb)
   return fetch.try_fetch(async, info, opts.endpoints.issues, {
     parser = into_issue,
@@ -113,7 +113,7 @@ end
 ---@type rissue.Provider
 return {
   name = "github",
-  version = { major = 1, minor = 0, patch = 0 },
+  version = { major = 1, minor = 0, patch = 1 },
   supports = supports.main,
   get_merge_requests = get_merge_requests,
   get_issues = get_issues,

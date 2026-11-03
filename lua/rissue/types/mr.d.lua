@@ -17,11 +17,11 @@
 ---@meta
 
 --- The state of the pull request
----@alias rissue.pr.State
+---@alias rissue.mr.State
 ---| "open" pull request is open
 ---| "merged" pull request is closed and merged
 ---| "canceled" pull request is closed and not merged
 
 --- The structure for pull/merge request
----@class (exact) rissue.pr: rissue.item.base
----@field state rissue.pr.State
+---@class (exact) rissue.MergeRequest: rissue.CommonItem
+---@field state rissue.mr.State

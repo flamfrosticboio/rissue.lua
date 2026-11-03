@@ -14,20 +14,21 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
----@meta
-
----@class rissue.utils.CmdResult
+--- Process result
+---@class rissue.utils.process.Result
 ---@field return_code integer
 ---@field stdout string
 ---@field stderr string
 
----@alias rissue.cmd string[] Command line
+---@alias rissue.cmd string[] Command line arguments
 
----@class rissue.utils.CommandOpts
----@field cmd string
----@field args? string[]
+--- Process options
+---@class rissue.utils.process.Opts
+---@field cmd string Binary
+---@field args? string[] Arguments passed
 ---@field cwd? string Current working directory
----@field env? string[] | table<string, string|nil> Environment variables in a form of `ENV=VALUE` or {ENV = VALUE}
+---Environment variables in a form of `ENV=VALUE` or {ENV = VALUE}
+---@field env? string[] | table<string, string|nil> --- Process run options
 
----@class rissue.utils.run.Opts
----@field print_output boolean
+---@class rissue.utils.run_process.Opts
+---@field print_output boolean Print process's stdout and stderr to logger

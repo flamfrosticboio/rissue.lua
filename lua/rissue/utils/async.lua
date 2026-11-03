@@ -25,15 +25,16 @@ local RESUME = {}
 ---@type table
 local YIELD = {}
 
----@class __rissue.async.Backend
+--- The async backend
+---@class rissue.async.Backend
 ---@field schedule fun(fn: fun()) must defer; never run fn synchronously
 ---@field on_error fun(err: any, tb: string)
 
 ---@class rissue.Async
----@field co thread
----@field inbox __rissue.Pack values passed resumer -> coroutine
----@field outbox __rissue.Pack values passed coroutine -> resumer
----@field backend __rissue.async.Backend
+---@field package co thread
+---@field package inbox __rissue.Pack values passed resumer -> coroutine
+---@field package outbox __rissue.Pack values passed coroutine -> resumer
+---@field package backend rissue.async.Backend
 local Async = {}
 Async.__index = Async
 
@@ -87,7 +88,16 @@ function Async:_step(...)
   end
 end
 
---- Wrap an callback style async operation
+--- Wrap an callback style async operation.
+---
+--- Example:
+---
+--- ```lua
+--- --- uv.fs_rename() on callback calls with parameters (err: string, success: boolean)
+--- local err, suc = async:wrap(function(cb)
+---    uv.fs_rename("path", "new_path", cb)
+--- end)
+--- ```
 ---@async
 ---@param fn fun(cb: fun(...: any))
 ---@return any ...
@@ -109,7 +119,8 @@ end
 ---@class rissue.mod.Async
 local async = {}
 
----@param backend __rissue.async.Backend
+--- Creates an async handler with the specified backend.
+---@param backend rissue.async.Backend
 ---@param cb async fun(a: rissue.Async)
 ---@return rissue.Async
 function async.run(backend, cb)
@@ -137,12 +148,15 @@ end
 
 ---@alias __rissue.WaitFunction fun(cond: (fun(): boolean), timeout: integer, interval: integer?): boolean, string?
 
----@return __rissue.async.Backend
+--- Creates a default backend.
+---
+--- Note: This is one time use due to one-shot error logging with no way to reset it.
+---@return rissue.async.Backend
 ---@return __rissue.WaitFunction wait_fn wait function
 function async.default_backend()
   local err_msg = nil ---@type string?
 
-  ---@type __rissue.async.Backend
+  ---@type rissue.async.Backend
   local backend = {
     schedule = function(fn)
       fn()

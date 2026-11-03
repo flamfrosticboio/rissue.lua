@@ -1,5 +1,5 @@
 std = "lua51+.selene/luajit+.selene/vim"
-exclude = [".types/**", "test/**"]
+exclude = [".types/**", "test/**", "lua/rissue/types/*.d.lua"]
 
 [rules]
 incorrect_standard_library_use = "allow"

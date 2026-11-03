@@ -17,7 +17,7 @@
 local table_op = require("rissue.utils.table_op")
 
 --- Log levels
----@type rissue.log.levels
+---@type __rissue.log._levels<integer>
 local levels = {
   trace = 0,
   debug = 1,
@@ -87,7 +87,7 @@ local function new_logger(opts)
     context = opts.context,
   }
 
-  ---@type rissue.logger
+  ---@type rissue.Logger
   local logger = {
     _level = 2,
     _logger = opts.logger or log_no_color,

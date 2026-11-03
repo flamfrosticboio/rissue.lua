@@ -35,12 +35,12 @@ local function get_provider(info)
   return provider
 end
 
---- Gets issues specified with info and provider opts
+--- Gets issues specified with provider info and provider options.
 ---@async
----@param async rissue.Async
----@param info rissue.ProviderInfo
+---@param async rissue.Async Async handler
+---@param info rissue.ProviderInfo Remote information
 ---@param opts table? Settings that are based on provider
----@param cb fun(item: rissue.issue)
+---@param cb fun(item: rissue.Issue) Builder function
 ---@return string? errors
 function get.issues(async, info, opts, cb)
   local provider, err = get_provider(info)
@@ -54,12 +54,12 @@ function get.issues(async, info, opts, cb)
   return provider.get_issues(async, info, token, settings, cb)
 end
 
---- Gets merge requests specified with info and provider opts
+--- Gets merge requests specified with provider info and provider options.
 ---@async
----@param async rissue.Async
----@param info rissue.ProviderInfo
+---@param async rissue.Async Async handler
+---@param info rissue.ProviderInfo Remote information
 ---@param opts table? Settings that are based on provider
----@param cb fun(item: rissue.pr)
+---@param cb fun(item: rissue.MergeRequest) Builder function
 ---@return string? errors
 function get.merge_requests(async, info, opts, cb)
   local provider, err = get_provider(info)

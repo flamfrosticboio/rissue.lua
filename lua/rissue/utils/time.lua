@@ -14,12 +14,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@class rissue.mod.Time
 local M = {}
 
 --- Converts a iso utc into unix timestamp
---- Notes:
---- - To view timestamp as local time, just use `os.date("*t", ts)`
----   Alternatively, to view it UTC, just use `os.date("!*t", ts)`
+---
+--- Notes: To view timestamp as local time, use `os.date("*t", ts)`
+--- Alternatively, to view it UTC, use `os.date("!*t", ts)`
 ---@param iso string
 function M.iso_to_timestamp_utc(iso)
   local year, month, day, hour, min, sec =

@@ -19,15 +19,42 @@ local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
 local table_op = require("rissue.utils.table_op")
 
+---@class rissue.mod.Curl
 local M = {}
 
----@alias rissue.utils.curl.Method  "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS" | "TRACE" | "CONNECT" | string
+---@alias rissue.utils.curl.Method
+---| "GET"
+---| "POST"
+---| "PUT"
+---| "DELETE"
+---| "PATCH"
+---| "HEAD"
+---| "OPTIONS"
+---| "TRACE"
+---| "CONNECT"
+---| string
 
----@alias rissue.utils.curl.Formats "application/json" | "text/html" | string
+--- Request/Response formats
+---@alias rissue.utils.curl.Formats
+---| "application/json"
+---| "text/html"
+---| string
 
----@alias rissue.utils.curl.DataType "default" | "literal" | "binary" | "urlencode" | "form" | "form_string"
+--- How data is treated when passing on curl
+---@alias rissue.utils.curl.DataType
+---| "default"
+---| "literal"
+---| "binary"
+---| "urlencode"
+---| "form"
+---| "form_string"
 
----@alias rissue.utils.curl.AuthMethod "ntlm" | "digest" | "negotiate" | "anyauth"
+--- Authentication methods (if using user:pass)
+---@alias rissue.utils.curl.AuthMethod
+---| "ntlm"
+---| "digest"
+---| "negotiate"
+---| "anyauth"
 
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
@@ -37,50 +64,67 @@ local M = {}
 ---@field form string
 ---@field form_string string
 
+--- Result after curl is finished
 ---@class rissue.utils.curl.Result
 ---@field exitcode integer
----@field content string
----@field err string
+---@field content string stdout
+---@field err string stderr
 --- Available if --dump-header was passed
 ---@field headers? table<string, string>
 
 ---@class rissue.utils.curl.Opts
+--- Http/s method.
+---
 --- Default: GET
 ---@field method? rissue.utils.curl.Method
 --- Headers to be passed to curl. Other headers are also handled without manually
 --- constructing the headers yourself.
 ---@field headers? string[]
+--- Request timeout.
+---
 --- Default: none
 ---@field timeout? integer
+--- The request should follow redirects (`-L` is passed).
+---
 --- Default: true
 ---@field follow_redirects? boolean
+--- Maximum number of retries (best paired with option `retry_all_errors`)
+---
 --- Default: 3
 ---@field retries? integer
+--- Delay after each retry (best paired with option `retry_all_errors`)
+---
 --- Default: 1 (1 second)
 ---@field retry_delay? integer
 --- Passes `--fail-with-body` (if supported) or `--fail` to the command line arguments.
 ---
 --- Default: true
 ---@field fail_fast? boolean
---- Passes a user agent header to the command line arguments. Equivalent to:
---- `User-Agent: <agent-string>`
+--- Passes a user agent header to the command line arguments.
+---
+--- Equivalent to: `User-Agent: <agent-string>`
 ---@field user_agent? string?
+--- Other arguments passed to curl
 ---@field raw_args? string[]
----If passed as string, it will be used as a token directly. Otherwise, it will be pass
----to `curl -u` option
+--- If passed as string, it will be used as a token directly. Otherwise, it will be pass
+--- to `curl -u` option
 ---@field auth? string | { user: string, pass: string, method: rissue.utils.curl.AuthMethod? }
+--- `Content-Type` header
 ---@field content_type? rissue.utils.curl.Formats
+--- `Accept` header
 ---@field accept? rissue.utils.curl.Formats
---- Enables form escape mode
+--- Enables form escape mode.
 ---@field form_escape? boolean
 --- If `data_type` == `special` then:
 ---   if `is_form` == true then it uses `--form-escape`
 ---@field data_type? rissue.utils.curl.DataType
 --- Key-value pairs (default/raw/form) or raw payload (binary/JSON/etc.)
 ---
---- Form cannot be a string
+--- Note: Form cannot be a string
 ---@field data? string | table<string, any>
+--- Current working environment.
 ---@field cwd? string
+--- Current environment variables.
 ---@field env? string[]|table<string, string?>
 --- Lists and parses the received headers from the server.
 --- Provides `headers` in the `results`
@@ -101,7 +145,7 @@ local _data_type_arg = {
   form_string = "--form-string",
 }
 
--- Construct the command line arguments based on curl opts
+-- Construct the command line arguments based on curl opts.
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
 ---@return string[] args
@@ -255,8 +299,6 @@ local function parse_received_headers(raw)
 end
 
 --- Run curl with specified args.
----
---- Note: must be in coroutine mode
 ---@async
 ---@param async rissue.Async
 ---@param args string[]

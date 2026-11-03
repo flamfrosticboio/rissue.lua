@@ -19,7 +19,11 @@
 
 ---@diagnostic disable: undefined-global, inject-field
 
----@alias rissue.json.Loaders "dkjson" | "cjson" | "rapidjson" | "vim.json"
+---@alias rissue.json.Loaders
+---| "dkjson" # require('dkjson') (installed via luarocks or drop in)
+---| "cjson" # require('cjson') (installed via luarocks)
+---| "rapidjson" # require('rapidjson') (installed via luarocks)
+---| "vim.json" # vim.json (inside neovim runtime)
 
 ---@class rissue.Json
 --- Second return is the error message

@@ -29,6 +29,7 @@ local function _is_instance(obj, list)
   return false
 end
 
+--- Checks if the `obj` is an instance or is one in the list of instances provider
 ---@param obj any
 ---@param ... type
 ---@return boolean
@@ -41,8 +42,10 @@ function M.is_instance(obj, ...)
   return _is_instance(obj, args)
 end
 
+--- A matcher spec
 ---@alias rissue.utils.Matcher fun(_obj: any): (boolean, string?, string?)
 
+--- List of available matchers
 ---@class rissue.utils.Matchers
 ---@field is_table rissue.utils.Matcher
 ---@field is_function rissue.utils.Matcher

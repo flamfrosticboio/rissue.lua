@@ -14,6 +14,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@class rissue.mod.Version
 local version_module = {}
 
 ---@class rissue.Version
@@ -21,11 +22,11 @@ local version_module = {}
 ---@field minor integer
 ---@field patch integer
 
---- Returns **true** when:
---- - required major version is equal to provided major version
---- - provided minor number is at least the required minor number
+--- Checks if the version provided is compatible with the required version.
 ---
---- Otherwise, it returns false.
+--- Returns **true** only when these conditions are met:
+--- - `required` major version is equal to `provided` major version
+--- - `provided` minor number is at least the `required` minor number
 ---@param required rissue.Version
 ---@param provided rissue.Version
 ---@return boolean

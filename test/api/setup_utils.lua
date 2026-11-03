@@ -629,7 +629,7 @@ end
 ---@param fn async fun(a: rissue.Async)
 ---@param on_finish fun(err_msg: string?)
 local function async_run(fn, on_finish)
-  ---@type __rissue.async.Backend
+  ---@type rissue.async.Backend
   local backend = {
     schedule = pipeline_backend_schedule,
     on_error = function(msg, tb)

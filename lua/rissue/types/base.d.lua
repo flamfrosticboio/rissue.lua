@@ -16,25 +16,25 @@
 
 ---@meta
 
----@class (exact) rissue.item.base
+---@class (exact) rissue.CommonItem
 ---@field title      string
 ---@field body       string?
 ---@field web_url    rissue.url       A web version to the url
 ---@field url        rissue.url
 ---@field id         integer          The id of the issue
----@field author     rissue.user
+---@field author     rissue.User
 ---@field created_at rissue.timestamp
----@field labels     rissue.label[]
+---@field labels     rissue.Label[]
 ---Raw response from server (if supported and enabled).
 ---See your current git provider's settings on this option.
 ---@field raw        table?
 
----@class (exact) rissue.label
+---@class (exact) rissue.Label
 ---@field name        string
 ---@field color       string?
 ---@field description string?
 
----@class (exact) rissue.user
+---@class (exact) rissue.User
 ---@field username     string
 ---@field display_name string?
 ---@field web_url      rissue.url
