@@ -78,13 +78,13 @@ function provider.provider_info(async, remote_info, opts)
   local remote_url = remote_info.full_url
 
   -- known public hosting providers - no API call needed
-  for provider_name, spec in pairs(config.options.endpoint_shortcuts) do
+  for _, spec in ipairs(config.options.endpoint_shortcuts) do
     for _, pattern in ipairs(spec.patterns) do
       if remote_url:match(pattern) then
         ---@type rissue.ProviderInfo
         local info = {
           domain = spec.domain,
-          name = provider_name,
+          name = spec.name,
           owner = remote_info.owner,
           repo = remote_info.repo,
           protocol = remote_info.curl_protocol,
