@@ -25,12 +25,13 @@
 ---
 --- Example:
 --- ```lua
---- { github = {
+--- { {
+---     name = "github",
 ---     patterns = { "github%.com" },
 ---     domain = "api.github.com",
 --- } }
 --- ```
----@field endpoint_shortcuts table<rissue.ProviderName, rissue.EndpointShortcut>
+---@field endpoint_shortcuts rissue.EndpointShortcut[]
 --- User defined settings for a specific provider.
 ---
 --- See the provider's documentation for the list of options that is supported.
@@ -42,6 +43,8 @@
 
 --- An endpoint shortcut struct
 ---@class rissue.EndpointShortcut
+--- Name of the provider to be associated with this shortcut.
+---@field name rissue.ProviderName
 --- List of patterns that can be used with lua regex.
 ---@field patterns string[]
 --- Api base endpoint (e.g. "api.github.com")

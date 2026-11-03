@@ -136,6 +136,9 @@
   - [Github]: updated specifications to conform with this new change.
   ```
 
+- [config]: change endpoint_shortcuts to a list, so multiple shortcuts can point
+  to the same git provider.
+
 **Bug Fixes:**
 
 - [utils/process, utils/async]: Fix unpack is unavailable on other lua versions.
@@ -183,6 +186,11 @@
   }
   assert_op.check_structure(obj_to_compare, structure, name)
   ```
+
+- [config]:
+  - `config.endpoint_shortcuts` now takes a list of `rissue.EndpointShortcut`
+    rather than a table.
+  - `rissue.EndpointShortcut` requires the `name: rissue.ProviderName` field.
 
 - [docs]: Type names are updated to reflect to its use case better.
   - `rissue.pr` -> `rissue.MergeRequest`

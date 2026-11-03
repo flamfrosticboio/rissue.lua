@@ -33,7 +33,8 @@ config.options = {
   },
   provider_options = {},
   endpoint_shortcuts = {
-    github = {
+    {
+      name = "github",
       domain = "api.github.com",
       patterns = { "github%.com" },
       additional_info = {

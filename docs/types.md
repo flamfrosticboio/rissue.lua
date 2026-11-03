@@ -227,12 +227,13 @@ The async backend
 - `additional_providers`: `string[]` — List of provider's filepaths to import
   with `loadfile()`
 - <details>
-  <summary><code>endpoint_shortcuts</code>: <code>table&lt;string, rissue.EndpointShortcut&gt;</code> – Quick pattern based shortcuts to a provider without calling <code>Provider.supports</code></summary>
+  <summary><code>endpoint_shortcuts</code>: <code>rissue.EndpointShortcut[]</code> – Quick pattern based shortcuts to a provider without calling <code>Provider.supports</code></summary>
 
   Example:
 
   ```lua
-  { github = {
+  { {
+      name = "github",
       patterns = { "github%.com" },
       domain = "api.github.com",
   } }
@@ -274,6 +275,7 @@ An endpoint shortcut struct
 
 - `additional_info`: `table` — Additional info to pass to an endpoint shortcut
 - `domain`: `string` — Api base endpoint (e.g. "api.github.com")
+- `name`: `string` — Name of the provider to be associated with this shortcut.
 - `patterns`: `string[]` — List of patterns that can be used with lua regex.
 
 ### `rissue.Github.ApiVersion`
@@ -781,12 +783,13 @@ The state of the pull request
 - `additional_providers`: `string[]` — List of provider's filepaths to import
   with `loadfile()`
 - <details>
-  <summary><code>endpoint_shortcuts</code>: <code>table&lt;string, rissue.EndpointShortcut&gt;</code> – Quick pattern based shortcuts to a provider without calling <code>Provider.supports</code></summary>
+  <summary><code>endpoint_shortcuts</code>: <code>rissue.EndpointShortcut[]</code> – Quick pattern based shortcuts to a provider without calling <code>Provider.supports</code></summary>
 
   Example:
 
   ```lua
-  { github = {
+  { {
+      name = "github",
       patterns = { "github%.com" },
       domain = "api.github.com",
   } }

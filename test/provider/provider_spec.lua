@@ -71,29 +71,23 @@ describe("remote_info", function()
 end)
 
 describe("provider_info", function()
-  reset()
-
-  -- EXPLICITLY DISABLE OTHER PROVIDERS
-  require("rissue.config").providers = {}
-
-  local setup_err = require("rissue").setup({
-    endpoint_shortcuts = {
-      custom_shortcut = {
-        domain = "api.custom.com",
-        patterns = { "custom%.com" },
-      },
-    },
-    additional_providers = {
-      this_dir .. "/_test_custom_loader.lua",
-    },
-  })
-  if setup_err then
-    error(setup_err)
-  end
-
-  local provider = require("rissue.provider")
+  before_each(reset)
 
   it("matches custom", function()
+    local setup_err = require("rissue").setup({
+      endpoint_shortcuts = {
+        {
+          name = "custom_shortcut",
+          domain = "api.custom.com",
+          patterns = { "custom%.com" },
+        },
+      },
+    })
+
+    assert(not setup_err, setup_err)
+
+    local provider = require("rissue.provider")
+
     local url = "https://custom.com/flamfrosticboio/rissue.git"
     local remote_info, err = provider.remote_info(url)
     assert(remote_info and not err, err)
@@ -120,6 +114,10 @@ describe("provider_info", function()
   end)
 
   it("matches builtin github", function()
+    local setup_err = require("rissue").setup()
+    assert(not setup_err, setup_err)
+    local provider = require("rissue.provider")
+
     local url = "https://github.com/flamfrosticboio/rissue.git"
     local remote_info, err = provider.remote_info(url)
     assert(remote_info and not err, err)
@@ -149,11 +147,31 @@ describe("provider_info", function()
   end)
 
   it("Settings are properly scoped", function()
-    local url = "https://customnot.com/flamfrosticboio/rissue.git"
+    local setup_err = require("rissue").setup({
+      endpoint_shortcuts = {},
+      additional_providers = {
+        this_dir .. "_test_custom_loader.lua",
+      },
+    })
+
+    local config = require("rissue.config")
+    local keys = {}
+    for name in pairs(config.providers) do
+      keys[#keys + 1] = name
+    end
+    for _, name in ipairs(keys) do
+      if name ~= "custom" then
+        config.providers[name] = nil
+      end
+    end
+
+    assert(not setup_err, setup_err)
+    local provider = require("rissue.provider")
+
+    local url = "https://custom.com/flamfrosticboio/rissue.git"
     local remote_info, err = provider.remote_info(url)
     assert(remote_info and not err, err)
 
-    local config = require("rissue.config")
     spy.on(config, "merge_provider_settings")
 
     local backend = async.default_backend()
@@ -174,5 +192,79 @@ describe("provider_info", function()
       .called_with(match.is_table(), match.same({ my_opts = true }))
 
     config.merge_provider_settings:revert()
+  end)
+
+  it("Multiple shortcuts ok", function()
+    local setup_err = require("rissue").setup({
+      endpoint_shortcuts = {
+        {
+          name = "custom",
+          patterns = { "custom%.com" },
+          domain = "api.custom.com",
+        },
+        {
+          name = "custom_other",
+          patterns = { "extra%.water%.com" },
+          domain = "api.extra.custom.com",
+        },
+        {
+          name = "custom",
+          patterns = { "something%.org" },
+          domain = "api.custom.com",
+          additional_info = { custom = true },
+        },
+      },
+    })
+    assert(not setup_err, setup_err)
+    local provider = require("rissue.provider")
+
+    local backend = async.default_backend()
+    async.run(
+      backend,
+      ---@async
+      function(a)
+        local remote_info = provider.remote_info(
+          "https://custom.com/flamfrosticboio/rissue.lua.git"
+        )
+        assert(remote_info, "Url cannot be converted into remote info")
+        local res = provider.provider_info(a, remote_info)
+        assert.same({
+          domain = "api.custom.com",
+          name = "custom",
+          owner = "flamfrosticboio",
+          protocol = "https",
+          repo = "rissue.lua",
+        }, res)
+
+        remote_info = provider.remote_info(
+          "https://extra.water.com/flamfrosticboio/rissue.lua.git"
+        )
+        assert(remote_info, "Url cannot be converted into remote info")
+        res = provider.provider_info(a, remote_info)
+        assert.same({
+          domain = "api.extra.custom.com",
+          name = "custom_other",
+          owner = "flamfrosticboio",
+          protocol = "https",
+          repo = "rissue.lua",
+        }, res)
+
+        remote_info = provider.remote_info(
+          "https://something.org/flamfrosticboio/rissue.lua.git"
+        )
+        assert(remote_info, "Url cannot be converted into remote info")
+        res = provider.provider_info(a, remote_info)
+        assert.same({
+          domain = "api.custom.com",
+          name = "custom",
+          owner = "flamfrosticboio",
+          protocol = "https",
+          repo = "rissue.lua",
+          additional_info = {
+            custom = true,
+          },
+        }, res)
+      end
+    )
   end)
 end)
