@@ -166,12 +166,17 @@ jobs:
         run: |
           luarocks test --tree=${{ env.LUAROCKS_TREE }} .rockspec/rissue-dev-1.rockspec -- --defer-print
 
+      - name: Get week number
+        id: week
+        run: |
+          echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - name: Load cache for Api Specs
         id: cache-test-setup
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.API_TEST_FOLDER }}
-          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
+          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}-${{ steps.week.outputs.week }}
           fail-on-cache-miss: true
 
       # Install other npm tools that are used in api tests like http-proxy

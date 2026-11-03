@@ -150,23 +150,27 @@ jobs:
         run: |
           npm ci
 
+      - name: Get week number
+        id: week
+        run: |
+          echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - name: Load cache for Api Specs
         id: cache-test-setup
         uses: actions/cache/restore@v6
         with:
           path: ${{ env.API_TEST_FOLDER }}
-          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}
+          key: test-setup-${{ hashFiles('test/api/**/setup*.lua') }}-${{ steps.week.outputs.week }}
 
-      # Has built-in caching validation (dependent on provider's settings)
-      # So this must be run everytime
       - name: Install Specs
+        if: steps.cache-test-setup.outputs.cache-hit != 'true'
         run: |
           eval "$(luarocks path --tree=${{ env.LUAROCKS_TREE }})"
           lua ./test/api/setup_script.lua
 
-      # Intentional: Save since there install specs might have modified the specs.
       - name: Save cache for Api Specs
         uses: actions/cache/save@v6
+        if: steps.cache-test-setup.outputs.cache-hit != 'true'
         with:
           path: ${{ env.API_TEST_FOLDER }}
           key: ${{ steps.cache-test-setup.outputs.cache-primary-key }}
