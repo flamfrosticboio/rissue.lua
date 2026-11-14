@@ -152,7 +152,11 @@
 
 - [utils/process, utils/async]: Fix unpack is unavailable on other lua versions.
 
-- [utils/curl]: Fix constant variable mutation errors when using lua5.5
+- [utils/curl]:
+  - Fix constant variable mutation errors when using lua5.5
+
+  - Fix tmpfile not deleted on curl error when using
+    `opts.include_result_headers`.
 
 - [utils/process]: Fixed running status is still true when process has exited
   during the `on_exit` event.
