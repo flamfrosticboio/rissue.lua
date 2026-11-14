@@ -92,19 +92,32 @@ const indent = (text) =>
 // READ: types (lua-language-server doc.json)
 // ---------------------------------------------------------------------------
 
-function buildTypes(types) {
+function buildTypes(types, has_optional_end) {
   const result = [];
   for (const t of types) {
+    if (!t.view) continue;
+
     switch (t.type) {
-      case "doc.type.table": // look subject to change
-        result.push(t.view);
+      case "doc.type.name": {
+        const unwrap = t.view.trim().replace(/^\((.*)\)$/, "$1");
+        const parts = unwrap.split(/\s*\|\s*/);
+        result.push(...parts);
         break;
+      }
+      case "doc.type.table":
       default:
         result.push(t.view);
     }
   }
 
-  return result.join(" | ");
+  const joined = result.join(" | ");
+  const needsQuestion = has_optional_end || joined.endsWith("?");
+  const cleaned = joined.replace(/\?+$/, "");
+
+  // Wrap in parentheses only if there are multiple results AND a question mark is needed
+  const content = result.length > 1 && needsQuestion ? `(${cleaned})` : cleaned;
+
+  return `${content}${needsQuestion ? "?" : ""}`;
 }
 
 function intoFunctionRepr(field_extends) {
@@ -133,7 +146,9 @@ function getType(field) {
       return intoFunctionRepr(field.extends);
     }
     if (field.extends.types) {
-      return buildTypes(field.extends.types);
+      // for weird reasons, types does not contain any information that it is optional
+      const has_optional_end = field.extends.view.endsWith("?") === true;
+      return buildTypes(field.extends.types, has_optional_end);
     }
   }
   return field.view;

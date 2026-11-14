@@ -218,12 +218,12 @@ The async backend
 ### `rissue.CommonItem`
 
 - `author`: `rissue.User`
-- `body`: `string`
+- `body`: `string?`
 - `created_at`: `integer` — An alias to timestamp (os.time())
 - `id`: `integer` — The id of the issue
 - `labels`: `rissue.Label[]`
-- `raw`: `table` — Raw response from server (if supported and enabled). See your
-  current git provider's settings on this option.
+- `raw`: `table?` — Raw response from server (if supported and enabled). See
+  your current git provider's settings on this option.
 - `title`: `string`
 - `url`: `string` — An alias to url
 - `web_url`: `string` — A web version to the url
@@ -303,7 +303,7 @@ How data is treated when passing on curl
 
 - `exitcode`: `integer` — 1 means its an internal error not associated with curl
 - `msg`: `string` — Taken from stderr
-- `server_msg`: `string` — Taken from stdout
+- `server_msg`: `string?` — Taken from stdout
 
 ### `rissue.curl.Formats`
 
@@ -332,68 +332,69 @@ Request/Response formats
 
 ### `rissue.curl.Opts`
 
-- `accept`: `string|"application/json"|"text/html"` — `Accept` header
+- `accept`: `(string | "application/json" | "text/html")?` — `Accept` header
 - `auth`:
-  `string | { user: string, pass: string, method: ("anyauth"|"digest"|"negotiate"|"ntlm")? }`
+  `(string | { user: string, pass: string, method: ("anyauth"|"digest"|"negotiate"|"ntlm")? })?`
   — If passed as string, it will be used as a token directly. Otherwise, it will
   be pass to `curl -u` option
-- `content_type`: `string|"application/json"|"text/html"` — `Content-Type`
-  header
-- `cwd`: `string` — Current working environment.
+- `content_type`: `(string | "application/json" | "text/html")?` —
+  `Content-Type` header
+- `cwd`: `string?` — Current working environment.
 - <details>
-  <summary><code>data</code>: <code>string | table&lt;string, any&gt;</code> – Key-value pairs (default/raw/form) or raw payload (binary/JSON/etc.)</summary>
+  <summary><code>data</code>: <code>(string | table&lt;string, any&gt;)?</code> – Key-value pairs (default/raw/form) or raw payload (binary/JSON/etc.)</summary>
 
   Note: Form cannot be a string
 
   </details>
 
-- `data_type`: `"binary"|"default"|"form"|"form_string"|"literal"...(+1)` — If
+- `data_type`:
+  `("binary" | "default" | "form" | "form_string" | "literal"...(+1))?` — If
   `data_type` == `special` then: if `is_form` == true then it uses
   `--form-escape`
-- `env`: `string[] | table<string, string?>` — Current environment variables.
+- `env`: `(string[] | table<string, string?>)?` — Current environment variables.
 - <details>
-  <summary><code>fail_fast</code>: <code>boolean</code> – Passes <code>--fail-with-body</code> to the command line arguments.</summary>
+  <summary><code>fail_fast</code>: <code>boolean?</code> – Passes <code>--fail-with-body</code> to the command line arguments.</summary>
 
   Default: true
 
   </details>
 
 - <details>
-  <summary><code>follow_redirects</code>: <code>boolean</code> – The request should follow redirects (<code>-L</code> is passed).</summary>
+  <summary><code>follow_redirects</code>: <code>boolean?</code> – The request should follow redirects (<code>-L</code> is passed).</summary>
 
   Default: true
 
   </details>
 
-- `form_escape`: `boolean` — Enables form escape mode.
-- `headers`: `string[]` — Headers to be passed to curl. Other headers are also
+- `form_escape`: `boolean?` — Enables form escape mode.
+- `headers`: `string[]?` — Headers to be passed to curl. Other headers are also
   handled without manually constructing the headers yourself.
-- `include_result_headers`: `boolean` — Lists and parses the received headers
+- `include_result_headers`: `boolean?` — Lists and parses the received headers
   from the server. Provides `headers` in the `results`
 - <details>
-  <summary><code>method</code>: <code>string|"CONNECT"|"DELETE"|"GET"|"HEAD"...(+5)</code> – Http/s method.</summary>
+  <summary><code>method</code>: <code>(string | "CONNECT" | "DELETE" | "GET" | "HEAD"...(+5))?</code> – Http/s method.</summary>
 
   Default: GET
 
   </details>
 
 - <details>
-  <summary><code>outfile</code>: <code>string</code> – The output filepath.</summary>
+  <summary><code>outfile</code>: <code>string?</code> – The output filepath.</summary>
 
   Note: Will disable result.content if this is used.
 
   </details>
 
-- `raw_args`: `string[]` — Other arguments passed to curl
+- `raw_args`: `string[]?` — Other arguments passed to curl
 - <details>
-  <summary><code>retries</code>: <code>integer</code> – Maximum number of retries (best paired with option <code>retry_all_errors</code>)</summary>
+  <summary><code>retries</code>: <code>integer?</code> – Maximum number of retries (best paired with option <code>retry_all_errors</code>)</summary>
 
   Default: 3
 
   </details>
 
 - <details>
-  <summary><code>retry_delay</code>: <code>integer</code> – Delay after each retry (best paired with option <code>retry_all_errors</code>)</summary>
+  <summary><code>retry_delay</code>: <code>integer?</code> – Delay after each retry (best paired with option <code>retry_all_errors</code>)</summary>
 
   Default: 1 (1 second)
 
@@ -402,14 +403,14 @@ Request/Response formats
 - `retry_when`: `false | "connrefused" | "all" | nil` — Retries when it fails.
   default="all"
 - <details>
-  <summary><code>timeout</code>: <code>integer</code> – Request timeout.</summary>
+  <summary><code>timeout</code>: <code>integer?</code> – Request timeout.</summary>
 
   Default: none
 
   </details>
 
 - <details>
-  <summary><code>user_agent</code>: <code>string</code> – Passes a user agent header to the command line arguments.</summary>
+  <summary><code>user_agent</code>: <code>string?</code> – Passes a user agent header to the command line arguments.</summary>
 
   Equivalent to: `User-Agent: <agent-string>`
 
@@ -420,13 +421,13 @@ Request/Response formats
 Result after curl is finished
 
 - `content`: `string` — Results from curl
-- `headers`: `table<string, string>` — Available if --dump-header was passed
+- `headers`: `table<string, string>?` — Available if --dump-header was passed
 
 ### `rissue.EndpointShortcut`
 
 An endpoint shortcut struct
 
-- `additional_info`: `table` — Additional info to pass to an endpoint shortcut
+- `additional_info`: `table?` — Additional info to pass to an endpoint shortcut
 - `domain`: `string` — Api base endpoint (e.g. "api.github.com")
 - `name`: `string` — Name of the provider to be associated with this shortcut.
 - `patterns`: `string[]` — List of patterns that can be used with lua regex.
@@ -453,7 +454,7 @@ An endpoint shortcut struct
 Partial version of rissue.Github.Settings
 
 - <details>
-  <summary><code>api_version</code>: <code>"2022-11-28"|"2026-03-10" | false</code> – Override the api version to be used. Most commonly used when doing requests like <code>get.issues()</code> or <code>get.merge_requests()</code></summary>
+  <summary><code>api_version</code>: <code>("2022-11-28" | "2026-03-10" | false)?</code> – Override the api version to be used. Most commonly used when doing requests like <code>get.issues()</code> or <code>get.merge_requests()</code></summary>
 
   Setting it to false removes the api_version header to be sent to the server.
 
@@ -485,7 +486,7 @@ Partial version of rissue.Github.Settings
   </details>
 
 - <details>
-  <summary><code>media_type</code>: <code>"full"|"html"|"raw"|"text"</code> – The type of media to request from issues and pull requests.</summary>
+  <summary><code>media_type</code>: <code>"full" | "html" | "raw" | "text"</code> – The type of media to request from issues and pull requests.</summary>
 
   Attaches a header to the requests:
 
@@ -521,7 +522,7 @@ Partial version of rissue.Github.Settings
 Note: use `rissue.Github.Opts` for a partial version of `rissue.Github.Settings`
 
 - <details>
-  <summary><code>api_version</code>: <code>"2022-11-28"|"2026-03-10" | false</code> – Override the api version to be used. Most commonly used when doing requests like <code>get.issues()</code> or <code>get.merge_requests()</code></summary>
+  <summary><code>api_version</code>: <code>("2022-11-28" | "2026-03-10" | false)?</code> – Override the api version to be used. Most commonly used when doing requests like <code>get.issues()</code> or <code>get.merge_requests()</code></summary>
 
   Setting it to false removes the api_version header to be sent to the server.
 
@@ -553,7 +554,7 @@ Note: use `rissue.Github.Opts` for a partial version of `rissue.Github.Settings`
   </details>
 
 - <details>
-  <summary><code>media_type</code>: <code>"full"|"html"|"raw"|"text"</code> – The type of media to request from issues and pull requests.</summary>
+  <summary><code>media_type</code>: <code>"full" | "html" | "raw" | "text"</code> – The type of media to request from issues and pull requests.</summary>
 
   Attaches a header to the requests:
 
@@ -581,22 +582,22 @@ Note: use `rissue.Github.Opts` for a partial version of `rissue.Github.Settings`
 
 ### `rissue.Github.supports.AdditionalInfo`
 
-- `api_version`: `"2022-11-28"|"2026-03-10"` — The named api version
-- `ghes`: `string` — The Github Enterprise Version (3.x)
-- `ghes_code`: `integer` — Typically represented as 3xxx (e.g. 3.14 -> 03014)
+- `api_version`: `("2022-11-28" | "2026-03-10")?` — The named api version
+- `ghes`: `string?` — The Github Enterprise Version (3.x)
+- `ghes_code`: `integer?` — Typically represented as 3xxx (e.g. 3.14 -> 03014)
 
 ### `rissue.Issue`
 
 The structure for issues.
 
 - `author`: `rissue.User`
-- `body`: `string`
+- `body`: `string?`
 - `created_at`: `integer` — An alias to timestamp (os.time())
 - `id`: `integer` — The id of the issue
 - `is_open`: `boolean`
 - `labels`: `rissue.Label[]`
-- `raw`: `table` — Raw response from server (if supported and enabled). See your
-  current git provider's settings on this option.
+- `raw`: `table?` — Raw response from server (if supported and enabled). See
+  your current git provider's settings on this option.
 - `title`: `string`
 - `url`: `string` — An alias to url
 - `web_url`: `string` — A web version to the url
@@ -626,8 +627,8 @@ The structure for issues.
 
 ### `rissue.Label`
 
-- `color`: `string`
-- `description`: `string`
+- `color`: `string?`
+- `description`: `string?`
 - `name`: `string`
 
 ### `rissue.log.level`
@@ -660,25 +661,25 @@ Logging levels where:
 
 Options when creating a new logger with `require('rissue.utils.log').new()`
 
-- `context`: `string` — logger context
-- `log_level`: `0|1|2|3|4...(+1)` — By default, the log level syncs with the
-  main logger.
+- `context`: `string?` — logger context
+- `log_level`: `(0 | 1 | 2 | 3 | 4...(+1))?` — By default, the log level syncs
+  with the main logger.
 - `logger`:
-  `fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info)` —
-  logger function
+  `(fun(msg: string, level: 0 | 1 | 2 | 3 | 4...(+1), info?: rissue.logger.log_info))?`
+  — logger function
 
 ### `rissue.log.Opts`
 
 Options for logger
 
-- `builtin_logger_color_enabled`: `boolean` — Enables or disables printing with
+- `builtin_logger_color_enabled`: `boolean?` — Enables or disables printing with
   `colors` on the built-in logger.
-- `log_level`: `0|1|2|3|4...(+1)` — The current log level. Use
+- `log_level`: `(0 | 1 | 2 | 3 | 4...(+1))?` — The current log level. Use
   `log.levels.<name>` to set up or pass an integer corresponding to the log
   level.
 - `logger`:
-  `fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info)` —
-  Replaces the current built-in logger.
+  `(fun(msg: string, level: 0 | 1 | 2 | 3 | 4...(+1), info?: rissue.logger.log_info))?`
+  — Replaces the current built-in logger.
 
 ### `rissue.Logger`
 
@@ -725,20 +726,20 @@ A logger object
 
 Logging information
 
-- `context`: `string`
+- `context`: `string?`
 
 ### `rissue.MergeRequest`
 
 The structure for pull/merge request
 
 - `author`: `rissue.User`
-- `body`: `string`
+- `body`: `string?`
 - `created_at`: `integer` — An alias to timestamp (os.time())
 - `id`: `integer` — The id of the issue
 - `labels`: `rissue.Label[]`
-- `raw`: `table` — Raw response from server (if supported and enabled). See your
-  current git provider's settings on this option.
-- `state`: `"canceled"|"merged"|"open"` — The state of the pull request
+- `raw`: `table?` — Raw response from server (if supported and enabled). See
+  your current git provider's settings on this option.
+- `state`: `"canceled" | "merged" | "open"` — The state of the pull request
 - `title`: `string`
 - `url`: `string` — An alias to url
 - `web_url`: `string` — A web version to the url
@@ -996,7 +997,7 @@ The state of the pull request
 
   </details>
 
-- `env`: `rissue.opts.Env`
+- `env`: `rissue.opts.Env?`
 - `env_file`: `string` — The name of the env file
 - `log`: `rissue.log.Opts` — Logging setup options
 - <details>
@@ -1128,7 +1129,7 @@ The full provider information that will be used for `rissue.get_issues()` and
 Depending on the provider, the provider may perform curl requests to the servers
 to confirm and write their additional information required for that repository.
 
-- `additional_info`: `<T>` — Additional provider information used for specific
+- `additional_info`: `<T>?` — Additional provider information used for specific
   provider (e.g. github ghes)
 - `domain`: `string` — The api endpoint
 - `name`: `string` — The name of the provider
@@ -1171,7 +1172,7 @@ An alias to url
 
 ### `rissue.User`
 
-- `display_name`: `string`
+- `display_name`: `string?`
 - `username`: `string`
 - `web_url`: `string` — An alias to url
 
@@ -1268,17 +1269,17 @@ A process handler
 
 ### `rissue.utils.Process.last_output.Opts`
 
-- `newline_on_multiline_output`: `boolean` — No by default
-- `strip_newlines`: `boolean` — Strips all \r\n` on each end. Default: false
+- `newline_on_multiline_output`: `boolean?` — No by default
+- `strip_newlines`: `boolean?` — Strips all \r\n` on each end. Default: false
 
 ### `rissue.utils.process.Opts`
 
 Process options
 
-- `args`: `string[]` — Arguments passed
+- `args`: `string[]?` — Arguments passed
 - `cmd`: `string` — Binary
-- `cwd`: `string` — Current working directory
-- `env`: `string[] | table<string, string|nil>` — Process run options
+- `cwd`: `string?` — Current working directory
+- `env`: `(string[] | table<string, string|nil>)?` — Process run options
 
 ### `rissue.utils.process.Result`
 
