@@ -93,7 +93,7 @@
     ```
 
 - [utils/curl]:
-  - Add new options: `retry_all_errors` and `outfile`
+  - Add new options: `outfile` and `retry_when`
 
   The `outfile` option is a `-o <file>` in the hood, but when using this option,
   it makes the return's contents to empty string because the file is not
@@ -101,9 +101,18 @@
 
   Notes: it also passes `--create-dirs` and `--remove-on-error` flags when used.
 
-  The `retry_all_errors` option is built-in to curl where it attempts to retru
-  when if fails to fetch. The retries are controlled by `retries` and
-  `retry_delay` option.
+  The `retry_when` option is built-in to curl where it attempts to retry when if
+  fails to fetch. The retries are controlled by `retries` and `retry_delay`
+  option.
+
+  Possible values of `retry_when` are: `false` | `"all"` | `"connrefused"`
+
+  When it is `false`, it will not retry on any error.
+
+  When it is `all`, it will retry on every error, including `opts.fail_fast`
+
+  When it is `connrefused`, it will retry only when the connection refused to
+  connect.
 
 - [utils/assert_op]: Refactor `check_structure` (now called `table_expects`) to
   use matchers for support for literals and more complicated checking.

@@ -51,6 +51,13 @@ local function check_if_present(list, key)
   )
 end
 
+local function check_if_not_present(list, key)
+  assert.is_nil(
+    list_find(list, key),
+    ("Cannot find %s in the command line arguments"):format(key)
+  )
+end
+
 describe("curl", function()
   describe("construct", function()
     it("url ok", function()
@@ -460,6 +467,43 @@ describe("curl", function()
       local idx = list_find(res, "--dump-header")
       local temp = res[idx + 1]
       assert.is_not_nil(temp, "Did not pass any temp name after --dump-header")
+    end)
+
+    it("--retry-all-errors retry_when is all ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        retry_when = "all",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--retry-all-errors")
+    end)
+
+    it("--retry-connrefused retry_when is connrefused ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        retry_when = "connrefused",
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_present(res, "--retry-connrefused")
+    end)
+
+    it("nil retry_when is all ok", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        retry_when = false,
+      }
+
+      local res = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      check_if_not_present(res, "--retry-all-errors")
+      check_if_not_present(res, "--retry-connrefused")
     end)
   end)
 
