@@ -56,7 +56,12 @@ function M.main(async, info, token, opts)
   local base = info.curl_protocol .. "://" .. info.domain
 
   ---@type rissue.utils.curl.Opts
-  local settings = { auth = token, accept = "application/json", method = "GET" }
+  local settings = {
+    auth = token,
+    accept = "application/json",
+    method = "GET",
+    retry_when = "connrefused",
+  }
 
   -- ghes version
   local is_ghes, ghes_output = check(async, base .. "/api/v3/meta", settings)

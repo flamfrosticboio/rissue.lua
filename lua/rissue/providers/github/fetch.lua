@@ -233,6 +233,7 @@ function M.try_fetch(async, info, queries, opts, cb)
     auth = opts.token,
     fail_fast = true,
     include_result_headers = true,
+    retry_when = "connrefused",
   }
 
   local fmt_opts = {
