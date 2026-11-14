@@ -325,31 +325,38 @@ function M.raw(async, args, cwd, env)
   end
 
   local headers = nil
-  if result.return_code == 0 then
-    local _, idx = table_op.find(args, "--dump-header")
-    if idx > 0 then
-      local headers_file = args[idx + 1]
+  local _, idx = table_op.find(args, "--dump-header")
+  local headers_file = idx and idx > 0 and args[idx + 1] or nil
 
-      if not headers_file then
-        return nil, "[Bug]: Passed --dump-header without filename"
-      end
+  if idx and idx > 0 and not headers_file then
+    return nil, "[Bug]: Passed --dump-header without filename"
+  end
 
-      local output, read_file_err = file.read_file(headers_file) -- Warning: raises error
+  if headers_file then
+    local succeeded = result.return_code == 0
+
+    -- Only read the headers when curl succeeded
+    local output, read_file_err
+    if succeeded then
+      output, read_file_err = file.read_file(headers_file) -- Warning: raises error
+    end
+
+    -- Always delete the tmpfile, even if curl failed
+    local delete_ok, delete_err = file.delete_file(headers_file)
+    if not delete_ok then
+      -- just do nothing for a while since its not a critical bug
+      log.warn(
+        "Failed to delete tmpfile when --dump-header was used: "
+          .. (delete_err or "unhandled error")
+      )
+    end
+
+    if succeeded then
       if not output then
         return nil,
           read_file_err
             or "unhandled error during tempfile read with --dump-header"
       end
-
-      local delete_ok, delete_err = file.delete_file(headers_file)
-      if not delete_ok then
-        -- just do nothing for a while since its not a critical bug
-        log.warn(
-          "Failed to delete tmpfile when --dump-header was used: "
-            .. (delete_err or "unhandled error")
-        )
-      end
-
       headers = parse_received_headers(output)
     end
   end
