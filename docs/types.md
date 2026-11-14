@@ -1087,7 +1087,6 @@ Request/Response formats
 
   </details>
 
-- `retry_all_errors`: `boolean` — Retries when it fails. default=true
 - <details>
   <summary><code>retry_delay</code>: <code>integer</code> – Delay after each retry (best paired with option <code>retry_all_errors</code>)</summary>
 
@@ -1095,6 +1094,8 @@ Request/Response formats
 
   </details>
 
+- `retry_when`: `false | "connrefused" | "all" | nil` — Retries when it fails.
+  default="all"
 - <details>
   <summary><code>timeout</code>: <code>integer</code> – Request timeout.</summary>
 
