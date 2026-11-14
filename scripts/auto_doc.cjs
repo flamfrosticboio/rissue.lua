@@ -66,11 +66,12 @@ function walk(dir) {
 }
 
 const read = (file) => fs.readFileSync(file, "utf8");
+
 const formatDesc = (desc) =>
   desc
     .trim()
     .replace(/\n /g, "\n")
-    .replace(/file:\/\/[^)\s]*?\/lua\/rissue\/types\/(?=docs\/)/g, "")
+    .replace(/file:\/\//g, "")
     .replace(/%23/g, "#");
 
 const escapeHtml = (s) =>
@@ -281,7 +282,13 @@ function parseAliasDesc(rawdesc = "") {
     const m = line.match(/^\s*\|(>?)\s*(.*)$/);
     if (!m) continue;
     const [value, desc] = splitComment(m[2]);
-    if (value) entries.push({ value, desc, isDefault: m[1] === ">" });
+    if (value) {
+      entries.push({
+        value,
+        desc: desc ? formatDesc(desc) : desc,
+        isDefault: m[1] === ">",
+      });
+    }
   }
   return entries;
 }

@@ -40,15 +40,15 @@
 ---@field settings table<string, any>
 --- Gets issues using the provided `info`.
 ---
---- Read more from [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+--- Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 ---@field get_issues rissue.provider.GetIssues<any, any>
 --- Gets merge requests using the provided `info`.
 ---
---- Read more from [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+--- Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 ---@field get_merge_requests rissue.provider.GetMergeRequests<any, any>
 --- Checks if the remote information given is supported by the provider.
 ---
---- Read more from [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+--- Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 ---@field supports rissue.provider.Supports<any, any>
 
 ---@class rissue.provider.d
@@ -56,7 +56,7 @@ local provider = {}
 
 --- Gets issues using the provided `info`.
 ---
---- Read more from [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+--- Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 ---
 ---@see rissue.provider.d
 ---@alias rissue.provider.GetIssues<I, S>
@@ -78,7 +78,7 @@ function provider.get_issues(async, info, token, opts, cb) end
 
 --- Gets merge requests using the provided `info`.
 ---
---- Read more from [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+--- Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 ---
 ---@see rissue.provider.d
 ---@alias rissue.provider.GetMergeRequests<I, S>
@@ -100,7 +100,7 @@ function provider.get_merge_requests(async, info, token, opts, cb) end
 
 --- Checks if the remote information given is supported by the provider.
 ---
---- Read more from [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+--- Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 ---
 ---@see rissue.provider.d
 ---@alias rissue.provider.Supports<I, S>
