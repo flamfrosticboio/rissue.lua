@@ -46,16 +46,20 @@ local ansi_colors = {
   [levels.off] = "\27[36m", -- cyan (for user)
 }
 
-local function log_no_color(msg, level)
+---@type rissue.logger_func
+local function log_no_color(msg, level, info)
   local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
-  print(("[%s][%s]: %s"):format(time, log_name[level], msg))
+  local context = info and info.context and ("[" .. info.context .. "]") or ""
+  print(("[%s]%s[%s]: %s"):format(time, context, log_name[level], msg))
 end
 
-local function log_color(msg, level)
+local function log_color(msg, level, info)
   local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
+  local context = info and info.context and ("[" .. info.context .. "]") or ""
   print(
-    ("[%s][%s%s\27[0m]: %s"):format(
+    ("[%s]%s[%s%s\27[0m]: %s"):format(
       time,
+      context,
       ansi_colors[level],
       log_name[level],
       msg
@@ -109,6 +113,7 @@ local function new_logger(opts)
     set_logger = nil, ---@diagnostic disable-line: assign-type-mismatch
   }
 
+  --- check if there are values on the context
   if table_op.count(context_info) > 0 then
     logger.log = function(msg, level)
       ---@diagnostic disable-next-line: invisible

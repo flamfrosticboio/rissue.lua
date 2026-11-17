@@ -48,6 +48,16 @@ describe("log", function()
       log.error("This is printed", "with a lot", "of", "arguments")
       log.debug("This is printed", "with a lot", "of", "arguments")
       log.trace("This is printed", "with a lot", "of", "arguments")
+
+      local logger = log.new({
+        context = "TestContext",
+      })
+
+      logger.warn("This is a warning")
+      logger.error("This is an error")
+      logger.info("This is an info")
+      logger.debug("This is a debug")
+      logger.trace("This is a trace")
     end)
 
     it("No colors ok #interactive_only", function()
@@ -66,6 +76,16 @@ describe("log", function()
       log.error("This is printed", "with a lot", "of", "arguments")
       log.debug("This is printed", "with a lot", "of", "arguments")
       log.trace("This is printed", "with a lot", "of", "arguments")
+
+      local logger = log.new({
+        context = "TestContext",
+      })
+
+      logger.warn("This is a warning")
+      logger.error("This is an error")
+      logger.info("This is an info")
+      logger.debug("This is a debug")
+      logger.trace("This is a trace")
     end)
   end)
 
