@@ -51,7 +51,7 @@
 --- A logger object
 ---@class rissue.Logger
 --- [Internal]
----@field protected _level rissue.log.level
+---@field protected _level rissue.log.level | fun(): rissue.log.level
 --- [Internal]
 ---@field protected _logger rissue.logger_func
 --- List of levels from error to trace.
@@ -72,7 +72,7 @@
 ---@field level_enabled fun(level: rissue.log.level): boolean
 --- Gets the current log level
 ---@field get_log_level fun(): integer
---- Sets the current log level
+--- Sets the current log level.
 ---@field set_log_level fun(level: rissue.log.level | rissue.log.named_level)
 --- Sets the current logger function (e.g. 'print', 'vim.notify')
 ---@field set_logger fun(logger: rissue.logger_func)
@@ -93,6 +93,8 @@
 ---@class rissue.log.new.Opts
 ---@field context? string logger context
 ---@field logger? rissue.logger_func logger function
+--- By default, the log level syncs with the main logger.
+---@field log_level? rissue.log.level
 
 --- Options for logger
 ---@class rissue.log.Opts

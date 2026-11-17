@@ -118,4 +118,43 @@ describe("log", function()
       .spy(s)
       .called_with("Hello world", log.levels.info, match.same({ context = "My logger" }))
   end)
+
+  --- This is violated when passing the function to level is broken
+  it("New logger binding to main logger ok", function()
+    local inner_logger_spy = spy.new(function() end)
+    local main_logger_spy = spy.new(function() end)
+    log.setup({
+      logger = main_logger_spy --[[@as fun()]],
+    })
+    local logger = log.new({
+      logger = inner_logger_spy --[[@as fun()]],
+    }) -- by default, it will bind to main logger
+
+    log.set_log_level("error")
+    log.error("wow")
+    assert.spy(main_logger_spy).was.called(1)
+    assert.spy(main_logger_spy).was.called_with("wow", log.levels.error)
+
+    logger.error("nice")
+    assert.spy(inner_logger_spy).was.called(1)
+    assert.spy(inner_logger_spy).was.called_with("nice", log.levels.error)
+
+    logger.info("no")
+    assert.spy(inner_logger_spy).was.called(1) -- should not print
+    assert.spy(inner_logger_spy).was.not_called_with("no", log.levels.info)
+
+    log.set_log_level("info")
+
+    log.info("interesting")
+    assert.spy(main_logger_spy).was.called(2)
+    assert.spy(main_logger_spy).was.called_with("interesting", log.levels.info)
+
+    logger.error("alright")
+    assert.spy(inner_logger_spy).was.called(2)
+    assert.spy(inner_logger_spy).was.called_with("alright", log.levels.error)
+
+    logger.info("yes")
+    assert.spy(inner_logger_spy).was.called(3) -- should now print
+    assert.spy(inner_logger_spy).was.called_with("yes", log.levels.info)
+  end)
 end)
