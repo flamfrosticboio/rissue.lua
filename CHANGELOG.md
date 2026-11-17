@@ -27,28 +27,38 @@
     ```
 
 - [utils/log]
-  - Regular printing functions such as `log.info()`, `log.warn()` and etc. can
-    now take multiple parameters.
+  - Refactored the logging library where it introduces `rissue.mod.logger` and
+    `rissue.Logger`.
 
-  - New function: `log.get_log_level()` to get current log level.
+    With `require('rissue.utils.log').new()`, you can create a scoped
+    `rissue.Logger` where it can take:
+    - context: `rissue.log.log_info` (passed to the logger)
+    - logger: `rissue.logger_func`
+    - log_level: `rissue.log.level`
 
-  - `log.log()` and `rissue.logger_func` can now take context. This affects
-    setting up custom loggers where you can read the context of the log passed.
+    With log information, you can print additional texts to logging to make
+    debugging easier.
 
-    `rissue.logger_func`:
-    `fun(msg: string, level: rissue.log.level, info?: rissue.logger.log_info)`
-
-    This changes enables fine adjustment to the message output. Example:
+    Example:
 
     ```lua
     local log = require('rissue.utils.log')
-    log.set_logger(function(msg, level, info)
-        if info and info.context then
-            msg = "[" .. info.context .. "] " .. msg
-        end
-        vim.notify(msg, level)
-    end)
+    local scoped_log = log.new({
+      context = "MyScopedLogger",
+      logger = function(msg, level, info)
+        print(string.format("[%s][lvl:%s] %s", info.context, level, msg))
+      end
+    })
+
+    -- prints: "[MyScopedLogger][lvl:2] Hello World!"
+    scoped_log.info("Hello World!")
     ```
+
+  - Regular printing functions such as `log.info()`, `log.warn()` and etc. can
+    now take multiple parameters.
+
+  - New functions:
+    - `log.get_log_level()` to get current log level.
 
 - [provider]: Upgrade specifications where getting issues and merge requests
   calls the callback builder function provided. This allows for showing partial

@@ -46,16 +46,20 @@ local ansi_colors = {
   [levels.off] = "\27[36m", -- cyan (for user)
 }
 
-local function log_no_color(msg, level)
+---@type rissue.logger_func
+local function log_no_color(msg, level, info)
   local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
-  print(("[%s][%s]: %s"):format(time, log_name[level], msg))
+  local context = info and info.context and ("[" .. info.context .. "]") or ""
+  print(("[%s]%s[%s]: %s"):format(time, context, log_name[level], msg))
 end
 
-local function log_color(msg, level)
+local function log_color(msg, level, info)
   local time = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time())
+  local context = info and info.context and ("[" .. info.context .. "]") or ""
   print(
-    ("[%s][%s%s\27[0m]: %s"):format(
+    ("[%s]%s[%s%s\27[0m]: %s"):format(
       time,
+      context,
       ansi_colors[level],
       log_name[level],
       msg
@@ -81,6 +85,8 @@ local function join(...)
   return table.concat(t, " ")
 end
 
+local DEFAULT_LEVEL = 2
+
 ---@param opts rissue.log.new.Opts
 local function new_logger(opts)
   local context_info = {
@@ -89,7 +95,8 @@ local function new_logger(opts)
 
   ---@type rissue.Logger
   local logger = {
-    _level = 2,
+    --- VERY IMPORTANT: opts.log_level also returns a function
+    _level = opts.log_level or DEFAULT_LEVEL,
     _logger = opts.logger or log_no_color,
     levels = levels,
 
@@ -106,6 +113,7 @@ local function new_logger(opts)
     set_logger = nil, ---@diagnostic disable-line: assign-type-mismatch
   }
 
+  --- check if there are values on the context
   if table_op.count(context_info) > 0 then
     logger.log = function(msg, level)
       ---@diagnostic disable-next-line: invisible
@@ -120,11 +128,15 @@ local function new_logger(opts)
 
   logger.level_enabled = function(level)
     ---@diagnostic disable-next-line: invisible
-    return level >= logger._level
+    return level >= logger.get_log_level()
   end
   logger.get_log_level = function()
     ---@diagnostic disable-next-line: invisible
-    return logger._level
+    local level = logger._level
+    if type(level) == "function" then
+      return level()
+    end
+    return level or DEFAULT_LEVEL -- default
   end
 
   logger.set_log_level = function(level)
@@ -165,17 +177,22 @@ local logger_mod = new_logger({})
 ---@param opts? rissue.log.new.Opts
 ---@diagnostic disable-next-line: inject-field
 logger_mod.new = function(opts)
-  if not opts then
-    opts = {}
-  end
-
-  if not opts.logger then
-    --- logger_mod._logger may change, so we dynamically access it every time
-    opts.logger = function(msg, level, info)
+  opts = opts or {}
+  opts.logger = opts.logger
+    or function(msg, level, info)
+      -- wrapped into function to use the latest logger instead of the
+      -- dangling one when changed
       ---@diagnostic disable-next-line: invisible
       logger_mod._logger(msg, level, info)
     end
-  end
+
+  ---@diagnostic disable-next-line: assign-type-mismatch
+  opts.log_level = opts.log_level
+    or function()
+      -- wrapped into function to use the latest log levelinstead of the
+      -- dangling one when changed
+      return logger_mod.get_log_level()
+    end
 
   return new_logger(opts)
 end

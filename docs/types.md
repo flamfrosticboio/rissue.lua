@@ -508,6 +508,8 @@ Logging levels where:
 Options when creating a new logger with `require('rissue.utils.log').new()`
 
 - `context`: `string` — logger context
+- `log_level`: `0|1|2|3|4...(+1)` — By default, the log level syncs with the
+  main logger.
 - `logger`:
   `fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info)` —
   logger function
@@ -555,7 +557,7 @@ A logger object
   </details>
 
 - `set_log_level`: `fun(level: "debug"|"error"|"info"|"off"|"trace"...(+7))` —
-  Sets the current log level
+  Sets the current log level.
 - `set_logger`:
   `fun(logger: fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info))`
 - `trace`: `fun(...any)` — Log an `trace` statement
@@ -683,7 +685,7 @@ Implementations of `rissue.get_issues()` and `rissue.get_merge_requests()`
 - `new`: `fun(opts?: rissue.log.new.Opts):rissue.Logger` — Creates a new logger
   instance. If logger is not passed from opts, it will use the global logger.
 - `set_log_level`: `fun(level: "debug"|"error"|"info"|"off"|"trace"...(+7))` —
-  Sets the current log level
+  Sets the current log level.
 - `set_logger`:
   `fun(logger: fun(msg: string, level: 0|1|2|3|4...(+1), info?: rissue.logger.log_info))`
 - `setup`: `fun(opts: rissue.log.Opts)` — Setup the global logger.
