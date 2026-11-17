@@ -16,14 +16,22 @@
 
 describe("log", function()
   local log = require("rissue.utils.log")
-  describe("#interactive_only", function()
-    local original_log = 0
-    local original_logger = nil
-    lazy_setup(function()
-      original_log = log.get_log_level()
-      original_logger = log._logger ---@diagnostic disable-line: invisible
-    end)
 
+  local original_log = 0
+  local original_logger = nil
+  lazy_setup(function()
+    original_log = log.get_log_level()
+    original_logger = log._logger ---@diagnostic disable-line: invisible
+  end)
+
+  lazy_teardown(function()
+    log.set_log_level(original_log)
+    if original_logger then
+      log.set_logger(original_logger)
+    end
+  end)
+
+  describe("#interactive_only", function()
     it("Colors ok #interactive_only", function()
       log.setup({
         builtin_logger_color_enabled = true,
@@ -59,62 +67,55 @@ describe("log", function()
       log.debug("This is printed", "with a lot", "of", "arguments")
       log.trace("This is printed", "with a lot", "of", "arguments")
     end)
+  end)
 
-    it("Levels enabled ok", function()
-      log.setup({
-        builtin_logger_color_enabled = false,
-        log_level = log.levels.error,
-      })
+  it("Levels enabled ok", function()
+    log.setup({
+      builtin_logger_color_enabled = false,
+      log_level = log.levels.error,
+    })
 
-      assert.is_false(log.level_enabled(log.levels.warn))
-      assert.is_true(log.level_enabled(log.levels.error))
-    end)
+    assert.is_false(log.level_enabled(log.levels.warn))
+    assert.is_true(log.level_enabled(log.levels.error))
+  end)
 
-    it("Get and set level ok", function()
-      log.setup({
-        builtin_logger_color_enabled = false,
-        log_level = log.levels.off,
-      })
+  it("Get and set level ok", function()
+    log.setup({
+      builtin_logger_color_enabled = false,
+      log_level = log.levels.off,
+    })
 
-      assert.same(log.get_log_level(), log.levels.off)
+    assert.same(log.get_log_level(), log.levels.off)
 
-      log.set_log_level(log.levels.trace)
+    log.set_log_level(log.levels.trace)
 
-      assert.same(log.get_log_level(), log.levels.trace)
-    end)
+    assert.same(log.get_log_level(), log.levels.trace)
+  end)
 
-    it("Set logger ok", function()
-      local s = spy.new(function() end)
-      log.setup({
-        builtin_logger_color_enabled = false,
-        log_level = log.levels.trace,
-        logger = s --[[@as fun()]],
-      })
+  it("Set logger ok", function()
+    local s = spy.new(function() end)
+    log.setup({
+      builtin_logger_color_enabled = false,
+      log_level = log.levels.trace,
+      logger = s --[[@as fun()]],
+    })
 
-      log.info("Hello world")
+    log.info("Hello world")
 
-      assert.spy(s).called_with("Hello world", log.levels.info)
-    end)
+    assert.spy(s).called_with("Hello world", log.levels.info)
+  end)
 
-    it("New logger ok", function()
-      local s = spy.new(function() end)
-      local logger = log.new({
-        context = "My logger",
-        logger = s --[[@as fun()]],
-      })
+  it("New logger ok", function()
+    local s = spy.new(function() end)
+    local logger = log.new({
+      context = "My logger",
+      logger = s --[[@as fun()]],
+    })
 
-      logger.info("Hello world")
+    logger.info("Hello world")
 
-      assert
-        .spy(s)
-        .called_with("Hello world", log.levels.info, match.same({ context = "My logger" }))
-    end)
-
-    lazy_teardown(function()
-      log.set_log_level(original_log)
-      if original_logger then
-        log.set_logger(original_logger)
-      end
-    end)
+    assert
+      .spy(s)
+      .called_with("Hello world", log.levels.info, match.same({ context = "My logger" }))
   end)
 end)
