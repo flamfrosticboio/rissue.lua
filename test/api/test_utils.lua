@@ -19,9 +19,18 @@ local log = require("rissue.utils.log")
 local utils = require("util")
 local uv = require("luv") ---@type uv
 
-local describe = describe or require("busted").describe
-local before_each = before_each or require("busted").before_each
-local teardown = teardown or require("busted").teardown
+local describe = require("busted").describe or describe
+local lazy_setup = require("busted").lazy_setup or lazy_setup
+local lazy_teardown = require("busted").lazy_teardown or lazy_teardown
+
+--- Mask real credentials from being leaked on output when testing.
+--- Prism will accept any value for authentication so this is fine.
+local env = require("rissue.env")
+---@param provider string
+---@diagnostic disable-next-line: duplicate-set-field
+env.get_token = function(provider)
+  return "$GIT_TK_" .. provider:upper()
+end
 
 local M = {}
 
