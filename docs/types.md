@@ -217,7 +217,7 @@ The async backend
 
 ### `rissue.CommonItem`
 
-- `author`: `rissue.User`
+- `author`: `rissue.User` — May become an anonymous user based on provider
 - `body`: `string?`
 - `created_at`: `integer` — An alias to timestamp (os.time())
 - `id`: `integer` — The id of the issue
@@ -225,8 +225,8 @@ The async backend
 - `raw`: `table?` — Raw response from server (if supported and enabled). See
   your current git provider's settings on this option.
 - `title`: `string`
-- `url`: `string` — An alias to url
-- `web_url`: `string` — A web version to the url
+- `url`: `string?` — Api url
+- `web_url`: `string?` — A web version to the url
 
 ### `rissue.Config`
 
@@ -590,7 +590,7 @@ Note: use `rissue.Github.Opts` for a partial version of `rissue.Github.Settings`
 
 The structure for issues.
 
-- `author`: `rissue.User`
+- `author`: `rissue.User` — May become an anonymous user based on provider
 - `body`: `string?`
 - `created_at`: `integer` — An alias to timestamp (os.time())
 - `id`: `integer` — The id of the issue
@@ -599,8 +599,8 @@ The structure for issues.
 - `raw`: `table?` — Raw response from server (if supported and enabled). See
   your current git provider's settings on this option.
 - `title`: `string`
-- `url`: `string` — An alias to url
-- `web_url`: `string` — A web version to the url
+- `url`: `string?` — Api url
+- `web_url`: `string?` — A web version to the url
 
 ### `rissue.Json`
 
@@ -732,7 +732,7 @@ Logging information
 
 The structure for pull/merge request
 
-- `author`: `rissue.User`
+- `author`: `rissue.User` — May become an anonymous user based on provider
 - `body`: `string?`
 - `created_at`: `integer` — An alias to timestamp (os.time())
 - `id`: `integer` — The id of the issue
@@ -741,8 +741,8 @@ The structure for pull/merge request
   your current git provider's settings on this option.
 - `state`: `"canceled" | "merged" | "open"` — The state of the pull request
 - `title`: `string`
-- `url`: `string` — An alias to url
-- `web_url`: `string` — A web version to the url
+- `url`: `string?` — Api url
+- `web_url`: `string?` — A web version to the url
 
 ### `rissue.mod.AssertOperation`
 
