@@ -791,15 +791,10 @@ The structure for pull/merge request
 Used for storing current configurations and settings
 
 - `merge_provider_settings`:
-  `function(provider: rissue.Provider, request: table?): table?, string?` — A
-  utility function for merging settings from:
-  1. request options (from `rissue.get_issues()` and etc.)
-  2. user defined settings
-  3. provider's default settings
+  `function(provider: any, request: any): table<any, any>`
 - `options`: `rissue.Config` — Settings (configured with `rissue.setup()`)
-- `providers`: `table<string, rissue.Provider>` — Table of available providers
-- `setup`: `function(opts: (rissue.Opts)?): string?` — Setups settings, scans
-  available providers and configure other configurations.
+- `providers`: `table`
+- `setup`: `function(opts: any): string`
 
 ### `rissue.mod.Curl`
 
@@ -948,7 +943,7 @@ Implementations of `rissue.get_provider_info()`
 ### `rissue.mod.Time`
 
 - <details>
-  <summary><code>iso_to_timestamp_utc</code>: <code>function(iso: string): integer</code> – Converts a iso utc into unix timestamp</summary>
+  <summary><code>iso_to_timestamp_utc</code>: <code>function(iso: string): integer</code> – Converts an ISO 8601 timestamp into a unix timestamp (seconds, UTC).</summary>
 
   Notes: To view timestamp as local time, use `os.date("*t", ts)` Alternatively,
   to view it UTC, use `os.date("!*t", ts)`
@@ -1171,7 +1166,7 @@ An alias to url
 
 - `display_name`: `string?`
 - `username`: `string`
-- `web_url`: `string` — An alias to url
+- `web_url`: `string?` — An alias to url
 
 ### `rissue.utils.fmt`
 
