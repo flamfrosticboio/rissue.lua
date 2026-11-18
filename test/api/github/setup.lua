@@ -16,7 +16,6 @@
 
 -- Github setup
 
-local env = require("rissue.env")
 local gutils = require("api.github.setup_utils")
 local setup_manager = require("api.setup")
 local setup_utils = require("api.setup_utils")
@@ -44,7 +43,7 @@ local function spec_pipeline(spec_name, url)
     setup_manager.p_curl(
       url,
       tmp_filename,
-      { auth = env.get_token("github") },
+      {},
       { skip_when_file_exists = dest_path }
     ),
     setup_manager.p_register_cleanup(
