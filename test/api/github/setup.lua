@@ -70,7 +70,6 @@ local function spec_pipeline(spec_name, url)
         tmp_filename,
         "-o",
         tmp_filename_processed,
-        "--dereferenced",
         "--config",
         redocly_config,
       },
@@ -94,7 +93,7 @@ local function run()
     --- Github enterprise cloud (api: 2026)
     spec_pipeline(
       "ghec.json",
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/dereferenced/ghec.2026-03-10.deref.json"
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/ghec.2026-03-10.json"
     ),
     empty_file("server-statistics-advisory-db.yaml"),
     empty_file("server-statistics-packages.yaml"),
@@ -103,7 +102,7 @@ local function run()
     --- Github Public Api (api: 2026)
     spec_pipeline(
       "github_api.json",
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/dereferenced/api.github.com.2026-03-10.deref.json"
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/api.github.com.2026-03-10.json"
     ),
   }
   --
@@ -112,9 +111,9 @@ local function run()
       "ghes-" .. version .. "-2022.json",
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
         .. version
-        .. "/dereferenced/ghes-"
+        .. "/ghes-"
         .. version
-        .. ".2022-11-28.deref.json"
+        .. ".2022-11-28.json"
     )
   end
 
@@ -123,9 +122,9 @@ local function run()
       "ghes-" .. version .. "-2026.json",
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
         .. version
-        .. "/dereferenced/ghes-"
+        .. "/ghes-"
         .. version
-        .. ".2026-03-10.deref.json"
+        .. ".2026-03-10.json"
     )
   end
 
@@ -134,9 +133,9 @@ local function run()
       "ghes-" .. version .. ".json",
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
         .. version
-        .. "/dereferenced/ghes-"
+        .. "/ghes-"
         .. version
-        .. ".deref.json"
+        .. ".json"
     )
   end
 
