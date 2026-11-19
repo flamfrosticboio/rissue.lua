@@ -26,7 +26,7 @@ local utils = require("util")
 local spec_folder = utils.get_test_api_path("github")
 
 ---@class __rissue.github.test_version
----@field is_proxy boolean?
+---@field proxy __rissue.ProxyHandle?
 ---@field request_opts rissue.Github.Opts?
 ---@field additional_info rissue.Github.supports.AdditionalInfo?
 
@@ -34,12 +34,11 @@ local spec_folder = utils.get_test_api_path("github")
 ---@param specfile string
 ---@param opts __rissue.github.test_version
 local function test_version(name, specfile, opts)
-  local is_proxy = opts.is_proxy
   local rissue = require("rissue")
   test_utils.with_server({
     name = name,
     specfile = spec_folder .. "/" .. specfile .. ".json",
-    is_proxy = is_proxy or false,
+    proxy = opts.proxy,
   }, function(_, port)
     local domain = test_utils.host .. ":" .. port
 
@@ -325,18 +324,18 @@ describe("github #api", function()
     target_port = 55001,
     name = "github cloud",
     prefix = "",
-  }, function()
+  }, function(proxy)
     test_version("api.github.com #github_api", "github_api", {
       additional_info = {
         api_version = "2026-03-10",
       },
-      is_proxy = true,
+      proxy = proxy,
     })
     test_version("ghec #ghec", "ghec", {
       additional_info = {
         api_version = "2026-03-10",
       },
-      is_proxy = true,
+      proxy = proxy,
     })
   end)
 
@@ -348,7 +347,7 @@ describe("github #api", function()
     -- Since the current api description does not support custom, we will just rewrite
     -- all application into application/json
     accept_rewrite = "application/json",
-  }, function()
+  }, function(proxy)
     for _, version in ipairs(gutils.ghes_non_dated_versions) do
       local code = gutils.ghes_code_mapped[version]
       if not code then
@@ -358,7 +357,7 @@ describe("github #api", function()
         version .. " #ghes_" .. version, -- e.g. "3.14 #ghes-3.14"
         "ghes-" .. version,
         {
-          is_proxy = true,
+          proxy = proxy,
           additional_info = {
             ghes = version,
             ghes_code = code,
@@ -376,7 +375,7 @@ describe("github #api", function()
         version .. " #ghes_" .. version .. "_2022", -- e.g. "3.14 #ghes-3.14"
         "ghes-" .. version .. "-2022",
         {
-          is_proxy = true,
+          proxy = proxy,
           additional_info = {
             ghes = version,
             api_version = "2022-11-28",
@@ -398,7 +397,7 @@ describe("github #api", function()
         version .. " #ghes_" .. version .. "_2026", -- e.g. "3.14 #ghes-3.14-2026"
         "ghes-" .. version .. "-2026",
         {
-          is_proxy = true,
+          proxy = proxy,
           additional_info = {
             ghes = version,
             api_version = "2026-03-10",
