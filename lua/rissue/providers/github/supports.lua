@@ -17,8 +17,18 @@
 local config = require("rissue.providers.github.config")
 local curl = require("rissue.utils.curl")
 local log = require("rissue.utils.log")
+local table_op = require("rissue.utils.table_op")
 
 local M = {}
+
+--- This is just an alias to make things easier to read.
+--- And this table_op.force_deep_extend actually copies the table deeply
+local copy = table_op.force_deep_extend
+
+---@type rissue.Github.supports.AdditionalInfo
+local default_github_additional_info = {
+  api_version = "2026-03-10",
+}
 
 ---@generic T
 ---@param range {[1]: integer, [2]: integer, [3]: T}[]
@@ -36,23 +46,27 @@ end
 ---@param async rissue.Async
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
----@return boolean
----@return string? result
+---@return string? content
 local function check(async, url, opts)
   local result, err = curl.request(async, url, opts)
   if not result then
     log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
+    return nil
   end
 
-  return not not (result and result.content:match(
-    "verifiable_password_authentication"
-  )),
-    result and result.content
+  local content = result.content
+  if content:find("verifiable_password_authentication", 1, true) ~= nil then
+    return content
+  end
 end
 
 ---@async
 ---@type rissue.provider.Supports<rissue.Github.supports.AdditionalInfo, rissue.Github.Settings>
 function M.main(async, info, token, opts)
+  if info.domain:match("github%.com") then
+    return true, copy(default_github_additional_info)
+  end
+
   local base = info.curl_protocol .. "://" .. info.domain
 
   ---@type rissue.utils.curl.Opts
@@ -64,32 +78,34 @@ function M.main(async, info, token, opts)
   }
 
   -- ghes version
-  local is_ghes, ghes_output = check(async, base .. "/api/v3/meta", settings)
-  if is_ghes then
+  local ghes_output = check(async, base .. "/api/v3/meta", settings)
+  if ghes_output then
     ---@type rissue.Github.supports.AdditionalInfo
     local additional_info = {}
-    if ghes_output then
-      local major, minor =
-        ghes_output:match('"installed_version":%s*"(%d+)%.(%d+)')
-      local version = tonumber(major) * 1000 + tonumber(minor)
-      additional_info.ghes = major .. "." .. minor
-      additional_info.ghes_code = version
 
-      if type(opts.api_version) == "string" then
-        additional_info.api_version = opts.api_version
-      elseif opts.api_version ~= false then
-        additional_info.api_version =
-          from_range(config.ghes_api_version_range, version)
-      end
+    --- ignore getting patch as it is not needed
+    local major, minor =
+      ghes_output:match('"installed_version":%s*"(%d+)%.(%d+)')
+    local version = tonumber(major) * 1000 + tonumber(minor)
+    additional_info.ghes = major .. "." .. minor
+    additional_info.ghes_code = version
+
+    --- Do defaults on provided `opts.api_version`
+    if type(opts.api_version) == "string" then
+      additional_info.api_version = opts.api_version
+    elseif opts.api_version ~= false then
+      additional_info.api_version =
+        from_range(config.ghes_api_version_range, version)
     end
+
     return true, additional_info
   end
 
   -- ghec or api.github.com version (when checking with url failed)
   -- examples includes: domain proxy, GHEC with Data Residency
-  local res = check(async, base .. "/meta", settings)
-  if res then
-    return res, { api_version = "2026-03-10" } --[[@as rissue.Github.supports.AdditionalInfo]]
+  local ghec_content = check(async, base .. "/meta", settings)
+  if ghec_content ~= nil then
+    return true, copy(default_github_additional_info)
   end
   return false
 end
