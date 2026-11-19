@@ -135,6 +135,8 @@
 - [Github]:
   - Updated logging to be more clear and simpler.
 
+  - Improved pattern detection when checking github support on provided url.
+
 - [specifications/providers]: Simplify versioning system.
 
   Instead of using `version: string` and `version_code: integer`, it will use
