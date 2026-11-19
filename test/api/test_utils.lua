@@ -68,7 +68,7 @@ local function run_mock_server(filepath, port_offset, id, callback)
   local err ---@type string?
 
   p, err = cmd.spawn({
-    cmd = "./node_modules/.bin/prism",
+    cmd = "./test/api/node_modules/.bin/prism",
     args = {
       "mock",
       filepath,
@@ -78,7 +78,6 @@ local function run_mock_server(filepath, port_offset, id, callback)
       tostring(port),
       "--verboseLevel=trace",
     },
-    cwd = "test/api",
   })
 
   assert(p ~= nil, err)
