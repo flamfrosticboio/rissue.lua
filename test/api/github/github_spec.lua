@@ -294,6 +294,10 @@ local gutils = require("api.github.setup_utils")
 
 describe("github #api", function()
   local config = require("rissue.config")
+
+  config.providers = {
+    github = require("rissue.providers.github"),
+  }
   config.setup({
     provider_options = {
       github = {
