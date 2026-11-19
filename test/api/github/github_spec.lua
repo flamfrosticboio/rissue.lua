@@ -349,6 +349,24 @@ describe("github #api", function()
     -- all application into application/json
     accept_rewrite = "application/json",
   }, function()
+    for _, version in ipairs(gutils.ghes_non_dated_versions) do
+      local code = gutils.ghes_code_mapped[version]
+      if not code then
+        error("ghes code equivalent not found for " .. version)
+      end
+      test_version(
+        version .. " #ghes_" .. version, -- e.g. "3.14 #ghes-3.14"
+        "ghes-" .. version,
+        {
+          is_proxy = true,
+          additional_info = {
+            ghes = version,
+            ghes_code = code,
+          },
+        }
+      )
+    end
+
     for _, version in ipairs(gutils.ghes_2022_versions) do
       local code = gutils.ghes_code_mapped[version]
       if not code then
@@ -366,24 +384,6 @@ describe("github #api", function()
           },
           request_opts = {
             api_version = "2022-11-28",
-          },
-        }
-      )
-    end
-
-    for _, version in ipairs(gutils.ghes_non_dated_versions) do
-      local code = gutils.ghes_code_mapped[version]
-      if not code then
-        error("ghes code equivalent not found for " .. version)
-      end
-      test_version(
-        version .. " #ghes_" .. version, -- e.g. "3.14 #ghes-3.14"
-        "ghes-" .. version,
-        {
-          is_proxy = true,
-          additional_info = {
-            ghes = version,
-            ghes_code = code,
           },
         }
       )

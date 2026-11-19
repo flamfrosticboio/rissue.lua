@@ -132,6 +132,8 @@ jobs:
         prime-all: ${{ github.event_name == 'pull_request' && github.base_ref == 'release' }}
 
   tests:
+    # Explicit check condition because when docs is skipped, this is also skipped for some reason
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.prepare-tests.result == 'success' }}
     runs-on: ubuntu-slim
     permissions:
       contents: read

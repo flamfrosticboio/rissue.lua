@@ -16,11 +16,11 @@
 
 -- Github setup
 
-local env = require("rissue.env")
 local gutils = require("api.github.setup_utils")
 local setup_manager = require("api.setup")
 local setup_utils = require("api.setup_utils")
 local utils = require("util")
+local uv = require("luv") ---@type uv
 
 local cwd = utils.get_test_api_path("github")
 
@@ -44,7 +44,7 @@ local function spec_pipeline(spec_name, url)
     setup_manager.p_curl(
       url,
       tmp_filename,
-      { auth = env.get_token("github") },
+      {},
       { skip_when_file_exists = dest_path }
     ),
     setup_manager.p_register_cleanup(
@@ -70,7 +70,6 @@ local function spec_pipeline(spec_name, url)
         tmp_filename,
         "-o",
         tmp_filename_processed,
-        "--dereferenced",
         "--config",
         redocly_config,
       },
@@ -78,6 +77,25 @@ local function spec_pipeline(spec_name, url)
     setup_manager.p_switch_mode("io"),
     setup_manager.p_rename(tmp_filename_processed, dest_path),
   }, { color = utils.assign_color() })
+end
+
+---@param name string
+---@return __rissue.Pipeline[]
+local function spec_local_pipeline(name)
+  return setup_manager.new_pipeline(name, {
+    setup_manager.p_async_step(function(cb)
+      uv.fs_copyfile(
+        string.format(test_api_path .. "/.assets/%s.json", name),
+        string.format("%s/%s.json", cwd, name),
+        function(err, ok)
+          if ok ~= true then
+            error("Failed to copy file: " .. (err or "unknown error"), 0)
+          end
+          cb()
+        end
+      )
+    end),
+  })
 end
 
 ---@param filename string
@@ -94,7 +112,7 @@ local function run()
     --- Github enterprise cloud (api: 2026)
     spec_pipeline(
       "ghec.json",
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/dereferenced/ghec.2026-03-10.deref.json"
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghec/ghec.2026-03-10.json"
     ),
     empty_file("server-statistics-advisory-db.yaml"),
     empty_file("server-statistics-packages.yaml"),
@@ -103,41 +121,39 @@ local function run()
     --- Github Public Api (api: 2026)
     spec_pipeline(
       "github_api.json",
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/dereferenced/api.github.com.2026-03-10.deref.json"
+      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/api.github.com.2026-03-10.json"
     ),
   }
-  --
-  for _, version in ipairs(gutils.ghes_2022_versions) do
+
+  for _, version in ipairs(gutils.ghes_2022_versions_tests_updating) do
     setup_file[#setup_file + 1] = spec_pipeline(
       "ghes-" .. version .. "-2022.json",
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
         .. version
-        .. "/dereferenced/ghes-"
+        .. "/ghes-"
         .. version
-        .. ".2022-11-28.deref.json"
+        .. ".2022-11-28.json"
     )
   end
 
-  for _, version in ipairs(gutils.ghes_2026_versions) do
+  for _, version in ipairs(gutils.ghes_2026_versions_tests_updating) do
     setup_file[#setup_file + 1] = spec_pipeline(
       "ghes-" .. version .. "-2026.json",
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
         .. version
-        .. "/dereferenced/ghes-"
+        .. "/ghes-"
         .. version
-        .. ".2026-03-10.deref.json"
+        .. ".2026-03-10.json"
     )
   end
 
-  for _, version in ipairs(gutils.ghes_non_dated_versions) do
-    setup_file[#setup_file + 1] = spec_pipeline(
-      "ghes-" .. version .. ".json",
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
-        .. version
-        .. "/dereferenced/ghes-"
-        .. version
-        .. ".deref.json"
-    )
+  for _, version in ipairs(gutils.ghes_2022_versions_tests_local) do
+    setup_file[#setup_file + 1] =
+      spec_local_pipeline("ghes-" .. version .. "-2022")
+  end
+
+  for _, version in ipairs(gutils.ghes_non_dated_versions_tests_local) do
+    setup_file[#setup_file + 1] = spec_local_pipeline("ghes-" .. version)
   end
 
   setup_utils.mkdir(tmp_folder)

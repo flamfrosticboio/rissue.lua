@@ -10,18 +10,18 @@ Github versions that the provider supports:
 
 - api.github.com (2026-03-10)
 - ghec (Github Enterprise Cloud) (2026-03-10)
-- ghes 3.10-3.22 (Github Enterprise Server) (2026-03-10 and 2022-11-28)
+- ghes 3.0-3.22 (Github Enterprise Server) (2026-03-10 and 2022-11-28)
 
-Minimum active support for ghes: 3.16
-
-Theoretical support for ghes: 3.0
+Minimum active support for ghes: 3.0
 
 > [!NOTE]
 >
-> **Support for ghes versions below 3.16**
+> **Test support coverage**
 >
-> There is has no active maintenance for versions lower than 3.16, but is
-> ensured compatibility starting from 3.0.
+> This provider is tested on every version starting from ghes 3.0, the current
+> api.github.com and ghec spec (most likely breaking). By default, each merge to
+> main only tests ghec, api.github.com, ghes 3.0, ghes 3.19-3.22. But on
+> releasing, all versions are tested.
 
 ## Settings
 
