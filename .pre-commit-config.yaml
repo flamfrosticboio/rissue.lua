@@ -11,6 +11,8 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-added-large-files
+        # Exclude ./test/api/.assets because they contain spec files
+        exclude: ^test/api/\.assets/
       - id: check-json
       - id: check-toml
       - id: check-yaml
