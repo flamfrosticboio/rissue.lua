@@ -17,9 +17,12 @@
 local curl = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
-local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
+local shared = require("rissue.providers.github.shared")
+local strings = require("rissue.utils.strings")
 local table_op = require("rissue.utils.table_op")
+
+local log = shared.log
 
 local config = require("rissue.providers.github.config")
 
@@ -94,12 +97,8 @@ local function try_fetch_query(async, url, param, opts)
   opts.data = param
 
   local req, err = curl.request(async, url, opts)
-  if req then
-    req.content = req.content:match("^%s*(.-)%s*$")
-    req.err = req.err:match("^%s*(.-)%s*$")
-  end
-
-  return req, err
+  --- no error default as this is just a map
+  return req, err and shared.into_error_message(err)
 end
 
 ---@class __rissue.Github.prepare_page.Opts
@@ -145,46 +144,40 @@ local function try_fetch_page(async, opts)
     opts.curl_opts
   )
 
-  if response and response.exitcode == 0 then
-    local ok, res = pcall(function()
-      local decoded, decode_err = json.decode(response.content)
-      if decode_err then
-        error(decode_err, 0)
-      end
-
-      local unmapped, unmap_err = unmap(decoded)
-      if not unmapped then
-        error(unmap_err or "unknown error", 0)
-      elseif unmap_err then
-        log.warn(unmap_err)
-      end
-
-      return unmapped
-    end)
-
-    if not ok then
-      return nil, res --[[@as string]] or "unknown error"
-    end
-
-    if not response.headers then
-      return nil, "Could not get headers from response (bug)"
-    end
-
-    return {
-      contents = res,
-      next_url = response.headers.link and get_next_from_link_header(
-        response.headers.link
-      ) or nil,
-    } --[[@as __rissue.Github.fetch_page.Result]]
-  else
-    local err = (response and response.err) or fetch_err or "unknown error"
-
-    if err and response and response.content ~= "" then
-      err = err .. "\n>>> Server response: " .. response.content
-    end
-
-    return nil, err
+  if not response then
+    return nil, fetch_err or "unknown error"
   end
+
+  local ok, res = pcall(function()
+    local decoded, decode_err = json.decode(response.content)
+    if decode_err then
+      error(decode_err, 0)
+    end
+
+    local unmapped, unmap_err = unmap(decoded)
+    if not unmapped then
+      error(unmap_err or "unknown error", 0)
+    elseif unmap_err then
+      log.warn(unmap_err)
+    end
+
+    return unmapped
+  end)
+
+  if not ok then
+    return nil, res --[[@as string]] or "unknown error"
+  end
+
+  if not response.headers then
+    return nil, "Could not get headers from response (bug)"
+  end
+
+  return {
+    contents = res,
+    next_url = response.headers.link and get_next_from_link_header(
+      response.headers.link
+    ) or nil,
+  } --[[@as __rissue.Github.fetch_page.Result]]
 end
 
 ---@async
@@ -272,12 +265,15 @@ function M.try_fetch(async, info, queries, opts, cb)
       })
 
       if not result then
-        log.error(
-          "Failed to fetch on endpoint '"
-            .. query.endpoint
-            .. "': "
-            .. (err or "unknown error")
+        local msg = ("Failed to fetch on endpoint '%s': %s"):format(
+          query.endpoint,
+          err or "unknown error"
         )
+        if #msg > 500 then
+          log.debug(msg)
+          msg = strings.truncate(msg, 500) .. "... (truncated, see debug log)"
+        end
+        log.error(msg)
         break
       end
 
