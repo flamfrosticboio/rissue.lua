@@ -18,6 +18,7 @@ local curl_module = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
 local process = require("rissue.utils.process")
+local strings = require("rissue.utils.strings")
 local table_op = require("rissue.utils.table_op")
 
 local shared = require("rissue.providers.gitlab.shared")
@@ -50,20 +51,11 @@ end
 ---@return table<string, string>? headers
 local function run_query(async, endpoint, opts)
   local result, err = curl_module.request(async, endpoint, opts)
-  if result then
-    if result.exitcode == 0 then
-      return nil, result.content, result.headers
-    else
-      return string.format(
-        "curl error (exitcode: %d): %s %s",
-        result.exitcode,
-        result.err,
-        result.content or ""
-      )
-    end
+  if not result then
+    return err and shared.into_error_message(err) or "unknown error"
   end
 
-  return err or "unknown err"
+  return nil, result.content, result.headers
 end
 
 --- Prepares the query for running by setting up defaults.
@@ -183,8 +175,12 @@ local function fetch(async, opts)
     while status.count < opts.config.max do
       local err, res, headers = run_query(async, query.endpoint, curl_opts)
       if not res then
+        local msg = ('Failed to fetch "%s": %s'):format(query.endpoint, err)
+        if #msg > 500 then
+          log.debug(msg)
+          msg = strings.truncate(msg, 500) .. "... (truncated, see debug log)"
+        end
         --- we only need to log the errors and proceed to next base query.
-        local msg = ("Failed to fetch %s: %s"):format(query.endpoint, err)
         log.warn(msg)
         add_error_message(msg)
         break

@@ -31,16 +31,24 @@ end
 
 local CHECK_ENDPOINTS = { "metadata", "version" }
 
+---@param endpoint string
+---@param res rissue.curl.Result?
+---@param err rissue.curl.Error?
 ---@return boolean? result nil would indicate skip
 ---@return rissue.Gitlab.AdditionalInfo?
-local function check_result(res, err)
+local function check_result(endpoint, res, err)
   if not res then
-    log.error("Failed to start curl:", err or "unknown error")
-    return -- skip to next endpoint
-  end
-
-  if res.exitcode ~= 0 then
-    log.debug("Server response error: ", res.err .. "\n" .. res.content)
+    local msg = string.format(
+      'Failed to curl "%s": %s',
+      endpoint,
+      err and shared.into_error_message(err) or "curl error: unknown error"
+    )
+    -- -1 means curl never ran; anything else is an HTTP or network failure
+    if err and err.exitcode == -1 then
+      log.error(msg)
+    else
+      log.debug(msg)
+    end
     return -- skip to next endpoint
   end
 
@@ -51,17 +59,15 @@ local function check_result(res, err)
     return false
   end
 
-  if
-    type(decoded) ~= "table" or getmetatable(decoded).__jsontype ~= "object"
-  then
-    log.error("Decoded response is not an object")
+  if type(decoded) ~= "table" then
+    log.error("Decoded response is not a table")
     log.trace("Response that failed the assertion:\n" .. res.content)
     return false
   end
 
   if not decoded.version then
     log.debug("Not a valid gitlab response.")
-    log.trace("Response:\n" .. res.content)
+    log.trace("Response that failed the assertion:\n" .. res.content)
     return false
   end
 
@@ -102,7 +108,7 @@ function supports.main(async, info, token, _opts)
     })
 
     -- should be fine since `suc` is `true|false|nil` and when `nil`, we just skip
-    local suc, additional_info = check_result(res, err)
+    local suc, additional_info = check_result(endpoint, res, err)
     if suc ~= nil then
       return suc, additional_info
     end
