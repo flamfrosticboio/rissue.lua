@@ -20,6 +20,7 @@ local gutils = require("api.github.setup_utils")
 local setup_manager = require("api.setup")
 local setup_utils = require("api.setup_utils")
 local utils = require("util")
+local uv = require("luv") ---@type uv
 
 local cwd = utils.get_test_api_path("github")
 
@@ -78,6 +79,25 @@ local function spec_pipeline(spec_name, url)
   }, { color = utils.assign_color() })
 end
 
+---@param name string
+---@return __rissue.Pipeline[]
+local function spec_local_pipeline(name)
+  return setup_manager.new_pipeline(name, {
+    setup_manager.p_async_step(function(cb)
+      uv.fs_copyfile(
+        string.format(test_api_path .. "/.assets/%s.json", name),
+        string.format("%s/%s.json", cwd, name),
+        function(err, ok)
+          if ok ~= true then
+            error("Failed to copy file: " .. (err or "unknown error"), 0)
+          end
+          cb()
+        end
+      )
+    end),
+  })
+end
+
 ---@param filename string
 ---@return __rissue.Pipeline
 local function empty_file(filename)
@@ -104,8 +124,8 @@ local function run()
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/api.github.com/api.github.com.2026-03-10.json"
     ),
   }
-  --
-  for _, version in ipairs(gutils.ghes_2022_versions) do
+
+  for _, version in ipairs(gutils.ghes_2022_versions_tests_updating) do
     setup_file[#setup_file + 1] = spec_pipeline(
       "ghes-" .. version .. "-2022.json",
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
@@ -116,7 +136,7 @@ local function run()
     )
   end
 
-  for _, version in ipairs(gutils.ghes_2026_versions) do
+  for _, version in ipairs(gutils.ghes_2026_versions_tests_updating) do
     setup_file[#setup_file + 1] = spec_pipeline(
       "ghes-" .. version .. "-2026.json",
       "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
@@ -127,15 +147,13 @@ local function run()
     )
   end
 
-  for _, version in ipairs(gutils.ghes_non_dated_versions) do
-    setup_file[#setup_file + 1] = spec_pipeline(
-      "ghes-" .. version .. ".json",
-      "https://raw.githubusercontent.com/github/rest-api-description/refs/heads/main/descriptions/ghes-"
-        .. version
-        .. "/ghes-"
-        .. version
-        .. ".json"
-    )
+  for _, version in ipairs(gutils.ghes_2022_versions_tests_local) do
+    setup_file[#setup_file + 1] =
+      spec_local_pipeline("ghes-" .. version .. "-2022")
+  end
+
+  for _, version in ipairs(gutils.ghes_non_dated_versions_tests_local) do
+    setup_file[#setup_file + 1] = spec_local_pipeline("ghes-" .. version)
   end
 
   setup_utils.mkdir(tmp_folder)

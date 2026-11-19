@@ -86,4 +86,72 @@ for i = ghes_min, ghes_max do
   end
 end
 
+--- For downloading specs on tests
+--- spec is still updating on ghes 3.17
+local ghes_tests_updating_min = math.max(17, ghes_min)
+local ghes_tests_updating_max = ghes_max
+M.ghes_versions_tests_updating = populate_range(
+  ghes_tests_updating_min,
+  ghes_tests_updating_max,
+  constructor,
+  is_tested
+)
+
+local ghes_tests_updating_2022_min =
+  math.max(ghes_tests_updating_min, ghes_2022_min)
+local ghes_tests_updating_2022_max =
+  math.min(ghes_tests_updating_max, ghes_2022_max)
+--- Updating versions that have the 2022 api variant
+M.ghes_2022_versions_tests_updating = populate_range(
+  ghes_tests_updating_2022_min,
+  ghes_tests_updating_2022_max,
+  constructor,
+  is_tested
+)
+
+local ghes_tests_updating_2026_min =
+  math.max(ghes_tests_updating_min, ghes_2026_min)
+local ghes_tests_updating_2026_max =
+  math.min(ghes_tests_updating_max, ghes_2026_max)
+--- Updating versions that have the 2026 api variant
+M.ghes_2026_versions_tests_updating = populate_range(
+  ghes_tests_updating_2026_min,
+  ghes_tests_updating_2026_max,
+  constructor,
+  is_tested
+)
+
+--- For using local specs from .assets/
+--- ghes 3.16 is the last spec update support
+local ghes_tests_local_min = 0
+local ghes_tests_local_max = 16
+M.ghes_versions_tests_local = populate_range(
+  ghes_tests_local_min,
+  ghes_tests_local_max,
+  constructor,
+  is_tested
+)
+
+local ghes_tests_local_2022_min = math.max(ghes_tests_local_min, ghes_2022_min)
+local ghes_tests_local_2022_max = math.min(ghes_tests_local_max, ghes_2022_max)
+--- Local spec versions that have the 2022 api variant
+M.ghes_2022_versions_tests_local = populate_range(
+  ghes_tests_local_2022_min,
+  ghes_tests_local_2022_max,
+  constructor,
+  is_tested
+)
+
+local ghes_tests_local_non_dated_min =
+  math.max(ghes_tests_local_min, ghes_non_dated_min)
+local ghes_tests_local_non_dated_max =
+  math.min(ghes_tests_local_max, ghes_non_dated_max)
+--- Local spec versions without any specific api date
+M.ghes_non_dated_versions_tests_local = populate_range(
+  ghes_tests_local_non_dated_min,
+  ghes_tests_local_non_dated_max,
+  constructor,
+  is_tested
+)
+
 return M
