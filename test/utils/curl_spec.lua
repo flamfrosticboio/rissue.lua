@@ -71,7 +71,7 @@ describe("curl", function()
     end)
 
     it("-X method passed", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         method = "POST",
       }
@@ -86,7 +86,7 @@ describe("curl", function()
     end)
 
     it("-X method uppercases the words", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         method = "get",
       }
@@ -101,7 +101,7 @@ describe("curl", function()
     end)
 
     it("-X method default to GET", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {}
 
       local res, err = curl.construct("example", opts)
@@ -114,7 +114,7 @@ describe("curl", function()
     end)
 
     it("-H headers passed", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         headers = { "a", "b", "c" },
       }
@@ -131,7 +131,7 @@ describe("curl", function()
     end)
 
     it("-A user_agent supported ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         user_agent = "hi",
       }
@@ -146,7 +146,7 @@ describe("curl", function()
     end)
 
     it("-u auth user pass ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         auth = { user = "hello", pass = "world" },
       }
@@ -161,7 +161,7 @@ describe("curl", function()
     end)
 
     it("-H auth token ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         auth = "mytokenbearer",
       }
@@ -176,7 +176,7 @@ describe("curl", function()
     end)
 
     it("--max-time timeout ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         timeout = 1.5, -- 1.5 seconds
       }
@@ -191,7 +191,7 @@ describe("curl", function()
     end)
 
     it("-L follow redirects ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         follow_redirects = true,
       }
@@ -205,7 +205,7 @@ describe("curl", function()
     end)
 
     it("--fail-with-body fail ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         fail_fast = true,
       }
@@ -219,7 +219,7 @@ describe("curl", function()
     end)
 
     it("--retry retry ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         retries = 10,
       }
@@ -234,7 +234,7 @@ describe("curl", function()
     end)
 
     it("--retry-delay retry_delay ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         retry_delay = 10,
       }
@@ -249,7 +249,7 @@ describe("curl", function()
     end)
 
     it("--data data normal ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "default",
         data = "hello",
@@ -265,7 +265,7 @@ describe("curl", function()
     end)
 
     it("--data-raw data literal ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "literal",
         data = "hello",
@@ -281,7 +281,7 @@ describe("curl", function()
     end)
 
     it("--data-binary data binary ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "binary",
         data = "hello",
@@ -297,7 +297,7 @@ describe("curl", function()
     end)
 
     it("--data-urlencode fails successfully on type(data) is string", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "urlencode",
         data = "hello=true&world=true",
@@ -314,7 +314,7 @@ describe("curl", function()
     end)
 
     it("--data-urlencode no -G on POST", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "urlencode",
         data = { name = "john", write = "false" },
@@ -333,7 +333,7 @@ describe("curl", function()
     end)
 
     it("--data-urlencode has -G on GET", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "urlencode",
         data = { name = "john", write = "false" },
@@ -352,7 +352,7 @@ describe("curl", function()
     end)
 
     it("--data-urlencode has -G on HEAD", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "urlencode",
         data = { name = "john", write = "false" },
@@ -371,7 +371,7 @@ describe("curl", function()
     end)
 
     it("--form form fail on type(data) is a string", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "form",
         data = "hello",
@@ -394,7 +394,7 @@ describe("curl", function()
     end)
 
     it("--form form normal ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "form",
         data = { name = true, write = false },
@@ -411,7 +411,7 @@ describe("curl", function()
     end)
 
     it("--form-string form_string ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data_type = "form_string",
         data = { name = true, write = false },
@@ -428,7 +428,7 @@ describe("curl", function()
     end)
 
     it("--negotiate auth passed ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         auth = { pass = "", user = "", method = "negotiate" },
       }
@@ -443,7 +443,7 @@ describe("curl", function()
     end)
 
     it("--ntlm auth passed ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         auth = { pass = "", user = "", method = "ntlm" },
       }
@@ -458,7 +458,7 @@ describe("curl", function()
     end)
 
     it("--digest auth passed ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         auth = { pass = "", user = "", method = "digest" },
       }
@@ -473,7 +473,7 @@ describe("curl", function()
     end)
 
     it("--anyauth auth passed ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         auth = { pass = "", user = "", method = "anyauth" },
       }
@@ -488,7 +488,7 @@ describe("curl", function()
     end)
 
     it("-H accept header passed ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         accept = "application/json",
       }
@@ -503,7 +503,7 @@ describe("curl", function()
     end)
 
     it("raw args added", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         raw_args = { "--my-raw-arg", "--my-other-raw-arg" },
       }
@@ -518,7 +518,7 @@ describe("curl", function()
     end)
 
     it("-H content type header passed ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         content_type = "application/json",
       }
@@ -533,7 +533,7 @@ describe("curl", function()
     end)
 
     it("--dump-header include_result_headers passed ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         include_result_headers = true,
       }
@@ -550,7 +550,7 @@ describe("curl", function()
     end)
 
     it("--retry-all-errors retry_when is all ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         retry_when = "all",
       }
@@ -564,7 +564,7 @@ describe("curl", function()
     end)
 
     it("--retry-connrefused retry_when is connrefused ok", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         retry_when = "connrefused",
       }
@@ -578,7 +578,7 @@ describe("curl", function()
     end)
 
     it("retry_when = false disables retry flags", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         retry_when = false,
       }
@@ -593,7 +593,7 @@ describe("curl", function()
     end)
 
     it("retry_when defaults to all", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {}
 
       local res, err = curl.construct("example", opts)
@@ -605,7 +605,7 @@ describe("curl", function()
     end)
 
     it("fail on bad opts.data_type", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data = "",
         ---@diagnostic disable-next-line: assign-type-mismatch
@@ -623,7 +623,7 @@ describe("curl", function()
     end)
 
     it("fail on bad opts.data", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         ---@diagnostic disable-next-line: assign-type-mismatch
         data = 2,
@@ -637,7 +637,7 @@ describe("curl", function()
     end)
 
     it("fail on bad opts.data keys", function()
-      ---@type rissue.utils.curl.Opts
+      ---@type rissue.curl.Opts
       local opts = {
         data = {
           [2] = "water",
@@ -665,7 +665,10 @@ describe("curl", function()
 
       assert.is_not_nil(err, "did not fail successfully")
       assert.is_nil(result, "Expected result to be nil when error is not nil")
-      assert.same("Expecting opts.data to be string or table, got number", err)
+      assert.same({
+        exitcode = -1,
+        msg = "Expecting opts.data to be string or table, got number",
+      } --[[@as rissue.curl.Error]], err)
     end)
   end)
 

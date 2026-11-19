@@ -45,7 +45,7 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param url string
----@param opts rissue.utils.curl.Opts
+---@param opts rissue.curl.Opts
 ---@return string? content
 local function check(async, url, opts)
   local result, err = curl.request(async, url, opts)
@@ -69,7 +69,7 @@ function M.main(async, info, token, opts)
 
   local base = info.curl_protocol .. "://" .. info.domain
 
-  ---@type rissue.utils.curl.Opts
+  ---@type rissue.curl.Opts
   local settings = {
     auth = token,
     accept = "application/json",

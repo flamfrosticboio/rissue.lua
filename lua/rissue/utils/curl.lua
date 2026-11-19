@@ -107,7 +107,7 @@ end
 
 -- Construct the command line arguments based on curl opts.
 ---@param url string
----@param opts rissue.utils.curl.Opts
+---@param opts rissue.curl.Opts
 ---@return string[]? args
 ---@return string? err_msg
 function M.construct(url, opts)
@@ -274,33 +274,17 @@ local function parse_received_headers(raw)
   return res
 end
 
---- Run curl with specified args.
----@async
----@param async rissue.Async
 ---@param args string[]
----@param cwd? string
----@param env? string[]|table<string,string?>
----@return rissue.utils.curl.Result? result
----@return string? error
-function M.raw(async, args, cwd, env)
-  local result, err = process.run_async(async, {
-    cmd = "curl",
-    args = args,
-    cwd = cwd,
-    env = env,
-  })
-
-  -- might cause bugs
-  if not result then
-    return nil, err or "unhandled error"
-  end
-
-  local headers = nil
+---@param result rissue.utils.process.Result
+---@return table<string, string>? headers
+---@return string? err_msg
+local function handle_headers_file(args, result)
+  -- our only detection of dump header is passed
   local _, idx = table_op.find(args, "--dump-header")
   local headers_file = idx and idx > 0 and args[idx + 1] or nil
 
   if idx and idx > 0 and not headers_file then
-    return nil, "[Bug]: Passed --dump-header without filename"
+    return nil, "Passed --dump-header without filename (bug)"
   end
 
   if headers_file then
@@ -316,28 +300,108 @@ function M.raw(async, args, cwd, env)
     -- Always delete the tmpfile, even if curl failed
     local delete_ok, delete_err = file.delete_file(headers_file)
     if not delete_ok then
-      -- just do nothing for a while since its not a critical bug
       log.warn(
         "Failed to delete tmpfile when --dump-header was used: "
           .. (delete_err or "unhandled error")
       )
     end
 
-    if succeeded then
-      if not output then
-        return nil,
-          read_file_err
-            or "unhandled error during tempfile read with --dump-header"
-      end
-      headers = parse_received_headers(output)
+    if succeeded and not output then
+      return nil,
+        read_file_err
+          or "unhandled error during tempfile read with --dump-header"
+    end
+
+    if output then
+      return parse_received_headers(output)
     end
   end
+end
 
-  ---@type rissue.utils.curl.Result
+---Collapse consecutive duplicate lines: "a\na\na\nb" -> "a (3x)\nb"
+---@param text string
+---@return string
+local function collapse_repeated_lines(text)
+  local result = {}
+  local current, times = nil, 0
+
+  local function flush()
+    if current == nil then
+      return
+    end
+    result[#result + 1] = times > 1
+        and string.format("%s (%dx)", current, times)
+      or current
+  end
+
+  -- walk each line
+  for line in (text .. "\n"):gmatch("(.-)\r?\n") do
+    if line == current then
+      times = times + 1
+    else
+      flush()
+      current, times = line, 1
+    end
+  end
+  flush() -- write the last group
+
+  return table.concat(result, "\n")
+end
+
+--- Run curl with specified args.
+---@async
+---@param async rissue.Async
+---@param args string[]
+---@param cwd? string
+---@param env? string[]|table<string,string?>
+---@return rissue.curl.Result? result
+---@return rissue.curl.Error? error
+function M.raw(async, args, cwd, env)
+  local result, err = process.run_async(async, {
+    cmd = "curl",
+    args = args,
+    cwd = cwd,
+    env = env,
+  })
+
+  if not result then
+    ---@type rissue.curl.Error
+    local err_msg = {
+      exitcode = -1,
+      msg = err or "unknown error",
+    }
+    return nil, err_msg
+  end
+
+  local stdout = strings.trim(result.stdout)
+  local stderr = strings.trim(result.stderr)
+
+  --- This parses and removes the dangling headers file
+  --- So this MUST be AFTER checking result is nil
+  local headers, header_parse_err = handle_headers_file(args, result)
+  if header_parse_err then
+    ---@type rissue.curl.Error
+    local err_msg = {
+      exitcode = -1,
+      msg = header_parse_err,
+    }
+    return nil, err_msg
+  end
+
+  if result.return_code ~= 0 then
+    ---@type rissue.curl.Error
+    local err_msg = {
+      exitcode = result.return_code,
+      msg = stderr ~= "" and collapse_repeated_lines(stderr)
+        or ("curl failed (exit code %d)"):format(result.return_code),
+      server_msg = stdout ~= "" and stdout or nil,
+    }
+    return nil, err_msg
+  end
+
+  ---@type rissue.curl.Result
   local res = {
-    exitcode = result.return_code,
-    content = result.stdout,
-    err = result.stderr,
+    content = stdout,
     headers = headers,
   }
 
@@ -350,14 +414,19 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param url string
----@param opts rissue.utils.curl.Opts?
----@return rissue.utils.curl.Result? result
----@return string? error
+---@param opts rissue.curl.Opts?
+---@return rissue.curl.Result? result
+---@return rissue.curl.Error? error
 function M.request(async, url, opts)
   opts = opts or {}
-  local args, err_msg = M.construct(url, opts)
+  local args, err = M.construct(url, opts)
   if not args then
-    return nil, err_msg or "unknown error"
+    ---@type rissue.curl.Error
+    local err_msg = {
+      exitcode = -1,
+      msg = err or "unknown error",
+    }
+    return nil, err_msg
   end
   return M.raw(async, args, opts.cwd, opts.env)
 end
@@ -367,14 +436,13 @@ end
 ---@param async rissue.Async
 ---@param url string
 ---@param data string | table<string, string?>
----@param opts rissue.utils.curl.Opts?
----@return rissue.utils.curl.Result? result
----@return string? error
+---@param opts rissue.curl.Opts?
+---@return rissue.curl.Result? result
+---@return rissue.curl.Error? error
 function M.post(async, url, data, opts)
   opts = opts or {}
   opts.method = "POST"
   opts.data = data
-
   return M.request(async, url, opts)
 end
 

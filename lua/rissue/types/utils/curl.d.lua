@@ -15,15 +15,20 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@meta
+
 --- Result after curl is finished
----@class rissue.utils.curl.Result
----@field exitcode integer
----@field content string stdout
----@field err string stderr
+---@class rissue.curl.Result
+---@field content string Results from curl
 --- Available if --dump-header was passed
 ---@field headers? table<string, string>
 
----@class rissue.utils.curl.Opts
+---@class rissue.curl.Error
+---@field exitcode integer -1 means its an internal error not associated with curl
+---@field msg string Taken from stderr
+---@field server_msg string? Taken from stdout
+
+---@class rissue.curl.Opts
 --- Http/s method.
 ---
 --- Default: GET

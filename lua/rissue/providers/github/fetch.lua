@@ -86,8 +86,8 @@ end
 --- Warning: raises errors
 ---@async
 ---@param async rissue.Async
----@param opts rissue.utils.curl.Opts
----@return rissue.utils.curl.Result? result
+---@param opts rissue.curl.Opts
+---@return rissue.curl.Result? result
 ---@return string? error
 local function try_fetch_query(async, url, param, opts)
   opts.data_type = "urlencode"
@@ -126,7 +126,7 @@ end
 
 ---@class __rissue.Github.fetch_page.Opts
 ---@field query rissue.Query
----@field curl_opts rissue.utils.curl.Opts
+---@field curl_opts rissue.curl.Opts
 
 ---@class __rissue.Github.fetch_page.Result
 ---@field contents __rissue.Github.unmap.Result
@@ -223,7 +223,7 @@ function M.try_fetch(async, info, queries, opts, cb)
       .. info.additional_info.api_version
   end
 
-  ---@type rissue.utils.curl.Opts
+  ---@type rissue.curl.Opts
   local curl_opts_reusable = {
     headers = headers,
     accept = ("application/vnd.github.%s+json"):format(
