@@ -140,24 +140,46 @@
 - [utils/curl]:
   - Add new options: `outfile` and `retry_when`
 
-  The `outfile` option is a `-o <file>` in the hood, but when using this option,
-  it makes the return's contents to empty string because the file is not
-  outputted to stdout.
+    The `outfile` option is a `-o <file>` in the hood, but when using this
+    option, it makes the return's contents to empty string because the file is
+    not outputted to stdout.
 
-  Notes: it also passes `--create-dirs` and `--remove-on-error` flags when used.
+    Notes: it also passes `--create-dirs` and `--remove-on-error` flags when
+    used.
 
-  The `retry_when` option is built-in to curl where it attempts to retry when if
-  fails to fetch. The retries are controlled by `retries` and `retry_delay`
-  option.
+    The `retry_when` option is built-in to curl where it attempts to retry when
+    if fails to fetch. The retries are controlled by `retries` and `retry_delay`
+    option.
 
-  Possible values of `retry_when` are: `false` | `"all"` | `"connrefused"`
+    Possible values of `retry_when` are: `false` | `"all"` | `"connrefused"`
 
-  When it is `false`, it will not retry on any error.
+    When it is `false`, it will not retry on any error.
 
-  When it is `all`, it will retry on every error, including `opts.fail_fast`
+    When it is `all`, it will retry on every error, including `opts.fail_fast`
 
-  When it is `connrefused`, it will retry only when the connection refused to
-  connect.
+    When it is `connrefused`, it will retry only when the connection refused to
+    connect.
+
+  - Add `rissue.curl.Error` with `exitcode`, `msg` (from stderr) and
+    `server_msg` (from stdout).
+
+  - Use `exitcode = -1` for internal errors not coming from curl, including
+    `--dump-header` file errors.
+
+  - Collapse consecutive duplicate stderr lines in `msg`.
+
+    ```txt
+    --- previously
+    a
+    a
+    a
+    b
+    --- now
+    a (3x)
+    b
+    ```
+
+  - Trim surrounding `whitespaces` from stdout and stderr with `strings.trim`.
 
 - [utils/assert_op]: Refactor `check_structure` (now called `table_expects`) to
   use matchers for support for literals and more complicated checking.
@@ -203,6 +225,9 @@
 
 - [config]: change endpoint_shortcuts to a list, so multiple shortcuts can point
   to the same git provider.
+
+- [utils/curl]:
+  - Set `server_msg` to `nil` when stdout is empty instead of `""`.
 
 **Bug Fixes:**
 
@@ -261,6 +286,31 @@
   }
   assert_op.check_structure(obj_to_compare, structure, name)
   ```
+
+- [utils/curl]:
+  - Rename `rissue.utils.curl.Result` to `rissue.curl.Result`.
+
+  - Remove `exitcode` and `err` fields from `rissue.curl.Result`. Errors are now
+    reported through the new `rissue.curl.Error`.
+
+  - `raw`, `request` and `post` now return `rissue.curl.Error` instead of a
+    string on error. A nonzero curl exit code now returns an error instead of a
+    result.
+
+    ```lua
+    --- previously
+    local res, err = curl.request(async, url, opts)
+    if not res then
+      log.error(err) -- err is a string
+    elseif res.exitcode ~= 0 then
+      log.error(res.err)
+    end
+    --- now
+    local res, err = curl.request(async, url, opts)
+    if not res then
+      log.error(err.msg) -- err is `rissue.curl.Error`
+    end
+    ```
 
 - [config]:
   - `config.endpoint_shortcuts` now takes a list of `rissue.EndpointShortcut`
