@@ -36,18 +36,18 @@ end
 ---@param async rissue.Async
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
----@return boolean
----@return string? result
+---@return boolean found
+---@return string? content
 local function check(async, url, opts)
   local result, err = curl.request(async, url, opts)
   if not result then
     log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
+    return false, nil
   end
 
-  return not not (result and result.content:match(
-    "verifiable_password_authentication"
-  )),
-    result and result.content
+  local content = result.content
+  return content:find("verifiable_password_authentication", 1, true) ~= nil,
+    content
 end
 
 ---@async
