@@ -76,7 +76,8 @@ local function run_mock_server(filepath, port_offset, id, callback)
       M.host,
       "--port",
       tostring(port),
-      "--verboseLevel=trace",
+      log.level_enabled(log.levels.trace) and "--verboseLevel=trace"
+        or "--verboseLevel=warn",
     },
   })
 
@@ -94,21 +95,15 @@ local function run_mock_server(filepath, port_offset, id, callback)
     end
   end)
 
-  if log.level_enabled(log.levels.trace) then
-    ---@type rissue.utils.Process.last_output.Opts
-    local opts = { newline_on_multiline_output = true, strip_newlines = true }
-    p:register_event("on_stdout", function()
-      print(
-        utils.ccolor("| " .. p:get_last_stdout(opts):gsub("\n", "\n| "), id)
-      )
-    end)
+  ---@type rissue.utils.Process.last_output.Opts
+  local opts = { newline_on_multiline_output = true, strip_newlines = true }
+  p:register_event("on_stdout", function()
+    print(utils.ccolor("| " .. p:get_last_stdout(opts):gsub("\n", "\n| "), id))
+  end)
 
-    p:register_event("on_stderr", function()
-      print(
-        utils.ccolor("@ " .. p:get_last_stderr(opts):gsub("\n", "\n@ "), id)
-      )
-    end)
-  end
+  p:register_event("on_stderr", function()
+    print(utils.ccolor("@ " .. p:get_last_stderr(opts):gsub("\n", "\n@ "), id))
+  end)
 
   local function close_func()
     local is_closed = false
