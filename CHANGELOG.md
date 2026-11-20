@@ -8,6 +8,9 @@
 
   - Refactored all async related code in rissue to use the new async model.
 
+- Check curl version in the background during `setup` and log a warning when
+  curl cannot be run or is incompatible.
+
 - [utils/process]:
   - Add auto enabling on logging on process's stdout and stderr when `trace` is
     enabled in log level.
@@ -102,6 +105,38 @@
     --- table contains { 1, 2, 3 }
     ```
 
+  - Add `table_op.tbl_keys()` to list the keys of a table.
+
+- [utils/curl]:
+  - Add `is_version_compatible` to check that installed curl is at least 7.83.0
+    and below 9.0.0.
+
+  - Add `rissue.curl.Error` with `exitcode`, `msg` (from stderr) and
+    `server_msg` (from stdout). `server_msg` is `nil` when stdout is empty.
+
+  - Use `exitcode = -1` for internal errors not coming from curl, including
+    `--dump-header` file errors.
+  - Fall back to "curl failed (exit code N)" in `msg` when stderr is empty.
+  - Collapse consecutive duplicate stderr lines in `msg`.
+
+  ```txt
+  --- previously
+  a
+  a
+  a
+  b
+  --- now
+  a (3x)
+  b
+  ```
+
+  - Trim surrounding whitespace from stdout and stderr.
+  - Validate `opts.data_type` in `construct` and list valid values in the error
+    message.
+  - Validate `opts.data` in `construct`: it must be a string or table, and table
+    keys must be strings.
+  - Accept `nil` `opts` in `request`.
+
 - [utils/curl]:
   - Add new options: `outfile` and `retry_when`
 
@@ -133,6 +168,8 @@
   - `strings.trim()`: Trims `whitespaces` fast.
   - `strings.trim_newlines()`: Trims `newlines` fast.
   - `strings.truncate()`: Truncates a string safely on utf-8
+  - `strings.represent_value()`: Wraps strings in double quotes and uses
+    `tostring` for other values.
 
 **Changes:**
 
@@ -177,6 +214,8 @@
   - Fix tmpfile not deleted on curl error when using
     `opts.include_result_headers`.
 
+  - Reject string `data` for `form_string` instead of stale `form_literal`.
+
 - [utils/process]: Fixed running status is still true when process has exited
   during the `on_exit` event.
 
@@ -185,6 +224,10 @@
 
 - [provider]: scope opts properly by provider name
   [#76](https://github.com/flamfrosticboio/rissue.lua/issues/76)
+
+- [utils/process]:
+  - Read stdout and stderr pipes until EOF, then force-close them after a 100ms
+    grace period, so the last output is no longer lost when the process exits.
 
 **Breaking Changes:**
 
@@ -236,6 +279,41 @@
   - `rissue.utils.CmdResult` -> `rissue.utils.process.Result`
   - `rissue.utils.CommandOpts` -> `rissue.utils.process.Opts`
   - `rissue.utils.run.Opts` -> `rissue.utils.run_process.Opts`
+
+- [utils/curl]:
+  - Rename `rissue.utils.curl.Opts`, `Result`, `Method`, `Formats`, `DataType`
+    and `AuthMethod` to `rissue.curl.*`.
+  - Remove `exitcode` and `err` fields from `rissue.curl.Result`. `content` now
+    holds trimmed stdout.
+  - `raw`, `request` and `post` now return `rissue.curl.Error` instead of a
+    string on error. A nonzero curl exit code now returns an error instead of a
+    result.
+
+    ```lua
+    --- previously
+    local res, err = curl.request(async, url, opts)
+    if not res then
+      log.error(err) -- err is a string
+    elseif res.exitcode ~= 0 then
+      log.error(res.err)
+    end
+    --- now
+    local res, err = curl.request(async, url, opts)
+    if not res then
+      log.error(err.msg) -- err is `rissue.curl.Error`
+    end
+    ```
+
+- `construct` now returns `nil, err_msg` on invalid options instead of raising
+  with `error()`. `request` wraps that message in a `rissue.curl.Error` with
+  `exitcode = -1`.
+
+  ```lua
+  --- previously
+  local ok, args = pcall(curl.construct, url, opts)
+  --- now
+  local args, err = curl.construct(url, opts)
+  ```
 
 ## v0.2.1
 
