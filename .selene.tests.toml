@@ -1,4 +1,4 @@
-std = "lua51+.selene/busted+.selene/luajit"
+std = "lua51+.selene/busted+.selene/luajit+.selene/utf8"
 exclude = [".types/**", "lua/**", "test/others/**", "lua/rissue/types/*.d.lua"]
 
 [rules]
