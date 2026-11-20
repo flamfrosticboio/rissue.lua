@@ -25,6 +25,8 @@ local uv = require("luv") ---@type uv
 ---@diagnostic disable-next-line: deprecated
 local unpack = unpack or table.unpack
 
+local FLUSH_GRACE_MS = 100
+
 ---@alias rissue.utils.process.Event
 ---| "on_exit" When the entire process is finished
 ---| "on_stdout" When the process writes to stdout
@@ -65,6 +67,16 @@ local wait_co_err = nil ---@type string?
 local function run_all_events(events)
   for _, event in ipairs(events) do
     event()
+  end
+end
+
+---@param timer uv.uv_timer_t?
+local function try_stop_timer(timer)
+  if timer then
+    if not timer:is_closing() then
+      timer:stop()
+      timer:close()
+    end
   end
 end
 
@@ -176,6 +188,13 @@ local function read_pipe(pipe, buffer, on_close, on_read)
   end)
 end
 
+local function force_close_pipe(pipe, on_close)
+  if pipe and not pipe:is_closing() then
+    pipe:read_stop()
+    close_handle(pipe, on_close)
+  end
+end
+
 --- Runs the process
 ---@return string? err_msg
 function Process:run()
@@ -214,16 +233,29 @@ function Process:run()
   }
 
   local handle, err = uv.spawn(self._opts.cmd, options, function(code)
-    -- for now we don't handle signal code
     self._exit_code = code
     log.trace("Program exited with code " .. tostring(code))
+
     close_handle(self._handle, function()
       self._finished.handle = true
       self:try_exit()
     end)
 
-    close_handle(pipe_stdout, on_stdout_pipe_close)
-    close_handle(pipe_stderr, on_stderr_pipe_close)
+    -- Pipes normally close themselves at EOF (see read_pipe). If a grandchild
+    -- inherited the write end, EOF never comes, so force-close after a grace period.
+    local timer = uv.new_timer()
+    if not timer then
+      -- can't make a timer: fall back to closing immediately
+      force_close_pipe(pipe_stdout, on_stdout_pipe_close)
+      force_close_pipe(pipe_stderr, on_stderr_pipe_close)
+      return
+    end
+
+    timer:start(FLUSH_GRACE_MS, 0, function()
+      try_stop_timer(timer)
+      force_close_pipe(pipe_stdout, on_stdout_pipe_close)
+      force_close_pipe(pipe_stderr, on_stderr_pipe_close)
+    end)
   end)
 
   if not handle then
@@ -475,16 +507,6 @@ function M.run_async(async, command_opts, opts)
     stdout = p:get_stdout(),
     stderr = p:get_stderr(),
   } --[[@as rissue.utils.process.Result]]
-end
-
----@param timer uv.uv_timer_t?
-local function try_stop_timer(timer)
-  if timer then
-    if not timer:is_closing() then
-      timer:stop()
-      timer:close()
-    end
-  end
 end
 
 --- Delays the current async thread by number of milliseconds
