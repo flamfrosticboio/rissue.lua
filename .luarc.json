@@ -9,9 +9,18 @@
         "ignoreDir": ["test"]
     },
     "diagnostics": {
-        "neededFileStatus": {
-            "await-in-sync": "Any",
-            "not-yieldable": "Any"
+        "groupFileStatus": {
+            "strict": "Any",
+            "strong": "Any",
+            "type-check": "Any",
+            "luadoc": "Any",
+            "unused": "Any",
+            "global": "Any"
+        },
+        "groupSeverity": {
+            "strict": "Error",
+            "strong": "Error",
+            "type-check": "Error"
         }
     }
 }
