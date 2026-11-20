@@ -54,7 +54,7 @@ end
 local function check_if_not_present(list, key)
   assert.is_nil(
     list_find(list, key),
-    ("Cannot find %s in the command line arguments"):format(key)
+    ("Found %s in the command line arguments where it shouldn't"):format(key)
   )
 end
 
@@ -62,7 +62,11 @@ describe("curl", function()
   describe("construct", function()
     it("url ok", function()
       local url = "https://example.com"
-      local res = curl.construct(url, {})
+      local res, err = curl.construct(url, {})
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
+
       assert(list_find(res, url), "Cannot find url on the args list")
     end)
 
@@ -72,9 +76,41 @@ describe("curl", function()
         method = "POST",
       }
 
-      local res = curl.construct("example", opts)
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
+
       check_if_present(res, "-X")
       check_if_present(res, "POST")
+    end)
+
+    it("-X method uppercases the words", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        method = "get",
+      }
+
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
+
+      check_if_present(res, "-X")
+      check_if_present(res, "GET")
+    end)
+
+    it("-X method default to GET", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {}
+
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
+
+      check_if_present(res, "-X")
+      check_if_present(res, "GET")
     end)
 
     it("-H headers passed", function()
@@ -83,7 +119,10 @@ describe("curl", function()
         headers = { "a", "b", "c" },
       }
 
-      local res = curl.construct("example", opts)
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       assert.equal(list_count(res, "-H"), 3, "-H count mismatch")
       check_if_present(res, "a")
@@ -97,7 +136,10 @@ describe("curl", function()
         user_agent = "hi",
       }
 
-      local res = curl.construct("example", opts)
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "-A")
       check_if_present(res, "hi")
@@ -109,8 +151,10 @@ describe("curl", function()
         auth = { user = "hello", pass = "world" },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "-u")
       check_if_present(res, "hello:world")
@@ -122,8 +166,10 @@ describe("curl", function()
         auth = "mytokenbearer",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "-H")
       check_if_present(res, "Authorization: Bearer mytokenbearer")
@@ -135,8 +181,10 @@ describe("curl", function()
         timeout = 1.5, -- 1.5 seconds
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--max-time")
       check_if_present(res, "1.5")
@@ -148,8 +196,10 @@ describe("curl", function()
         follow_redirects = true,
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "-L")
     end)
@@ -160,8 +210,10 @@ describe("curl", function()
         fail_fast = true,
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--fail-with-body")
     end)
@@ -172,21 +224,25 @@ describe("curl", function()
         retries = 10,
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--retry")
       check_if_present(res, "10")
     end)
 
-    it("--retry retry ok", function()
+    it("--retry-delay retry_delay ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
         retry_delay = 10,
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--retry-delay")
       check_if_present(res, "10")
@@ -195,13 +251,14 @@ describe("curl", function()
     it("--data data normal ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = false,
         data_type = "default",
         data = "hello",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--data")
       check_if_present(res, "hello")
@@ -210,13 +267,14 @@ describe("curl", function()
     it("--data-raw data literal ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = false,
         data_type = "literal",
         data = "hello",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--data-raw")
       check_if_present(res, "hello")
@@ -225,13 +283,14 @@ describe("curl", function()
     it("--data-binary data binary ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = false,
         data_type = "binary",
         data = "hello",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--data-binary")
       check_if_present(res, "hello")
@@ -240,83 +299,75 @@ describe("curl", function()
     it("--data-urlencode fails successfully on type(data) is string", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = false,
         data_type = "urlencode",
         data = "hello=true&world=true",
         method = "GET",
       }
 
-      local res = pcall(curl.construct, "example", opts)
-      assert.is_false(res, "Did not successfully fail")
+      local res, err = curl.construct("example", opts)
+
+      assert.same(
+        "Cannot use option 'urlencode' on pure string. Pass a table instead",
+        err
+      )
+      assert.is_nil(res, "result is not empty when error raised")
     end)
 
     it("--data-urlencode no -G on POST", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = false,
         data_type = "urlencode",
         data = { name = "john", write = "false" },
         method = "POST",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--data-urlencode")
       check_if_present(res, "name=john")
       check_if_present(res, "write=false")
+      check_if_not_present(res, "-G")
     end)
 
     it("--data-urlencode has -G on GET", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = false,
         data_type = "urlencode",
         data = { name = "john", write = "false" },
         method = "GET",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--data-urlencode")
       check_if_present(res, "name=john")
       check_if_present(res, "write=false")
-    end)
-
-    it("--data-urlencode data urlencode ok", function()
-      ---@type rissue.utils.curl.Opts
-      local opts = {
-        is_form = false,
-        data_type = "urlencode",
-        data = { name = "john", write = "false" },
-        method = "GET",
-      }
-
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
-
-      check_if_present(res, "--data-urlencode")
       check_if_present(res, "-G")
-      check_if_present(res, "name=john")
-      check_if_present(res, "write=false")
     end)
 
     it("--data-urlencode has -G on HEAD", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
-        is_form = false,
         data_type = "urlencode",
         data = { name = "john", write = "false" },
         method = "HEAD",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(err, "construct returned an error: " .. tostring(err))
+      assert(res, "construct returned no result and no error")
 
       check_if_present(res, "--data-urlencode")
       check_if_present(res, "name=john")
       check_if_present(res, "write=false")
+      check_if_present(res, "-G")
     end)
 
     it("--form form fail on type(data) is a string", function()
@@ -326,11 +377,20 @@ describe("curl", function()
         data = "hello",
       }
 
-      local res = pcall(function()
-        local _ = curl.construct("example", opts)
-      end, "Did not fail successfully")
-      assert.is_false(res)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert.is_nil(res, "result is not empty when error raised")
+      assert.same("Cannot use 'form' if the data is pure string", err)
+    end)
+
+    it("--form-string fails on type(data) is a string", function()
+      local res, err = curl.construct("example", {
+        data_type = "form_string",
+        data = "hello",
+      })
+
+      assert.is_nil(res, "result is not empty when error raised")
+      assert.same("Cannot use 'form_string' if the data is pure string", err)
     end)
 
     it("--form form normal ok", function()
@@ -340,23 +400,27 @@ describe("curl", function()
         data = { name = true, write = false },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       assert.equal(2, list_count(res, "--form"))
       check_if_present(res, "name=true")
       check_if_present(res, "write=false")
     end)
 
-    it("--form-string form_literal ok", function()
+    it("--form-string form_string ok", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
         data_type = "form_string",
         data = { name = true, write = false },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       assert.equal(2, list_count(res, "--form-string"))
       check_if_present(res, "name=true")
@@ -369,8 +433,10 @@ describe("curl", function()
         auth = { pass = "", user = "", method = "negotiate" },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--negotiate")
       check_if_present(res, ":")
@@ -382,8 +448,10 @@ describe("curl", function()
         auth = { pass = "", user = "", method = "ntlm" },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--ntlm")
       check_if_present(res, ":")
@@ -395,8 +463,10 @@ describe("curl", function()
         auth = { pass = "", user = "", method = "digest" },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--digest")
       check_if_present(res, ":")
@@ -408,8 +478,10 @@ describe("curl", function()
         auth = { pass = "", user = "", method = "anyauth" },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--anyauth")
       check_if_present(res, ":")
@@ -421,8 +493,10 @@ describe("curl", function()
         accept = "application/json",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "-H")
       check_if_present(res, "Accept: application/json")
@@ -434,8 +508,10 @@ describe("curl", function()
         raw_args = { "--my-raw-arg", "--my-other-raw-arg" },
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--my-raw-arg")
       check_if_present(res, "--my-other-raw-arg")
@@ -447,8 +523,10 @@ describe("curl", function()
         content_type = "application/json",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "-H")
       check_if_present(res, "Content-Type: application/json")
@@ -460,8 +538,10 @@ describe("curl", function()
         include_result_headers = true,
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--dump-header")
       local idx = list_find(res, "--dump-header")
@@ -475,8 +555,10 @@ describe("curl", function()
         retry_when = "all",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--retry-all-errors")
     end)
@@ -487,23 +569,103 @@ describe("curl", function()
         retry_when = "connrefused",
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_present(res, "--retry-connrefused")
     end)
 
-    it("nil retry_when is all ok", function()
+    it("retry_when = false disables retry flags", function()
       ---@type rissue.utils.curl.Opts
       local opts = {
         retry_when = false,
       }
 
-      local res = curl.construct("example", opts)
-      -- print(require("inspect")(res))
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
 
       check_if_not_present(res, "--retry-all-errors")
       check_if_not_present(res, "--retry-connrefused")
+    end)
+
+    it("retry_when defaults to all", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {}
+
+      local res, err = curl.construct("example", opts)
+
+      assert(not err, err)
+      assert(res, "error not defined when res is nil")
+
+      check_if_present(res, "--retry-all-errors")
+    end)
+
+    it("fail on bad opts.data_type", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        data = "",
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        data_type = "water",
+      }
+
+      local res, err = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      assert.is_nil(res, "result is not empty when error raised")
+      assert.same(
+        'Expecting any of [binary, default, form, form_string, literal, urlencode], got "water"',
+        err
+      )
+    end)
+
+    it("fail on bad opts.data", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        data = 2,
+      }
+
+      local res, err = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      assert.is_nil(res, "result is not empty when error raised")
+      assert.same("Expecting opts.data to be string or table, got number", err)
+    end)
+
+    it("fail on bad opts.data keys", function()
+      ---@type rissue.utils.curl.Opts
+      local opts = {
+        data = {
+          [2] = "water",
+        },
+      }
+
+      local res, err = curl.construct("example", opts)
+      -- print(require("inspect")(res))
+
+      assert.is_nil(res, "result is not empty when error raised")
+      assert.same(
+        "Expecting all keys on data to be string, got 2 (number)",
+        err
+      )
+    end)
+  end)
+
+  describe("request", function()
+    it("Fail when construct fails", function()
+      ---@diagnostic disable-next-line: missing-fields, await-in-sync
+      local result, err = curl.request({} --[[@as rissue.Async]], "someurl", {
+        ---@diagnostic disable-next-line: assign-type-mismatch
+        data = 25,
+      })
+
+      assert.is_not_nil(err, "did not fail successfully")
+      assert.is_nil(result, "Expected result to be nil when error is not nil")
+      assert.same("Expecting opts.data to be string or table, got number", err)
     end)
   end)
 

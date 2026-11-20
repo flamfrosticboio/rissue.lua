@@ -41,6 +41,14 @@ local _data_type_arg = {
   form_string = "--form-string",
 }
 
+local function valid_data_types()
+  local keys = table_op.tbl_keys(_data_type_arg)
+  table.sort(keys) -- stable order, so tests don't flake
+  return table.concat(keys, ", ")
+end
+
+local type_arg_repr = valid_data_types()
+
 --- Checks if the installed curl is compatible (7.83.0 <= curl < 9.0.0)
 ---
 --- For this version, this rejects curl that are older than 7.83.0, and curl
@@ -100,26 +108,17 @@ end
 -- Construct the command line arguments based on curl opts.
 ---@param url string
 ---@param opts rissue.utils.curl.Opts
----@return string[] args
+---@return string[]? args
+---@return string? err_msg
 function M.construct(url, opts)
-  --- Apply default options
-  opts = opts or {}
-  opts.method = (opts.method or "GET"):upper()
-  opts.retries = opts.retries or 3
-  opts.retry_delay = opts.retry_delay or 1
-  opts.data_type = opts.data_type or "default"
+  local args = {} ---@type string[]
 
-  if opts.retry_when == nil then
-    opts.retry_when = "all"
-  end
-
-  local args = {}
+  local method = (opts.method or "GET"):upper()
 
   args[#args + 1] = url
   args[#args + 1] = "-sS"
   args[#args + 1] = "-X"
-  args[#args + 1] = opts.method
-
+  args[#args + 1] = method
   if opts.accept then
     args[#args + 1] = "-H"
     args[#args + 1] = "Accept: " .. opts.accept
@@ -169,48 +168,66 @@ function M.construct(url, opts)
   end
 
   args[#args + 1] = "--retry"
-  args[#args + 1] = tostring(opts.retries)
+  args[#args + 1] = tostring(opts.retries or 3)
   args[#args + 1] = "--retry-delay"
-  args[#args + 1] = tostring(opts.retry_delay)
+  args[#args + 1] = tostring(opts.retry_delay or 1)
 
   if opts.data then
     local d = opts.data
-    local d_type = opts.data_type
+    local dt = type(d)
+    ---@type rissue.curl.DataType
+    local data_type = opts.data_type or "default"
+
+    local arg_key = _data_type_arg[data_type] ---@type string?
+    if not arg_key then
+      return nil,
+        string.format(
+          "Expecting any of [%s], got %s",
+          type_arg_repr,
+          strings.represent_value(data_type)
+        )
+    end
 
     if opts.form_escape then
       args[#args + 1] = "--form-escape"
     end
 
-    if
-      opts.data_type == "urlencode"
-      and (opts.method == "GET" or opts.method == "HEAD")
-    then
-      --- Make urlencode be placed on url when method=GET is used
+    --- Make urlencode be placed on url when method=GET|HEAD is used
+    --- since we cannot place it on the body
+    if data_type == "urlencode" and (method == "GET" or method == "HEAD") then
       args[#args + 1] = "-G"
     end
 
-    if type(d) == "table" then
+    if dt == "table" then
       --- assuming its a table
       for k, v in pairs(d) do
+        local kt = type(k)
+        if kt ~= "string" then
+          return nil,
+            string.format(
+              "Expecting all keys on data to be string, got %s (%s)",
+              strings.represent_value(k),
+              kt
+            )
+        end
         local line = k .. "=" .. tostring(v)
-        local arg_key = _data_type_arg[d_type]
         args[#args + 1] = arg_key
         args[#args + 1] = line
       end
-    else
-      if opts.data_type == "form" then
-        error("Cannot use 'form' if the data is pure string")
-      elseif opts.data_type == "form_literal" then
-        error("Cannot use 'form_literal' if the data is pure string")
-      elseif opts.data_type == "urlencode" then
-        error(
+    elseif dt == "string" then
+      if data_type == "form" then
+        return nil, "Cannot use 'form' if the data is pure string"
+      elseif data_type == "form_string" then
+        return nil, "Cannot use 'form_string' if the data is pure string"
+      elseif data_type == "urlencode" then
+        return nil,
           "Cannot use option 'urlencode' on pure string. Pass a table instead"
-        )
       end
 
-      local arg_key = _data_type_arg[d_type]
       args[#args + 1] = arg_key
       args[#args + 1] = d
+    else
+      return nil, "Expecting opts.data to be string or table, got " .. dt
     end
   end
 
@@ -226,7 +243,7 @@ function M.construct(url, opts)
     args[#args + 1] = "--remove-on-error"
   end
 
-  if opts.retry_when == "all" then
+  if opts.retry_when == "all" or opts.retry_when == nil then
     args[#args + 1] = "--retry-all-errors"
   elseif opts.retry_when == "connrefused" then
     args[#args + 1] = "--retry-connrefused"
@@ -328,14 +345,20 @@ function M.raw(async, args, cwd, env)
 end
 
 --- Runs curl in exclusive coroutine mode.
+---
+--- Note: Requires curl >= 7.83.0. See `curl.is_version_compatible()` for more info.
 ---@async
 ---@param async rissue.Async
 ---@param url string
----@param opts rissue.utils.curl.Opts
+---@param opts rissue.utils.curl.Opts?
 ---@return rissue.utils.curl.Result? result
 ---@return string? error
 function M.request(async, url, opts)
-  local args = M.construct(url, opts)
+  opts = opts or {}
+  local args, err_msg = M.construct(url, opts)
+  if not args then
+    return nil, err_msg or "unknown error"
+  end
   return M.raw(async, args, opts.cwd, opts.env)
 end
 
