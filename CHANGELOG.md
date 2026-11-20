@@ -127,6 +127,13 @@
 - [utils/assert_op]: Refactor `check_structure` (now called `table_expects`) to
   use matchers for support for literals and more complicated checking.
 
+- New utils module: `strings`
+
+  This new module contains the following functions:
+  - `strings.trim()`: Trims `whitespaces` fast.
+  - `strings.trim_newlines()`: Trims `newlines` fast.
+  - `strings.truncate()`: Truncates a string safely on utf-8
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
