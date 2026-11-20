@@ -182,4 +182,17 @@ function M.appender(tbl)
   end
 end
 
+---@generic K: any
+---@param tbl table<K, any>
+---@return K[]
+function M.tbl_keys(tbl)
+  local res = {} ---@type any
+  local push = M.appender(res)
+  ---@diagnostic disable-next-line: no-unknown
+  for k in pairs(tbl) do
+    push(k)
+  end
+  return res
+end
+
 return M
