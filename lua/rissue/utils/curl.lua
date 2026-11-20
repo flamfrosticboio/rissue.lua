@@ -23,40 +23,6 @@ local table_op = require("rissue.utils.table_op")
 ---@class rissue.mod.Curl
 local M = {}
 
----@alias rissue.utils.curl.Method
----| "GET"
----| "POST"
----| "PUT"
----| "DELETE"
----| "PATCH"
----| "HEAD"
----| "OPTIONS"
----| "TRACE"
----| "CONNECT"
----| string
-
---- Request/Response formats
----@alias rissue.utils.curl.Formats
----| "application/json"
----| "text/html"
----| string
-
---- How data is treated when passing on curl
----@alias rissue.utils.curl.DataType
----| "default"
----| "literal"
----| "binary"
----| "urlencode"
----| "form"
----| "form_string"
-
---- Authentication methods (if using user:pass)
----@alias rissue.utils.curl.AuthMethod
----| "ntlm"
----| "digest"
----| "negotiate"
----| "anyauth"
-
 ---@class __rissue.curl.DataTypeMap
 ---@field default string
 ---@field literal string
@@ -64,77 +30,6 @@ local M = {}
 ---@field urlencode string
 ---@field form string
 ---@field form_string string
-
---- Result after curl is finished
----@class rissue.utils.curl.Result
----@field exitcode integer
----@field content string stdout
----@field err string stderr
---- Available if --dump-header was passed
----@field headers? table<string, string>
-
----@class rissue.utils.curl.Opts
---- Http/s method.
----
---- Default: GET
----@field method? rissue.utils.curl.Method
---- Headers to be passed to curl. Other headers are also handled without manually
---- constructing the headers yourself.
----@field headers? string[]
---- Request timeout.
----
---- Default: none
----@field timeout? integer
---- The request should follow redirects (`-L` is passed).
----
---- Default: true
----@field follow_redirects? boolean
---- Maximum number of retries (best paired with option `retry_all_errors`)
----
---- Default: 3
----@field retries? integer
---- Delay after each retry (best paired with option `retry_all_errors`)
----
---- Default: 1 (1 second)
----@field retry_delay? integer
---- Passes `--fail-with-body` (if supported) or `--fail` to the command line arguments.
----
---- Default: true
----@field fail_fast? boolean
---- Passes a user agent header to the command line arguments.
----
---- Equivalent to: `User-Agent: <agent-string>`
----@field user_agent? string?
---- Other arguments passed to curl
----@field raw_args? string[]
---- If passed as string, it will be used as a token directly. Otherwise, it will be pass
---- to `curl -u` option
----@field auth? string | { user: string, pass: string, method: rissue.utils.curl.AuthMethod? }
---- `Content-Type` header
----@field content_type? rissue.utils.curl.Formats
---- `Accept` header
----@field accept? rissue.utils.curl.Formats
---- Enables form escape mode.
----@field form_escape? boolean
---- If `data_type` == `special` then:
----   if `is_form` == true then it uses `--form-escape`
----@field data_type? rissue.utils.curl.DataType
---- Key-value pairs (default/raw/form) or raw payload (binary/JSON/etc.)
----
---- Note: Form cannot be a string
----@field data? string | table<string, any>
---- Current working environment.
----@field cwd? string
---- Current environment variables.
----@field env? string[]|table<string, string?>
---- Lists and parses the received headers from the server.
---- Provides `headers` in the `results`
----@field include_result_headers? boolean
---- The output filepath.
----
---- Note: Will disable result.content if this is used.
----@field outfile string?
----@field retry_when false | "connrefused" | "all" | nil Retries when it fails. default="all"
 
 ---@type __rissue.curl.DataTypeMap
 local _data_type_arg = {
@@ -347,8 +242,10 @@ function M.construct(url, opts)
 end
 
 ---@param raw string
+---@return table<string, string>
 local function parse_received_headers(raw)
-  local res = {}
+  local res = {} ---@type table<string, string>
+  ---@diagnostic disable-next-line: no-unknown Value is somehow not matched as string
   for raw_name, value in raw:gmatch("\n(%S-):[ \t]*([^\r\n]*)") do
     local name = raw_name:lower()
     if res[name] then
@@ -393,7 +290,8 @@ function M.raw(async, args, cwd, env)
     local succeeded = result.return_code == 0
 
     -- Only read the headers when curl succeeded
-    local output, read_file_err
+    local output ---@type string?
+    local read_file_err ---@type string?
     if succeeded then
       output, read_file_err = file.read_file(headers_file) -- Warning: raises error
     end

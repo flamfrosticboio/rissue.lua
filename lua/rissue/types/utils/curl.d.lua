@@ -1,0 +1,121 @@
+
+-- RIssue - Plugin for getting issues and merge requests from git providers
+-- Copyright (C) 2026  flamfrosticboio
+--
+-- This program is free software: you can redistribute it and/or modify
+-- it under the terms of the GNU General Public License as published by
+-- the Free Software Foundation, either version 3 of the License, or
+-- (at your option) any later version.
+--
+-- This program is distributed in the hope that it will be useful,
+-- but WITHOUT ANY WARRANTY; without even the implied warranty of
+-- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+-- GNU General Public License for more details.
+--
+-- You should have received a copy of the GNU General Public License
+-- along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+--- Result after curl is finished
+---@class rissue.utils.curl.Result
+---@field exitcode integer
+---@field content string stdout
+---@field err string stderr
+--- Available if --dump-header was passed
+---@field headers? table<string, string>
+
+---@class rissue.utils.curl.Opts
+--- Http/s method.
+---
+--- Default: GET
+---@field method? rissue.curl.Method
+--- Headers to be passed to curl. Other headers are also handled without manually
+--- constructing the headers yourself.
+---@field headers? string[]
+--- Request timeout.
+---
+--- Default: none
+---@field timeout? integer
+--- The request should follow redirects (`-L` is passed).
+---
+--- Default: true
+---@field follow_redirects? boolean
+--- Maximum number of retries (best paired with option `retry_all_errors`)
+---
+--- Default: 3
+---@field retries? integer
+--- Delay after each retry (best paired with option `retry_all_errors`)
+---
+--- Default: 1 (1 second)
+---@field retry_delay? integer
+--- Passes `--fail-with-body` to the command line arguments.
+---
+--- Default: true
+---@field fail_fast? boolean
+--- Passes a user agent header to the command line arguments.
+---
+--- Equivalent to: `User-Agent: <agent-string>`
+---@field user_agent? string?
+--- Other arguments passed to curl
+---@field raw_args? string[]
+--- If passed as string, it will be used as a token directly. Otherwise, it will be pass
+--- to `curl -u` option
+---@field auth? string | { user: string, pass: string, method: rissue.curl.AuthMethod? }
+--- `Content-Type` header
+---@field content_type? rissue.curl.Formats
+--- `Accept` header
+---@field accept? rissue.curl.Formats
+--- Enables form escape mode.
+---@field form_escape? boolean
+--- If `data_type` == `special` then:
+---   if `is_form` == true then it uses `--form-escape`
+---@field data_type? rissue.curl.DataType
+--- Key-value pairs (default/raw/form) or raw payload (binary/JSON/etc.)
+---
+--- Note: Form cannot be a string
+---@field data? string | table<string, any>
+--- Current working environment.
+---@field cwd? string
+--- Current environment variables.
+---@field env? string[]|table<string, string?>
+--- Lists and parses the received headers from the server.
+--- Provides `headers` in the `results`
+---@field include_result_headers? boolean
+--- The output filepath.
+---
+--- Note: Will disable result.content if this is used.
+---@field outfile string?
+---@field retry_when false | "connrefused" | "all" | nil Retries when it fails. default="all"
+
+---@alias rissue.curl.Method
+---| "GET"
+---| "POST"
+---| "PUT"
+---| "DELETE"
+---| "PATCH"
+---| "HEAD"
+---| "OPTIONS"
+---| "TRACE"
+---| "CONNECT"
+---| string
+
+--- Request/Response formats
+---@alias rissue.curl.Formats
+---| "application/json"
+---| "text/html"
+---| string
+
+--- How data is treated when passing on curl
+---@alias rissue.curl.DataType
+---| "default"
+---| "literal"
+---| "binary"
+---| "urlencode"
+---| "form"
+---| "form_string"
+
+--- Authentication methods (if using user:pass)
+---@alias rissue.curl.AuthMethod
+---| "ntlm"
+---| "digest"
+---| "negotiate"
+---| "anyauth"
