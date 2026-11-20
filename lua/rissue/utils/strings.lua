@@ -63,4 +63,17 @@ function strings.truncate(s, max)
   return s:sub(1, cut)
 end
 
+--- Represents the value based on the obj.
+---
+--- If the obj is a string, it will be enclosed in double quotes ("")
+--- Else, it will use `tostring()` to represent the value
+---@param obj any
+---@return string
+function strings.represent_value(obj)
+  if type(obj) == "string" then
+    return string.format('"%s"', obj)
+  end
+  return tostring(obj)
+end
+
 return strings
