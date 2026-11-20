@@ -112,65 +112,66 @@ end
 ---@return string? err_msg
 function M.construct(url, opts)
   local args = {} ---@type string[]
+  local push = table_op.appender(args)
 
   local method = (opts.method or "GET"):upper()
 
-  args[#args + 1] = url
-  args[#args + 1] = "-sS"
-  args[#args + 1] = "-X"
-  args[#args + 1] = method
+  push(url)
+  push("-sS")
+  push("-X")
+  push(method)
   if opts.accept then
-    args[#args + 1] = "-H"
-    args[#args + 1] = "Accept: " .. opts.accept
+    push("-H")
+    push("Accept: " .. opts.accept)
   end
 
   if opts.content_type then
-    args[#args + 1] = "-H"
-    args[#args + 1] = "Content-Type: " .. opts.content_type
+    push("-H")
+    push("Content-Type: " .. opts.content_type)
   end
 
   if opts.headers then
     for _, header in ipairs(opts.headers) do
-      args[#args + 1] = "-H"
-      args[#args + 1] = header
+      push("-H")
+      push(header)
     end
   end
 
   if opts.user_agent then
-    args[#args + 1] = "-A"
-    args[#args + 1] = opts.user_agent
+    push("-A")
+    push(opts.user_agent)
   end
 
   if opts.auth then
     if type(opts.auth) == "string" then
-      args[#args + 1] = "-H"
-      args[#args + 1] = "Authorization: Bearer " .. opts.auth
+      push("-H")
+      push("Authorization: Bearer " .. opts.auth)
     elseif type(opts.auth) == "table" then
-      args[#args + 1] = "-u"
-      args[#args + 1] = opts.auth.user .. ":" .. opts.auth.pass
+      push("-u")
+      push(opts.auth.user .. ":" .. opts.auth.pass)
       if opts.auth.method then
-        args[#args + 1] = "--" .. opts.auth.method
+        push("--" .. opts.auth.method)
       end
     end
   end
 
   if opts.timeout then
-    args[#args + 1] = "--max-time"
-    args[#args + 1] = tostring(opts.timeout)
+    push("--max-time")
+    push(tostring(opts.timeout))
   end
 
   if opts.follow_redirects ~= false then
-    args[#args + 1] = "-L"
+    push("-L")
   end
 
   if opts.fail_fast ~= false then
-    args[#args + 1] = "--fail-with-body"
+    push("--fail-with-body")
   end
 
-  args[#args + 1] = "--retry"
-  args[#args + 1] = tostring(opts.retries or 3)
-  args[#args + 1] = "--retry-delay"
-  args[#args + 1] = tostring(opts.retry_delay or 1)
+  push("--retry")
+  push(tostring(opts.retries or 3))
+  push("--retry-delay")
+  push(tostring(opts.retry_delay or 1))
 
   if opts.data then
     local d = opts.data
@@ -189,13 +190,13 @@ function M.construct(url, opts)
     end
 
     if opts.form_escape then
-      args[#args + 1] = "--form-escape"
+      push("--form-escape")
     end
 
     --- Make urlencode be placed on url when method=GET|HEAD is used
     --- since we cannot place it on the body
     if data_type == "urlencode" and (method == "GET" or method == "HEAD") then
-      args[#args + 1] = "-G"
+      push("-G")
     end
 
     if dt == "table" then
@@ -211,8 +212,8 @@ function M.construct(url, opts)
             )
         end
         local line = k .. "=" .. tostring(v)
-        args[#args + 1] = arg_key
-        args[#args + 1] = line
+        push(arg_key)
+        push(line)
       end
     elseif dt == "string" then
       if data_type == "form" then
@@ -224,34 +225,34 @@ function M.construct(url, opts)
           "Cannot use option 'urlencode' on pure string. Pass a table instead"
       end
 
-      args[#args + 1] = arg_key
-      args[#args + 1] = d
+      push(arg_key)
+      push(d)
     else
       return nil, "Expecting opts.data to be string or table, got " .. dt
     end
   end
 
   if opts.include_result_headers then
-    args[#args + 1] = "--dump-header"
-    args[#args + 1] = os.tmpname()
+    push("--dump-header")
+    push(os.tmpname())
   end
 
   if opts.outfile then
-    args[#args + 1] = "-o"
-    args[#args + 1] = opts.outfile
-    args[#args + 1] = "--create-dirs"
-    args[#args + 1] = "--remove-on-error"
+    push("-o")
+    push(opts.outfile)
+    push("--create-dirs")
+    push("--remove-on-error")
   end
 
   if opts.retry_when == "all" or opts.retry_when == nil then
-    args[#args + 1] = "--retry-all-errors"
+    push("--retry-all-errors")
   elseif opts.retry_when == "connrefused" then
-    args[#args + 1] = "--retry-connrefused"
+    push("--retry-connrefused")
   end
 
   if opts.raw_args then
     for _, arg in ipairs(opts.raw_args) do
-      args[#args + 1] = arg
+      push(arg)
     end
   end
 
@@ -323,15 +324,14 @@ end
 ---@return string
 local function collapse_repeated_lines(text)
   local result = {}
+  local push = table_op.appender(result)
   local current, times = nil, 0
 
   local function flush()
     if current == nil then
       return
     end
-    result[#result + 1] = times > 1
-        and string.format("%s (%dx)", current, times)
-      or current
+    push(times > 1 and string.format("%s (%dx)", current, times) or current)
   end
 
   -- walk each line
