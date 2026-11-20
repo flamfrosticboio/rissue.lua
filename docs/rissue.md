@@ -19,6 +19,9 @@ rissue.get_issues("https://github.com/flamfrosticboio/rissue")
 rissue.get_merge_requests("https://github.com/flamfrosticboio/rissue")
 ```
 
+Notes: For providers that uses curl, curl must be installed into the system with
+minimum version of 7.83.0
+
 - <details>
   <summary><code>get_issues</code>: <code>function(remote: string|rissue.ProviderInfo|rissue.RemoteInfo, opts: (table|table&lt;string, table?&gt;)?): rissue.Issue[]?, string?</code> – Gets issues from the url, remote info or provider info</summary>
 

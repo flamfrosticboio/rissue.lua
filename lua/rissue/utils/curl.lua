@@ -17,6 +17,7 @@
 local file = require("rissue.utils.file")
 local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
+local strings = require("rissue.utils.strings")
 local table_op = require("rissue.utils.table_op")
 
 ---@class rissue.mod.Curl
@@ -144,6 +145,62 @@ local _data_type_arg = {
   form = "--form",
   form_string = "--form-string",
 }
+
+--- Checks if the installed curl is compatible (7.83.0 <= curl < 9.0.0)
+---
+--- For this version, this rejects curl that are older than 7.83.0, and curl
+--- with a major version greater than 8 (9.x.x and above), since those have
+--- not been tested against the arguments used here.
+---@async
+---@param async rissue.Async
+---@return string? err_msg Problems encountered while getting curl versions
+---@return boolean compatible Only meaningful when err_msg is nil
+---@return string version_string An empty string when it encounters an error
+function M.is_version_compatible(async)
+  local result, err =
+    process.run_async(async, { cmd = "curl", args = { "--version" } })
+  if not result then
+    return "failed to run curl --version: " .. (err or "unknown error"),
+      false,
+      ""
+  end
+
+  if result.return_code ~= 0 then
+    local parts = {} ---@type string[]
+    for _, s in ipairs({ result.stderr, result.stdout }) do
+      s = strings.trim(s)
+      if s ~= "" then
+        parts[#parts + 1] = s
+      end
+    end
+
+    local detail = table.concat(parts, "\n")
+    if detail == "" then
+      detail = "no output"
+    end
+
+    local msg = string.format("curl (%d): %s", result.return_code, detail)
+    return msg, false, ""
+  end
+
+  local maj, min, pat = result.stdout:match("^curl (%d+)%.(%d+)%.?(%d*)")
+  local major, minor = tonumber(maj), tonumber(min)
+  local patch = tonumber(pat) or 0
+  if not (major and minor) then
+    local snippet = strings.truncate(result.stdout, 40)
+    return ("cannot parse curl version from: %q"):format(snippet), false, ""
+  end
+
+  local ver_string = string.format("%d.%d.%d", major, minor, patch)
+
+  --- For curl, the major version does not affect any of the args we have yet. But maybe
+  --- after 9.x.x, there would be some problems, so we would be limiting it by 8.x.x
+  local compatible = major >= 7
+    and major <= 8
+    and not (major == 7 and minor < 83)
+
+  return nil, compatible, ver_string
+end
 
 -- Construct the command line arguments based on curl opts.
 ---@param url string
