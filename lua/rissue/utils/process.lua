@@ -18,6 +18,7 @@
 local M = {}
 
 local log = require("rissue.utils.log")
+local strings = require("rissue.utils.strings")
 local table_op = require("rissue.utils.table_op")
 local uv = require("luv") ---@type uv
 
@@ -334,7 +335,7 @@ end
 ---@param opts rissue.utils.Process.last_output.Opts
 local function prepare_line(line, opts)
   if opts.strip_newlines then
-    line = line:match("^[\r\n]*(.-)[\r\n]*$")
+    line = strings.trim_newlines(line)
   end
 
   if opts.newline_on_multiline_output and line:find("\n") then
