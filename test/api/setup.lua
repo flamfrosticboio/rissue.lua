@@ -158,7 +158,7 @@ end
 ---@param url string
 ---@param out_filepath string
 ---
----@param curl_opts rissue.utils.curl.Opts
+---@param curl_opts rissue.curl.Opts
 ---@param opts __rissue.pipeline.curl.Opts
 ---@return __rissue.pipeline.AsyncStep | __rissue.pipeline.Operation
 function M.p_curl(url, out_filepath, curl_opts, opts)
@@ -202,15 +202,11 @@ function M.p_curl(url, out_filepath, curl_opts, opts)
 
           local result, err = curl.request(a, url, curl_opts)
           if not result then
-            error(err or "unknown error", 0)
-          end
-
-          if result.exitcode ~= 0 then
-            local msg = ("Curl failed (code %d)\n| %s"):format(
-              result.exitcode,
-              result.err:match("^%s*(.-)%s*$"):gsub("\n", "\n| ")
-            )
-            error(msg, 0)
+            if err then
+              log.debug(err.msg)
+              log.trace(err.server_msg)
+            end
+            error(err and err.msg or "unknown err", 0)
           end
 
           utils.print_status("Curl completed", ctx.print_context)
