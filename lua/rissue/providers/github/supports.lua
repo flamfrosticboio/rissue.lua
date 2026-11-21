@@ -79,6 +79,7 @@ function M.main(async, info, token, opts)
     return true, copy(default_github_additional_info)
   end
 
+  ---@type string
   local base = info.curl_protocol .. "://" .. info.domain
 
   ---@type rissue.curl.Opts

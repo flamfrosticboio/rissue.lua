@@ -66,25 +66,28 @@ end
 function Async:_step(...)
   local status = coroutine.status(self.co)
   if status ~= "suspended" then
-    return self.backend.on_error(
+    self.backend.on_error(
       "cannot resume " .. status .. " coroutine",
       debug.traceback()
     )
+    return
   end
 
   self.inbox = { n = select("#", ...), ... }
   local ok, tok = coroutine.resume(self.co, RESUME)
 
   if not ok then
-    return self.backend.on_error(tok, debug.traceback(self.co, tostring(tok)))
+    self.backend.on_error(tok, debug.traceback(self.co, tostring(tok)))
+    return
   end
 
   -- stray coroutine.yield() from outside Async:yield
   if coroutine.status(self.co) ~= "dead" and tok ~= YIELD then
-    return self.backend.on_error(
+    self.backend.on_error(
       "coroutine yielded outside Async:yield",
       debug.traceback(self.co)
     )
+    return
   end
 end
 

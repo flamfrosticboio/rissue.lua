@@ -311,7 +311,7 @@ describe("github #api", function()
     ---@async
     function(a, url, opts)
       if url:match("api.github.com") then
-        ---@type rissue.utils.curl.Result
+        ---@type rissue.curl.Result
         return nil, "Url blocked due to test mode. This is safe!"
       end
       return original_request(a, url, opts)

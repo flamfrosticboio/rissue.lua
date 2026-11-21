@@ -24,8 +24,9 @@ local M = {}
 M.env = {}
 
 ---@param path string
+---@return table<string, string>
 local function load_env(path)
-  local env = {}
+  local env = {} ---@type table<string, string>
   local file = io.open(path, "r")
   if not file then
     return env
@@ -35,10 +36,10 @@ local function load_env(path)
     if type(line) == "string" then
       -- skip blank lines and comments
       if line:match("%S") and not line:match("^%s*#") then
-        local key, value = line:match("^%s*([%w_]+)%s*=%s*(.-)%s*$")
+        local key, value = line:match("^%s*([%w_]+)%s*=%s*(.-)%s*$") ---@type string?, string?
         if key and value then
           -- strip surrounding quotes if present
-          value = value:gsub('^"(.*)"$', "%1"):gsub("^'(.*)'$", "%1")
+          value = value:gsub('^"(.*)"$', "%1"):gsub("^'(.*)'$", "%1") ---@type string
           env[key] = value
         end
       end

@@ -103,7 +103,7 @@ end
 ---@param event_name rissue.utils.process.Event
 ---@param callback fun()
 function Process:register_event(event_name, callback)
-  local event_table = self._events[event_name]
+  local event_table = self._events[event_name] ---@type ((fun())[])?
   if event_table then
     table.insert(event_table, callback)
   else
@@ -365,6 +365,7 @@ end
 
 ---@param line string
 ---@param opts rissue.utils.Process.last_output.Opts
+---@return string
 local function prepare_line(line, opts)
   if opts.strip_newlines then
     line = strings.trim_newlines(line)
@@ -380,6 +381,7 @@ end
 --- Gets the latest stdout output line.
 --- Used with relation to `on_stdout` or `on_output` event (e.g. print output)
 ---@param opts? rissue.utils.Process.last_output.Opts
+---@return string
 function Process:get_last_stdout(opts)
   warn_if_not_running(self, "get_last_stdout")
 
@@ -394,6 +396,7 @@ end
 --- Gets the latest stderr output line.
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
 ---@param opts? rissue.utils.Process.last_output.Opts
+---@return string
 function Process:get_last_stderr(opts)
   warn_if_not_running(self, "get_last_stderr")
 
@@ -415,7 +418,7 @@ function M.spawn(opts)
   end
 
   if opts.env then
-    local new_env = {}
+    local new_env = {} ---@type string[]
     for k, v in pairs(opts.env) do
       if type(k) == "number" then
         new_env[#new_env + 1] = v
@@ -666,7 +669,7 @@ end
 ---@param args string[]
 ---@return string
 function M.construct_command_line_string(cmd, args)
-  local str_tbl = {}
+  local str_tbl = {} ---@type string[]
   str_tbl[#str_tbl + 1] = shell_escape(cmd)
   for i, arg in ipairs(args) do
     str_tbl[i + 1] = shell_escape(arg)

@@ -144,6 +144,7 @@ function rissue.get_provider_info(remote, opts)
     remote = remote_res
   end
 
+  ---@type rissue.ProviderInfo?, string?
   local result, err
   local run_err = run_blocking(
     ---@async
