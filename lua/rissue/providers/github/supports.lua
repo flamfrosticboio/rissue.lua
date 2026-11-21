@@ -16,8 +16,10 @@
 
 local config = require("rissue.providers.github.config")
 local curl = require("rissue.utils.curl")
-local log = require("rissue.utils.log")
+local shared = require("rissue.providers.github.shared")
 local table_op = require("rissue.utils.table_op")
+
+local log = shared.log
 
 local M = {}
 
@@ -45,18 +47,28 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param url string
----@param opts rissue.utils.curl.Opts
+---@param opts rissue.curl.Opts
 ---@return string? content
 local function check(async, url, opts)
   local result, err = curl.request(async, url, opts)
   if not result then
-    log.warn(("Failed to fetch endpoint '%s': %s"):format(url, err))
+    log.debug(
+      ("Failed to fetch endpoint '%s': %s"):format(
+        url,
+        err and shared.into_error_message(err) or "unknown error"
+      )
+    )
     return nil
   end
 
   local content = result.content
   if content:find("verifiable_password_authentication", 1, true) ~= nil then
     return content
+  else
+    log.debug(
+      "Output does not match what we expect on github:",
+      content ~= "" and content or "<empty response>"
+    )
   end
 end
 
@@ -69,7 +81,7 @@ function M.main(async, info, token, opts)
 
   local base = info.curl_protocol .. "://" .. info.domain
 
-  ---@type rissue.utils.curl.Opts
+  ---@type rissue.curl.Opts
   local settings = {
     auth = token,
     accept = "application/json",

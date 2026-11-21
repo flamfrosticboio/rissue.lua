@@ -26,15 +26,41 @@
 --- rissue.get_issues("https://github.com/flamfrosticboio/rissue")
 --- rissue.get_merge_requests("https://github.com/flamfrosticboio/rissue")
 --- ```
+---
+--- Notes: For providers that uses curl, curl must be installed into the system
+--- with minimum version of 7.83.0
 ---@class rissue
 local rissue = {}
 
-local async = require("rissue.utils.async")
+local async_mod = require("rissue.utils.async")
 local config = require("rissue.config")
+local curl = require("rissue.utils.curl")
 local env = require("rissue.env")
 local get = require("rissue.get")
 local provider = require("rissue.provider")
 local table_op = require("rissue.utils.table_op")
+
+---@param cb async fun(a: rissue.Async)
+---@return string? err_msg
+local function run_blocking(cb)
+  local backend, wait = async_mod.default_backend()
+  local done = false
+  async_mod.run(
+    backend, ---@async
+    function(a)
+      cb(a)
+      done = true
+    end
+  )
+
+  local success, err = wait(function()
+    return done
+  end, config.options.timeout)
+
+  if not success then
+    return err
+  end
+end
 
 --- Run setup for rissue.
 ---
@@ -60,31 +86,27 @@ function rissue.setup(opts, cwd)
   --- setup logging
   local log = require("rissue.utils.log")
   log.setup(opts and opts.log or {})
+
+  --- Check curl version
+  --- Run asynchronously
+  local async_backend = async_mod.default_backend()
+  async_mod.run(async_backend, function(a)
+    local curl_err, is_compatible, version_string =
+      curl.is_version_compatible(a)
+
+    if curl_err then
+      log.warn("Failed to get curl version:", curl_err)
+    elseif not is_compatible then
+      log.warn(
+        "Incompatible curl version detected:",
+        version_string,
+        "(need >= 7.83.0, < 9)"
+      )
+    end
+  end)
 end
 
 rissue.get_remote_info = provider.remote_info
-
----@param cb async fun(a: rissue.Async)
----@return string? err_msg
-local function run_blocking(cb)
-  local backend, wait = async.default_backend()
-  local done = false
-  async.run(
-    backend, ---@async
-    function(a)
-      cb(a)
-      done = true
-    end
-  )
-
-  local success, err = wait(function()
-    return done
-  end, config.options.timeout)
-
-  if not success then
-    return err
-  end
-end
 
 --- Gets the provider info from remote info or remote url.
 ---
