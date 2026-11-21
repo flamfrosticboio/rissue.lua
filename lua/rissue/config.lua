@@ -81,13 +81,13 @@ end
 function config.setup(opts)
   config.options = table_op.force_deep_extend(config.options, opts or {})
 
-  local errors = {}
+  local errors = {} ---@type string[]
   local _err_idx = 0
   for _, filepath in ipairs(config.options.additional_providers) do
     local chunk, err = loadfile(filepath)
     if chunk then
       local load_ok, load_err = pcall(function()
-        local mod = chunk()
+        local mod = chunk() ---@type any
         local ok, err_msg = is_provider_spec(mod, filepath)
         if ok ~= true then
           error(err_msg, 0)

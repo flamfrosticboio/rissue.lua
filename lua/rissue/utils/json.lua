@@ -17,7 +17,7 @@
 --- Varies based on the json provider.
 --- Nvim compatible
 
----@diagnostic disable: undefined-global, inject-field
+---@diagnostic disable: undefined-global, inject-field, no-unknown
 
 ---@alias rissue.json.Loaders
 ---| "dkjson" # require('dkjson') (installed via luarocks or drop in)

@@ -26,6 +26,7 @@ local function into_base(raw, settings)
   ---@type rissue.Label[]
   local labels = {}
 
+  ---@diagnostic disable-next-line: no-unknown
   for _, label in ipairs(raw.labels) do
     labels[#labels + 1] = {
       name = label.name,

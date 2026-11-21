@@ -88,6 +88,7 @@ end
 local DEFAULT_LEVEL = 2
 
 ---@param opts rissue.log.new.Opts
+---@return rissue.Logger
 local function new_logger(opts)
   local context_info = {
     context = opts.context,
@@ -176,6 +177,7 @@ local logger_mod = new_logger({})
 
 ---@param opts? rissue.log.new.Opts
 ---@diagnostic disable-next-line: inject-field
+---@return rissue.Logger
 logger_mod.new = function(opts)
   opts = opts or {}
   opts.logger = opts.logger

@@ -22,6 +22,7 @@ local M = {}
 --- Notes: To view timestamp as local time, use `os.date("*t", ts)`
 --- Alternatively, to view it UTC, use `os.date("!*t", ts)`
 ---@param iso string
+---@return integer timestamp
 function M.iso_to_timestamp_utc(iso)
   local year, month, day, hour, min, sec =
     iso:match("^(%d%d%d%d)-(%d%d)-(%d%d)T(%d%d):(%d%d):(%d%d)Z$")

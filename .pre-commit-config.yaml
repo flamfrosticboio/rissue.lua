@@ -5,6 +5,17 @@ default_install_hook_types:
 default_stages: [pre-commit]
 
 repos:
+  - repo: local
+    hooks:
+      # Prevent any commits being pushed when NOCOMMIT marker is found
+      # This is useful to remember any temporary disabled code from being pushed to main
+      - id: no-commit-marker
+        name: Block NOCOMMIT
+        language: pygrep
+        entry: NOCOMMIT
+        types: [text]
+        exclude: ^\.pre-commit-config\.yaml$
+        fail_fast: true
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:

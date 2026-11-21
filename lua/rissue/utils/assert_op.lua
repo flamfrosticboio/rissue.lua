@@ -14,10 +14,11 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+---@class rissue.mod.AssertOperation
 local M = {}
 
 ---@param obj  any
----@param list any
+---@param list any[]
 ---@return boolean
 local function _is_instance(obj, list)
   local t = type(obj)
@@ -36,8 +37,9 @@ end
 ---@overload fun(obj: any, t: type[]): boolean
 function M.is_instance(obj, ...)
   local args = { ... }
-  if type(args[1]) == "table" then
-    return _is_instance(obj, args[1])
+  local first_arg = args[1]
+  if type(first_arg) == "table" then
+    return _is_instance(obj, first_arg)
   end
   return _is_instance(obj, args)
 end
@@ -47,6 +49,7 @@ end
 
 --- List of available matchers
 ---@class rissue.utils.Matchers
+---@field [string] rissue.utils.Matcher
 ---@field is_table rissue.utils.Matcher
 ---@field is_function rissue.utils.Matcher
 ---@field is_string rissue.utils.Matcher
@@ -106,9 +109,11 @@ local function represent_key(key)
   return "[" .. represent(key) .. "]"
 end
 
+---@type rissue.utils.Matcher[]
 local registered_matchers = {}
 
 ---@param func fun()
+---@return boolean
 local function is_matcher(func)
   for _, matcher in ipairs(registered_matchers) do
     if func == matcher then
@@ -128,7 +133,7 @@ M.matchers =
 
       ---@type rissue.utils.Matcher
       local matcher = function(_obj)
-        local out_str_tbl = {}
+        local out_str_tbl = {} ---@type string[]
         for i = 1, total_matchers do
           local v = matchers[i]
           if is_matcher(v) then
@@ -172,9 +177,8 @@ M.matchers =
           return false, "Expecting %s to be a table, got " .. obj_type, "table"
         end
 
-        ---@cast tbl table
         for k, v in pairs(schema) do
-          local obj = tbl[k]
+          local obj = tbl[k] ---@type any
           if is_matcher(v) then
             local is_matched, err_msg = v(obj)
             if is_matched ~= true then
@@ -246,7 +250,7 @@ end
 --- Checks a table's structure to see if it matches with the specified literal data or
 --- matcher.
 ---@param obj any
----@param structure table
+---@param structure table<any, any>
 ---@param name string?
 ---@return boolean success
 ---@return string? err_msg
@@ -259,7 +263,7 @@ function M.table_expects(obj, structure, name)
   ---@cast obj table
 
   for k, v in pairs(structure) do
-    local val = obj[k]
+    local val = obj[k] ---@type any
     if is_matcher(v) then
       ---@cast v rissue.utils.Matcher
       local is_match, err_msg = v(val)

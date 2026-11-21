@@ -30,12 +30,13 @@
 --- ````
 ---@param template string
 ---@param vars     table<string, string | fun(): string>
+---@return string
 local function fmt(template, vars)
   return (
     template:gsub("{(%w+)}", function(key)
       local val = vars[key]
       if type(val) == "function" then
-        val = val()
+        return val() or ("{" .. key .. "}")
       end
       return val or ("{" .. key .. "}")
     end)

@@ -32,6 +32,7 @@ local function try_print_server_error(body)
     return nil
   end
 
+  ---@type string?
   local msg = type(decoded.message) == "string" and decoded.message
     or type(decoded.detail) == "string" and decoded.detail
     or nil
@@ -39,13 +40,16 @@ local function try_print_server_error(body)
     return nil
   end
 
+  local decoded_errors = decoded.errors ---@type (string|table)[]?
   -- 422: append details (strings or objects)
-  if type(decoded.errors) == "table" then
-    for _, e in ipairs(decoded.errors) do
+  if type(decoded_errors) == "table" then
+    for _, e in ipairs(decoded_errors) do
       if type(e) == "string" then
         msg = msg .. "\n- " .. e
       elseif type(e) == "table" then
+        ---@type string?
         local text = e.message or e.code
+
         if type(text) == "string" then
           msg = msg
             .. "\n- "

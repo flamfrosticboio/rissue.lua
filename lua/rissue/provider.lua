@@ -36,11 +36,12 @@ function provider.remote_info(remote_url)
     or remote_url:match("^git@[^:]+:(.+)$")
     or remote_url:match("^ssh://git@[^/]+/(.+)$")
 
+  ---@type string?, string?
   local owner, repo
   if path then
-    path = path:gsub("%.git$", "")
-    repo = path:match("([^/]+)$")
-    owner = path:match("^(.+)/[^/]+$")
+    path = path:gsub("%.git$", "") ---@type string
+    repo = path:match("([^/]+)$") ---@type string?
+    owner = path:match("^(.+)/[^/]+$") ---@type string?
 
     if repo and owner then
       ---@type rissue.RemoteInfo

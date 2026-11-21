@@ -90,6 +90,8 @@ end
 ---@async
 ---@param async rissue.Async
 ---@param opts rissue.curl.Opts
+---@param url string
+---@param param table<string, any>
 ---@return rissue.curl.Result? result
 ---@return string? error
 local function try_fetch_query(async, url, param, opts)
@@ -181,6 +183,7 @@ local function try_fetch_page(async, opts)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param delay integer Delay in milliseconds
 local function delay_with_warning(async, delay)
   local delay_ok, delay_err = process.sleep(async, delay)
@@ -192,7 +195,7 @@ end
 ---@class __rissue.Github.fetch.Opts<T, K>
 ---@field token string?
 ---@field parser fun(raw: any, settings: rissue.Github.Settings): T
----@field key fun(item: T): K
+---@field key fun(item: T): string
 ---@field settings rissue.Github.Settings
 
 ---@async
@@ -200,7 +203,7 @@ end
 ---@param async rissue.Async
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 ---@param queries rissue.Query[]
----@param opts __rissue.Github.fetch.Opts
+---@param opts __rissue.Github.fetch.Opts<T, K>
 ---@param cb fun(item: T)
 ---@return string? error
 function M.try_fetch(async, info, queries, opts, cb)
@@ -208,9 +211,9 @@ function M.try_fetch(async, info, queries, opts, cb)
     return "Setting 'items_per_page' cannot be above 100"
   end
 
-  local buffer = {}
+  local buffer = {} ---@type table<string, true>
   local base = construct_base_endpoint(info)
-  local headers = {}
+  local headers = {} ---@type string[]
   if info.additional_info and info.additional_info.api_version then
     headers[#headers + 1] = config.api_ver_template
       .. info.additional_info.api_version
@@ -238,10 +241,11 @@ function M.try_fetch(async, info, queries, opts, cb)
     return table_op.count(buffer) >= opts.settings.max_items
   end
 
+  ---@param items any[]
   local function parse_items(items)
     for _, item in ipairs(items) do
-      local parsed = opts.parser(item, opts.settings)
-      local key = opts.key(parsed)
+      local parsed = opts.parser(item, opts.settings) ---@type any
+      local key = opts.key(parsed) ---@type string
       if buffer[key] ~= true then
         buffer[key] = true
         cb(parsed)
