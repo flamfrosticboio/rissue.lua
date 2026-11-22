@@ -47,22 +47,12 @@ local function spec_pipeline(spec_name, url)
       {},
       { skip_when_file_exists = dest_path }
     ),
-    setup_manager.p_register_cleanup(
-      ---@async
-      function(a, limiters, ctx)
-        setup_utils.run_pipeline(
-          a,
-          setup_manager.new_pipeline(ctx and ctx.print_context.name or "??", {
-            setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
-            setup_manager.p_rmfile(
-              tmp_filename_processed,
-              { skip_when_fail = true }
-            ),
-          }, { color = ctx and ctx.print_context.color }),
-          limiters
-        )
-      end
-    ),
+
+    setup_manager.p_register_cleanup({
+      setup_manager.p_rmfile(tmp_filename, { skip_when_fail = true }),
+      setup_manager.p_rmfile(tmp_filename_processed, { skip_when_fail = true }),
+    }),
+
     setup_manager.p_switch_mode("cpu"),
     setup_manager.p_run(redocly_bin, {
       args = {
