@@ -35,3 +35,4 @@ env.get_token = function(provider)
 end
 
 require("api.github.setup")()
+require("api.gitlab.setup")()
