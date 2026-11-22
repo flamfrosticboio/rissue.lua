@@ -193,6 +193,9 @@
   - `strings.represent_value()`: Wraps strings in double quotes and uses
     `tostring` for other values.
 
+- New Gitlab module. You can now query gitlab.com and self-hosted gitlab
+  instances for issues and merge requests
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
