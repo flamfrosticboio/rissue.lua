@@ -94,17 +94,7 @@ function M.run_setup(cwd, pipelines)
   log.trace("Done")
 end
 
----@param name string
----@param opts? { color: string? }
----@param pipeline __rissue.Pipeline
----@return __rissue.Pipeline
-function M.new_pipeline(name, pipeline, opts)
-  setmetatable(pipeline, {
-    name = name,
-    color = opts and opts.color,
-  })
-  return pipeline
-end
+M.new_pipeline = setup_utils.new_pipeline
 
 ---@param path string
 ---@return __rissue.pipeline.CreateDirectory
@@ -226,11 +216,11 @@ function M.p_rename(source, dest)
   return { type = "rename", source = source, dest = dest }
 end
 
----@param func async fun(a: rissue.Async, limiters: __rissue.Limiters, ctx: __rissue.pipeline.context?): string? Where the return of the function is error message
+---@param pipeline __rissue.Pipeline
 ---@return __rissue.pipeline.RegisterCleanup
-function M.p_register_cleanup(func)
+function M.p_register_cleanup(pipeline)
   ---@type __rissue.pipeline.RegisterCleanup
-  return { type = "reg_cleanup", func = func }
+  return { type = "reg_cleanup", pipeline = pipeline }
 end
 
 ---@param path string
