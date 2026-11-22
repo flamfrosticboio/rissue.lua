@@ -78,6 +78,10 @@ end
 ---@field path string
 ---@field skip_when_fail? boolean
 
+---@class __rissue.pipeline.CopyFile: __rissue.pipeline._base<"copy_file">
+---@field source string
+---@field dest string
+
 ---@alias __rissue.pipeline.SwitchMode.mode "io" | "cpu"
 
 ---@class __rissue.pipeline.SwitchMode: __rissue.pipeline._base<"switch_mode">
@@ -95,6 +99,7 @@ end
 ---| __rissue.pipeline.WriteFile
 ---| __rissue.pipeline.RemoveFile
 ---| __rissue.pipeline.RemoveDirectory
+---| __rissue.pipeline.CopyFile
 ---| __rissue.pipeline.SwitchMode
 ---| __rissue.pipeline.AsyncStep
 
@@ -450,6 +455,41 @@ function M.write_file(path, contents, opts)
   )
 end
 
+---@async
+---@param async rissue.Async
+---@param args __rissue.pipeline.CopyFile
+---@param context? __rissue.pipeline.context
+---@return boolean success
+---@return string? err_msg
+local function copyfile(async, args, context)
+  local err = await(async, uv.fs_copyfile, args.source, args.dest)
+  if err then
+    return false, err
+  end
+  util.print_status(
+    ('Copying file from "%s" to "%s"'):format(args.source, args.dest),
+    context and context.print_context
+  )
+  return true
+end
+
+---@param source string
+---@param dest string
+---@return boolean success
+---@return string? err_msg
+function M.copyfile(source, dest)
+  return into_sync(
+    ---@async
+    function(a)
+      return copyfile(a, {
+        type = "copy_file",
+        dest = dest,
+        source = source,
+      })
+    end
+  )
+end
+
 local function new_limiter(n)
   return { n = math.max(n, 1), used = 0, waiters = {} }
 end
@@ -550,6 +590,13 @@ function M.run_pipeline(async, pipeline, limiters)
       local success, rmdir_err = rmdir(async, item, context)
       if not success then
         err = rmdir_err
+        break
+      end
+    elseif item.type == "copy_file" then
+      ---@cast item __rissue.pipeline.CopyFile
+      local success, copyfile_err = copyfile(async, item)
+      if not success then
+        err = copyfile_err
         break
       end
     elseif item.type == "op" then
