@@ -27,6 +27,18 @@ local M = {}
 ---@diagnostic disable-next-line: deprecated
 local unpack = table.unpack or unpack
 
+---@param name string
+---@param opts? { color: string? }
+---@param pipeline __rissue.Pipeline
+---@return __rissue.Pipeline
+function M.new_pipeline(name, pipeline, opts)
+  setmetatable(pipeline, {
+    name = name,
+    color = opts and opts.color,
+  })
+  return pipeline
+end
+
 ---@async
 ---@param async rissue.Async
 ---@param fn fun(...: any)
@@ -54,7 +66,8 @@ end
 ---@field should_continue boolean | fun(): boolean
 
 ---@class __rissue.pipeline.RegisterCleanup: __rissue.pipeline._base<"reg_cleanup">
----@field func async fun(a: rissue.Async, limiters: __rissue.Limiters, ctx: __rissue.pipeline.context?): string? Where the return value is err_msg
+--- Where the return value is err_msg
+---@field pipeline __rissue.Pipeline
 
 ---@class __rissue.pipeline.Rename: __rissue.pipeline._base<"rename">
 ---@field source string
@@ -646,8 +659,16 @@ function M.run_pipeline(async, pipeline, limiters)
     )
 
     for cleanup_id, cleanup_op in ipairs(cleanup) do
-      context.print_context.name = name .. "/cleanup@" .. tostring(cleanup_id)
-      local errmsg = cleanup_op.func(async, limiters, context)
+      local context_name = name .. "/cleanup@" .. tostring(cleanup_id)
+      local errmsg = M.run_pipeline(
+        async,
+        M.new_pipeline(
+          context_name,
+          cleanup_op.pipeline,
+          { color = context.print_context.color }
+        ),
+        limiters
+      )
       if errmsg then
         log.error("Failed when running cleanup: " .. errmsg)
         err = (err and (err .. "\n") or "")
