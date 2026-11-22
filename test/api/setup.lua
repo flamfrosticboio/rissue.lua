@@ -272,6 +272,14 @@ function M.p_write_f(filepath, contents)
   return { type = "write_file", filepath = filepath, contents = contents }
 end
 
+---@param source string
+---@param dest string
+---@return __rissue.pipeline.CopyFile
+function M.p_copyfile(source, dest)
+  ---@type __rissue.pipeline.CopyFile
+  return { type = "copy_file", source = source, dest = dest }
+end
+
 ---@param mode __rissue.pipeline.SwitchMode.mode
 ---@return __rissue.pipeline.SwitchMode
 function M.p_switch_mode(mode)
