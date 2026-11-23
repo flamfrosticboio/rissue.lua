@@ -65,5 +65,5 @@ local use_trace = use_trace_env
     or use_trace_env == "yes"
   )
 logger.setup({
-  log_level = use_trace and logger.levels.trace or logger.levels.debug,
+  log_level = use_trace and logger.levels.trace or logger.levels.warn,
 })
