@@ -131,6 +131,66 @@ jobs:
     with:
         prime-all: ${{ github.event_name == 'pull_request' && github.base_ref == 'release' }}
 
+  # Tests with nlua
+  test-vim:
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.check-changes.outputs.tests == 'true' }}
+    needs: [lint, format, docs, check-changes]
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Refresh apt index
+        timeout-minutes: 3
+        run: |
+          echo 'Acquire::Retries "3";' | sudo tee /etc/apt/apt.conf.d/80-retries
+          echo 'Acquire::http::Timeout "20";' | sudo tee -a /etc/apt/apt.conf.d/80-retries
+          sudo apt-get update
+
+      - uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: 5.1
+
+      - uses: leafo/gh-actions-luarocks@v6
+        with:
+          luaRocksVersion: ${{ env.LUAROCKS_VERSION }}
+
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+
+      # Explicitly use restore and save caching since we want to save cache even
+      # when the tests fails
+      - name: Load Luarocks Dependencies Cache
+        uses: actions/cache/restore@v6
+        id: cache-test-dependencies
+        with:
+          path: ${{ env.LUAROCKS_TREE }}
+          key: luarocks-lua5.1-nlua-${{ runner.os }}-${{ hashFiles('.rockspec/rissue-nlua-dev-1.rockspec') }}
+
+      - name: Setup Dependencies
+        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get install -y --no-install-recommends cmake
+
+      - name: Setup Test Dependencies
+        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
+        run: |
+          luarocks test --prepare --tree=${{ env.LUAROCKS_TREE }} .rockspec/rissue-nlua-dev-1.rockspec
+
+      - name: Save Luarocks Dependencies Cache
+        uses: actions/cache/save@v6
+        if: steps.cache-test-dependencies.outputs.cache-hit != 'true'
+        with:
+          path: ${{ env.LUAROCKS_TREE }}
+          key: ${{ steps.cache-test-dependencies.outputs.cache-primary-key }}
+
+      - name: Run Tests
+        run: |
+          luarocks test --tree=${{ env.LUAROCKS_TREE }} .rockspec/rissue-nlua-dev-1.rockspec -- --defer-print
+
   tests:
     # Explicit check condition because when docs is skipped, this is also skipped for some reason
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && needs.prepare-tests.result == 'success' }}
@@ -204,8 +264,8 @@ jobs:
 
   test-status:
     runs-on: ubuntu-slim
-    if: ${{ always() && needs.tests.result != 'skipped' }}
-    needs: [tests]
+    if: ${{ always() && (needs.tests.result != 'skipped' || needs.test-vim.result != 'skipped') }}
+    needs: [tests, test-vim]
     steps:
       - name: Check results
         run: |

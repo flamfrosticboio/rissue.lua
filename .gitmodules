@@ -1,0 +1,8 @@
+[submodule ".types/lua-cjson"]
+	path = .types/lua-cjson
+	url = https://github.com/goldenstein64/lua-cjson-definitions
+	branch = publish
+[submodule ".types/dkjson"]
+	path = .types/dkjson
+	url = https://github.com/goldenstein64/dkjson-definitions
+	branch = publish

@@ -30,13 +30,19 @@ prek install
 [tasks.test]
 description = "Run tests"
 run = '''
-luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print
+luarocks test .rockspec/rissue-dev-1.rockspec -- --defer-print
+'''
+
+[tasks.test-vim]
+description = "Run tests with nlua (vim runtime)"
+run = '''
+luarocks test .rockspec/rissue-nlua-dev-1.rockspec -- --defer-print
 '''
 
 [tasks.testi]
 description = "Run tests with interactive tests enabled"
 run = '''
-INTERACTIVE=true luarocks test .rockspec/rissue-dev-1.rockspec -- --suppress-pending --defer-print
+INTERACTIVE=true luarocks test .rockspec/rissue-dev-1.rockspec -- --defer-print
 '''
 
 [tasks.test-api-setup]
