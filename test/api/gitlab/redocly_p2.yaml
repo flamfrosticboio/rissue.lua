@@ -1,0 +1,9 @@
+plugins:
+  - ../prune-plugin.cjs
+decorators:
+  filter-out:
+    applyTo: Operation
+    property: x-gitlab-tier
+    value: [premium, ultimate]
+  remove-unused-components: off
+  prune/prune-components: on

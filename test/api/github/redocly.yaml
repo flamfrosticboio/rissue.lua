@@ -1,5 +1,5 @@
 plugins:
-  - ./prune-plugin.cjs
+  - ../prune-plugin.cjs
 decorators:
   filter-in:
     applyTo: Operation

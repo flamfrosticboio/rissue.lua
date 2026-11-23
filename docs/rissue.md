@@ -135,6 +135,11 @@ config.options = {
         api_version = "2026-03-10",
       } --[[@as rissue.Github.supports.AdditionalInfo]],
     },
+    {
+      name = "gitlab",
+      domain = "gitlab.com",
+      patterns = { "gitlab%.com" },
+    },
   },
   timeout = 60000,
   log = {},

@@ -1,0 +1,5764 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "GitLab API",
+    "version": "v4 (GitLab 9.0.0)",
+    "description": "Generated from GitLab v9.0.0 lib/api. Parameters come from the Grape DSL; response property types are name-based guesses (entities carry no types)."
+  },
+  "servers": [
+    {
+      "url": "https://gitlab.example.com"
+    }
+  ],
+  "security": [
+    {
+      "PrivateTokenHeader": []
+    },
+    {
+      "PrivateTokenQuery": []
+    },
+    {
+      "BearerAuth": []
+    },
+    {}
+  ],
+  "paths": {
+    "/api/v4/groups": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Get a groups list",
+        "operationId": "get_groups",
+        "parameters": [
+          {
+            "name": "statistics",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include project statistics"
+          },
+          {
+            "name": "skip_groups",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "description": "Array of group ids to exclude from list",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "all_available",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Show all group that you have access to"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search for a specific group"
+          },
+          {
+            "name": "owned",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by owned by authenticated user"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "path"
+              ],
+              "default": "name"
+            },
+            "description": "Order by name or path"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            },
+            "description": "Sort by asc (ascending) or desc (descending)"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Group"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Create a group. Available only for users who can create groups.",
+        "operationId": "post_groups",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the group"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the group"
+                  },
+                  "parent_id": {
+                    "type": "integer",
+                    "description": "The parent group id for creating nested group"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the group"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the group"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Enable/disable LFS for the projects in this group"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  }
+                },
+                "required": [
+                  "name",
+                  "path"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the group"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the group"
+                  },
+                  "parent_id": {
+                    "type": "integer",
+                    "description": "The parent group id for creating nested group"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the group"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the group"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Enable/disable LFS for the projects in this group"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  }
+                },
+                "required": [
+                  "name",
+                  "path"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/groups/{id}": {
+      "delete": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Remove a group.",
+        "operationId": "delete_groups_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a group"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Get a single group, with containing projects.",
+        "operationId": "get_groups_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a group"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Update a group. Available only for users who can administrate groups.",
+        "operationId": "put_groups_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a group"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the group"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the group"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the group"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the group"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Enable/disable LFS for the projects in this group"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the group"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the group"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the group"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the group"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Enable/disable LFS for the projects in this group"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/groups/{id}/issues": {
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Get a list of group issues",
+        "operationId": "get_groups_id_issues",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a group"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "opened",
+                "closed",
+                "all"
+              ],
+              "default": "opened"
+            },
+            "description": "Return opened, closed, or all issues"
+          },
+          {
+            "name": "labels",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of label names"
+          },
+          {
+            "name": "milestone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Return issues for a specific milestone"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "updated_at"
+              ],
+              "default": "created_at"
+            },
+            "description": "Return issues ordered by `created_at` or `updated_at` fields."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Return issues sorted in `asc` or `desc` order."
+          },
+          {
+            "name": "iids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "description": "The IID array of issues",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueBasic"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/groups/{id}/projects": {
+      "get": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Get a list of projects in this group.",
+        "operationId": "get_groups_id_projects",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a group"
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by archived status"
+          },
+          {
+            "name": "visibility",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Limit by visibility"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Return list of authorized projects matching the search criteria"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "name",
+                "path",
+                "created_at",
+                "updated_at",
+                "last_activity_at"
+              ],
+              "default": "created_at"
+            },
+            "description": "Return projects ordered by field"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Return projects sorted in ascending and descending order"
+          },
+          {
+            "name": "simple",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Return only the ID, URL, name, and path of each project"
+          },
+          {
+            "name": "owned",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by owned by authenticated user"
+          },
+          {
+            "name": "starred",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by starred status"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/groups/{id}/projects/{project_id}": {
+      "post": {
+        "tags": [
+          "Groups"
+        ],
+        "summary": "Transfer a project to the group namespace. Available only for admin.",
+        "operationId": "post_groups_id_projects_project_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a group"
+          },
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID or path of the project"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/issues": {
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Get currently authenticated user's issues",
+        "operationId": "get_issues",
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "opened",
+                "closed",
+                "all"
+              ],
+              "default": "all"
+            },
+            "description": "Return opened, closed, or all issues"
+          },
+          {
+            "name": "labels",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of label names"
+          },
+          {
+            "name": "milestone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Return issues for a specific milestone"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "updated_at"
+              ],
+              "default": "created_at"
+            },
+            "description": "Return issues ordered by `created_at` or `updated_at` fields."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Return issues sorted in `asc` or `desc` order."
+          },
+          {
+            "name": "iids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "description": "The IID array of issues",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueBasic"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get a list of visible projects for authenticated user",
+        "operationId": "get_projects",
+        "parameters": [
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "name",
+                "path",
+                "created_at",
+                "updated_at",
+                "last_activity_at"
+              ],
+              "default": "created_at"
+            },
+            "description": "Return projects ordered by field"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Return projects sorted in ascending and descending order"
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by archived status"
+          },
+          {
+            "name": "visibility",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Limit by visibility"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Return list of projects matching the search criteria"
+          },
+          {
+            "name": "owned",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by owned by authenticated user"
+          },
+          {
+            "name": "starred",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by starred status"
+          },
+          {
+            "name": "membership",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Limit by projects that the current user is a member of"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "simple",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Return only the ID, URL, name, and path of each project"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BasicProjectDetails"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create new project",
+        "operationId": "post_projects",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the project"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the repository"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the project"
+                  },
+                  "issues_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the issue tracker is enabled"
+                  },
+                  "merge_requests_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if merge requests are enabled"
+                  },
+                  "wiki_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the wiki is enabled"
+                  },
+                  "builds_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if builds are enabled"
+                  },
+                  "snippets_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if snippets are enabled"
+                  },
+                  "shared_runners_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if shared runners are enabled for that project"
+                  },
+                  "container_registry_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the container registry is enabled for that project"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if Git LFS is enabled for that project"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the project."
+                  },
+                  "public_builds": {
+                    "type": "boolean",
+                    "description": "Perform public builds"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  },
+                  "only_allow_merge_if_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if builds succeed"
+                  },
+                  "only_allow_merge_if_all_discussions_are_resolved": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if all discussions are resolved"
+                  },
+                  "namespace_id": {
+                    "type": "integer",
+                    "description": "Namespace ID for the new project. Default to the user namespace."
+                  },
+                  "import_url": {
+                    "type": "string",
+                    "description": "URL from which the project is imported"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the project"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the repository"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the project"
+                  },
+                  "issues_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the issue tracker is enabled"
+                  },
+                  "merge_requests_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if merge requests are enabled"
+                  },
+                  "wiki_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the wiki is enabled"
+                  },
+                  "builds_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if builds are enabled"
+                  },
+                  "snippets_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if snippets are enabled"
+                  },
+                  "shared_runners_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if shared runners are enabled for that project"
+                  },
+                  "container_registry_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the container registry is enabled for that project"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if Git LFS is enabled for that project"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the project."
+                  },
+                  "public_builds": {
+                    "type": "boolean",
+                    "description": "Perform public builds"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  },
+                  "only_allow_merge_if_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if builds succeed"
+                  },
+                  "only_allow_merge_if_all_discussions_are_resolved": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if all discussions are resolved"
+                  },
+                  "namespace_id": {
+                    "type": "integer",
+                    "description": "Namespace ID for the new project. Default to the user namespace."
+                  },
+                  "import_url": {
+                    "type": "string",
+                    "description": "URL from which the project is imported"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/user/{user_id}": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create new project for a specified user. Only available to admin users.",
+        "operationId": "post_projects_user_user_id",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a user"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the project"
+                  },
+                  "default_branch": {
+                    "type": "string",
+                    "description": "The default branch of the project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the project"
+                  },
+                  "issues_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the issue tracker is enabled"
+                  },
+                  "merge_requests_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if merge requests are enabled"
+                  },
+                  "wiki_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the wiki is enabled"
+                  },
+                  "builds_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if builds are enabled"
+                  },
+                  "snippets_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if snippets are enabled"
+                  },
+                  "shared_runners_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if shared runners are enabled for that project"
+                  },
+                  "container_registry_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the container registry is enabled for that project"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if Git LFS is enabled for that project"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the project."
+                  },
+                  "public_builds": {
+                    "type": "boolean",
+                    "description": "Perform public builds"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  },
+                  "only_allow_merge_if_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if builds succeed"
+                  },
+                  "only_allow_merge_if_all_discussions_are_resolved": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if all discussions are resolved"
+                  },
+                  "namespace_id": {
+                    "type": "integer",
+                    "description": "Namespace ID for the new project. Default to the user namespace."
+                  },
+                  "import_url": {
+                    "type": "string",
+                    "description": "URL from which the project is imported"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the project"
+                  },
+                  "default_branch": {
+                    "type": "string",
+                    "description": "The default branch of the project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the project"
+                  },
+                  "issues_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the issue tracker is enabled"
+                  },
+                  "merge_requests_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if merge requests are enabled"
+                  },
+                  "wiki_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the wiki is enabled"
+                  },
+                  "builds_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if builds are enabled"
+                  },
+                  "snippets_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if snippets are enabled"
+                  },
+                  "shared_runners_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if shared runners are enabled for that project"
+                  },
+                  "container_registry_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the container registry is enabled for that project"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if Git LFS is enabled for that project"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the project."
+                  },
+                  "public_builds": {
+                    "type": "boolean",
+                    "description": "Perform public builds"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  },
+                  "only_allow_merge_if_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if builds succeed"
+                  },
+                  "only_allow_merge_if_all_discussions_are_resolved": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if all discussions are resolved"
+                  },
+                  "namespace_id": {
+                    "type": "integer",
+                    "description": "Namespace ID for the new project. Default to the user namespace."
+                  },
+                  "import_url": {
+                    "type": "string",
+                    "description": "URL from which the project is imported"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}": {
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Remove a project",
+        "operationId": "delete_projects_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get a single project",
+        "operationId": "get_projects_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectWithAccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Update an existing project",
+        "operationId": "put_projects_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the project"
+                  },
+                  "default_branch": {
+                    "type": "string",
+                    "description": "The default branch of the project"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the repository"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the project"
+                  },
+                  "issues_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the issue tracker is enabled"
+                  },
+                  "merge_requests_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if merge requests are enabled"
+                  },
+                  "wiki_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the wiki is enabled"
+                  },
+                  "builds_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if builds are enabled"
+                  },
+                  "snippets_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if snippets are enabled"
+                  },
+                  "shared_runners_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if shared runners are enabled for that project"
+                  },
+                  "container_registry_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the container registry is enabled for that project"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if Git LFS is enabled for that project"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the project."
+                  },
+                  "public_builds": {
+                    "type": "boolean",
+                    "description": "Perform public builds"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  },
+                  "only_allow_merge_if_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if builds succeed"
+                  },
+                  "only_allow_merge_if_all_discussions_are_resolved": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if all discussions are resolved"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the project"
+                  },
+                  "default_branch": {
+                    "type": "string",
+                    "description": "The default branch of the project"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path of the repository"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the project"
+                  },
+                  "issues_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the issue tracker is enabled"
+                  },
+                  "merge_requests_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if merge requests are enabled"
+                  },
+                  "wiki_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the wiki is enabled"
+                  },
+                  "builds_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if builds are enabled"
+                  },
+                  "snippets_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if snippets are enabled"
+                  },
+                  "shared_runners_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if shared runners are enabled for that project"
+                  },
+                  "container_registry_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if the container registry is enabled for that project"
+                  },
+                  "lfs_enabled": {
+                    "type": "boolean",
+                    "description": "Flag indication if Git LFS is enabled for that project"
+                  },
+                  "visibility": {
+                    "type": "string",
+                    "description": "The visibility of the project."
+                  },
+                  "public_builds": {
+                    "type": "boolean",
+                    "description": "Perform public builds"
+                  },
+                  "request_access_enabled": {
+                    "type": "boolean",
+                    "description": "Allow users to request member access"
+                  },
+                  "only_allow_merge_if_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if builds succeed"
+                  },
+                  "only_allow_merge_if_all_discussions_are_resolved": {
+                    "type": "boolean",
+                    "description": "Only allow to merge if all discussions are resolved"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/archive": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Archive a project",
+        "operationId": "post_projects_id_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/events": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get events for a single project",
+        "operationId": "get_projects_id_events",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Event"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/fork": {
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Remove a forked_from relationship",
+        "operationId": "delete_projects_id_fork",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Fork new project for the current user or provided namespace.",
+        "operationId": "post_projects_id_fork",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "namespace": {
+                    "type": "string",
+                    "description": "The ID or name of the namespace that the project will be forked into"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "namespace": {
+                    "type": "string",
+                    "description": "The ID or name of the namespace that the project will be forked into"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/fork/{forked_from_id}": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Mark this project as forked from another",
+        "operationId": "post_projects_id_fork_forked_from_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "forked_from_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the project it was forked from"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/housekeeping": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Start the housekeeping task for a project",
+        "description": "This feature was introduced in GitLab 9.0.",
+        "operationId": "post_projects_id_housekeeping",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues": {
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Get a list of project issues",
+        "operationId": "get_projects_id_issues",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "opened",
+                "closed",
+                "all"
+              ],
+              "default": "all"
+            },
+            "description": "Return opened, closed, or all issues"
+          },
+          {
+            "name": "labels",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated list of label names"
+          },
+          {
+            "name": "milestone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Return issues for a specific milestone"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "updated_at"
+              ],
+              "default": "created_at"
+            },
+            "description": "Return issues ordered by `created_at` or `updated_at` fields."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Return issues sorted in `asc` or `desc` order."
+          },
+          {
+            "name": "iids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "description": "The IID array of issues",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IssueBasic"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Create a new project issue",
+        "operationId": "post_projects_id_issues",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of an issue"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Date time when the issue was created. Available only for admins and project owners."
+                  },
+                  "merge_request_for_resolving_discussions": {
+                    "type": "integer",
+                    "description": "The IID of a merge request for which to resolve discussions"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of an issue"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign issue"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign issue"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "due_date": {
+                    "type": "string",
+                    "description": "Date time string in the format YEAR-MONTH-DAY"
+                  },
+                  "confidential": {
+                    "type": "boolean",
+                    "description": "Boolean parameter if the issue should be confidential"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of an issue"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Date time when the issue was created. Available only for admins and project owners."
+                  },
+                  "merge_request_for_resolving_discussions": {
+                    "type": "integer",
+                    "description": "The IID of a merge request for which to resolve discussions"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of an issue"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign issue"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign issue"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "due_date": {
+                    "type": "string",
+                    "description": "Date time string in the format YEAR-MONTH-DAY"
+                  },
+                  "confidential": {
+                    "type": "boolean",
+                    "description": "Boolean parameter if the issue should be confidential"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Issue"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues/{issue_iid}": {
+      "delete": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Delete a project issue",
+        "operationId": "delete_projects_id_issues_issue_iid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The internal ID of a project issue"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Get a single project issue",
+        "operationId": "get_projects_id_issues_issue_iid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The internal ID of a project issue"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Issue"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Update an existing issue",
+        "operationId": "put_projects_id_issues_issue_iid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The internal ID of a project issue"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of an issue"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Date time when the issue was updated. Available only for admins and project owners."
+                  },
+                  "state_event": {
+                    "type": "string",
+                    "enum": [
+                      "reopen",
+                      "close"
+                    ],
+                    "description": "State of the issue"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of an issue"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign issue"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign issue"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "due_date": {
+                    "type": "string",
+                    "description": "Date time string in the format YEAR-MONTH-DAY"
+                  },
+                  "confidential": {
+                    "type": "boolean",
+                    "description": "Boolean parameter if the issue should be confidential"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of an issue"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Date time when the issue was updated. Available only for admins and project owners."
+                  },
+                  "state_event": {
+                    "type": "string",
+                    "enum": [
+                      "reopen",
+                      "close"
+                    ],
+                    "description": "State of the issue"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of an issue"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign issue"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign issue"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "due_date": {
+                    "type": "string",
+                    "description": "Date time string in the format YEAR-MONTH-DAY"
+                  },
+                  "confidential": {
+                    "type": "boolean",
+                    "description": "Boolean parameter if the issue should be confidential"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Issue"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues/{issue_iid}/add_spent_time": {
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Add spent time for a project issue",
+        "operationId": "post_projects_id_issues_issue_iid_add_spent_time",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project issue"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues/{issue_iid}/move": {
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Move an existing issue",
+        "operationId": "post_projects_id_issues_issue_iid_move",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The internal ID of a project issue"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to_project_id": {
+                    "type": "integer",
+                    "description": "The ID of the new project"
+                  }
+                },
+                "required": [
+                  "to_project_id"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "to_project_id": {
+                    "type": "integer",
+                    "description": "The ID of the new project"
+                  }
+                },
+                "required": [
+                  "to_project_id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Issue"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues/{issue_iid}/reset_spent_time": {
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Reset spent time for a project issue",
+        "operationId": "post_projects_id_issues_issue_iid_reset_spent_time",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project issue"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues/{issue_iid}/reset_time_estimate": {
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Reset the time estimate for a project issue",
+        "operationId": "post_projects_id_issues_issue_iid_reset_time_estimate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project issue"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues/{issue_iid}/time_estimate": {
+      "post": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Set a time estimate for a project issue",
+        "operationId": "post_projects_id_issues_issue_iid_time_estimate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project issue"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/issues/{issue_iid}/time_stats": {
+      "get": {
+        "tags": [
+          "Issues"
+        ],
+        "summary": "Show time stats for a project issue",
+        "operationId": "get_projects_id_issues_issue_iid_time_stats",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "issue_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project issue"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests": {
+      "get": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "List merge requests",
+        "operationId": "get_projects_id_merge_requests",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "opened",
+                "closed",
+                "merged",
+                "all"
+              ],
+              "default": "all"
+            },
+            "description": "Return opened, closed, merged, or all merge requests"
+          },
+          {
+            "name": "order_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "updated_at"
+              ],
+              "default": "created_at"
+            },
+            "description": "Return merge requests ordered by `created_at` or `updated_at` fields."
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Return merge requests sorted in `asc` or `desc` order."
+          },
+          {
+            "name": "iids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "description": "The IID array of merge requests",
+            "style": "form",
+            "explode": false
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MergeRequestBasic"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Create a merge request",
+        "operationId": "post_projects_id_merge_requests",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of the merge request"
+                  },
+                  "source_branch": {
+                    "type": "string",
+                    "description": "The source branch"
+                  },
+                  "target_branch": {
+                    "type": "string",
+                    "description": "The target branch"
+                  },
+                  "target_project_id": {
+                    "type": "integer",
+                    "description": "The target project of the merge request defaults to the :id of the project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the merge request"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign the merge request"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign the merge request"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "remove_source_branch": {
+                    "type": "boolean",
+                    "description": "Remove source branch when merging"
+                  }
+                },
+                "required": [
+                  "title",
+                  "source_branch",
+                  "target_branch"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of the merge request"
+                  },
+                  "source_branch": {
+                    "type": "string",
+                    "description": "The source branch"
+                  },
+                  "target_branch": {
+                    "type": "string",
+                    "description": "The target branch"
+                  },
+                  "target_project_id": {
+                    "type": "integer",
+                    "description": "The target project of the merge request defaults to the :id of the project"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the merge request"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign the merge request"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign the merge request"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "remove_source_branch": {
+                    "type": "boolean",
+                    "description": "Remove source branch when merging"
+                  }
+                },
+                "required": [
+                  "title",
+                  "source_branch",
+                  "target_branch"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}": {
+      "delete": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Delete a merge request",
+        "operationId": "delete_projects_id_merge_requests_merge_request_iid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The IID of a merge request"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Get a single merge request",
+        "operationId": "get_projects_id_merge_requests_merge_request_iid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The IID of a merge request"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Update a merge request",
+        "operationId": "put_projects_id_merge_requests_merge_request_iid",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of the merge request"
+                  },
+                  "target_branch": {
+                    "type": "string",
+                    "description": "The target branch"
+                  },
+                  "state_event": {
+                    "type": "string",
+                    "enum": [
+                      "close",
+                      "reopen"
+                    ],
+                    "description": "Status of the merge request"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the merge request"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign the merge request"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign the merge request"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "remove_source_branch": {
+                    "type": "boolean",
+                    "description": "Remove source branch when merging"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "description": "The title of the merge request"
+                  },
+                  "target_branch": {
+                    "type": "string",
+                    "description": "The target branch"
+                  },
+                  "state_event": {
+                    "type": "string",
+                    "enum": [
+                      "close",
+                      "reopen"
+                    ],
+                    "description": "Status of the merge request"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "The description of the merge request"
+                  },
+                  "assignee_id": {
+                    "type": "integer",
+                    "description": "The ID of a user to assign the merge request"
+                  },
+                  "milestone_id": {
+                    "type": "integer",
+                    "description": "The ID of a milestone to assign the merge request"
+                  },
+                  "labels": {
+                    "type": "string",
+                    "description": "Comma-separated list of label names"
+                  },
+                  "remove_source_branch": {
+                    "type": "boolean",
+                    "description": "Remove source branch when merging"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/add_spent_time": {
+      "post": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Add spent time for a project merge_request",
+        "operationId": "post_projects_id_merge_requests_merge_request_iid_add_spent_time",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project merge_request"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/cancel_merge_when_pipeline_succeeds": {
+      "post": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Cancel merge if \"Merge When Pipeline Succeeds\" is enabled",
+        "operationId": "post_projects_id_merge_requests_merge_request_iid_cancel_merge_when_pipeline_succeeds",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/changes": {
+      "get": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Show the merge request changes",
+        "operationId": "get_projects_id_merge_requests_merge_request_iid_changes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeRequestChanges"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/closes_issues": {
+      "get": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "List issues that will be closed on merge",
+        "operationId": "get_projects_id_merge_requests_merge_request_iid_closes_issues",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MRNote"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/comments": {
+      "get": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Get the comments of a merge request",
+        "operationId": "get_projects_id_merge_requests_merge_request_iid_comments",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MRNote"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Post a comment to a merge request",
+        "operationId": "post_projects_id_merge_requests_merge_request_iid_comments",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "description": "The text of the comment"
+                  }
+                },
+                "required": [
+                  "note"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "note": {
+                    "type": "string",
+                    "description": "The text of the comment"
+                  }
+                },
+                "required": [
+                  "note"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MRNote"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/commits": {
+      "get": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Get the commits of a merge request",
+        "operationId": "get_projects_id_merge_requests_merge_request_iid_commits",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepoCommit"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/merge": {
+      "put": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Merge a merge request",
+        "operationId": "put_projects_id_merge_requests_merge_request_iid_merge",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "merge_commit_message": {
+                    "type": "string",
+                    "description": "Custom merge commit message"
+                  },
+                  "should_remove_source_branch": {
+                    "type": "boolean",
+                    "description": "When true, the source branch will be deleted if possible"
+                  },
+                  "merge_when_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "When true, this merge request will be merged when the pipeline succeeds"
+                  },
+                  "sha": {
+                    "type": "string",
+                    "description": "When present, must have the HEAD SHA of the source branch"
+                  }
+                }
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "merge_commit_message": {
+                    "type": "string",
+                    "description": "Custom merge commit message"
+                  },
+                  "should_remove_source_branch": {
+                    "type": "boolean",
+                    "description": "When true, the source branch will be deleted if possible"
+                  },
+                  "merge_when_pipeline_succeeds": {
+                    "type": "boolean",
+                    "description": "When true, this merge request will be merged when the pipeline succeeds"
+                  },
+                  "sha": {
+                    "type": "string",
+                    "description": "When present, must have the HEAD SHA of the source branch"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MergeRequest"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/reset_spent_time": {
+      "post": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Reset spent time for a project merge_request",
+        "operationId": "post_projects_id_merge_requests_merge_request_iid_reset_spent_time",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project merge_request"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/reset_time_estimate": {
+      "post": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Reset the time estimate for a project merge_request",
+        "operationId": "post_projects_id_merge_requests_merge_request_iid_reset_time_estimate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project merge_request"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/time_estimate": {
+      "post": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Set a time estimate for a project merge_request",
+        "operationId": "post_projects_id_merge_requests_merge_request_iid_time_estimate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project merge_request"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "duration": {
+                    "type": "string",
+                    "description": "The duration to be parsed"
+                  }
+                },
+                "required": [
+                  "duration"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/merge_requests/{merge_request_iid}/time_stats": {
+      "get": {
+        "tags": [
+          "MergeRequests"
+        ],
+        "summary": "Show time stats for a project merge_request",
+        "operationId": "get_projects_id_merge_requests_merge_request_iid_time_stats",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "merge_request_iid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of a project merge_request"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuableTimeStats"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/share": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Share the project with a group",
+        "operationId": "post_projects_id_share",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "group_id": {
+                    "type": "integer",
+                    "description": "The ID of a group"
+                  },
+                  "group_access": {
+                    "type": "integer",
+                    "description": "The group access level"
+                  },
+                  "expires_at": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Share expiration date"
+                  }
+                },
+                "required": [
+                  "group_id",
+                  "group_access"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "group_id": {
+                    "type": "integer",
+                    "description": "The ID of a group"
+                  },
+                  "group_access": {
+                    "type": "integer",
+                    "description": "The group access level"
+                  },
+                  "expires_at": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Share expiration date"
+                  }
+                },
+                "required": [
+                  "group_id",
+                  "group_access"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectGroupLink"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/share/{group_id}": {
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "DELETE /projects/{id}/share/{group_id}",
+        "operationId": "delete_projects_id_share_group_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the group"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/star": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Star a project",
+        "operationId": "post_projects_id_star",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/unarchive": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Unarchive a project",
+        "operationId": "post_projects_id_unarchive",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/unstar": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Unstar a project",
+        "operationId": "post_projects_id_unstar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/uploads": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Upload a file",
+        "operationId": "post_projects_id_uploads",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The file to be uploaded"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The file to be uploaded"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/projects/{id}/users": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get the users list of a project",
+        "operationId": "get_projects_id_users",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of a project"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Return list of users matching the search criteria"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Current page number"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            },
+            "description": "Number of items per page"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserBasic"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/api/v4/version": {
+      "get": {
+        "tags": [
+          "Version"
+        ],
+        "summary": "Get the version information of the GitLab instance.",
+        "description": "This feature was introduced in GitLab 8.13.",
+        "operationId": "get_version",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "string"
+                    },
+                    "revision": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "PrivateTokenHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "PRIVATE-TOKEN"
+      },
+      "PrivateTokenQuery": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "private_token"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "BasicProjectDetails": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "http_url_to_repo": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_with_namespace": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "path_with_namespace": {
+            "type": "string"
+          }
+        }
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "integer"
+          },
+          "action_name": {
+            "type": "string"
+          },
+          "target_id": {
+            "type": "integer"
+          },
+          "target_type": {
+            "type": "string"
+          },
+          "author_id": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "string"
+          },
+          "target_title": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "note": {
+            "$ref": "#/components/schemas/Note"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "author_username": {
+            "type": "string"
+          }
+        }
+      },
+      "Group": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "lfs_enabled": {
+            "type": "boolean"
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "request_access_enabled": {
+            "type": "boolean"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "full_path": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "integer"
+          },
+          "statistics": {
+            "type": "object"
+          }
+        }
+      },
+      "GroupDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "lfs_enabled": {
+            "type": "boolean"
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "request_access_enabled": {
+            "type": "boolean"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "full_path": {
+            "type": "string"
+          },
+          "parent_id": {
+            "type": "integer"
+          },
+          "statistics": {
+            "type": "object"
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            }
+          },
+          "shared_projects": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            }
+          }
+        }
+      },
+      "IssuableTimeStats": {
+        "type": "object",
+        "properties": {
+          "time_estimate": {
+            "type": "integer"
+          },
+          "total_time_spent": {
+            "type": "integer"
+          },
+          "human_time_estimate": {
+            "type": "string"
+          },
+          "human_total_time_spent": {
+            "type": "string"
+          }
+        }
+      },
+      "Issue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "iid": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "milestone": {
+            "$ref": "#/components/schemas/Milestone"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "user_notes_count": {
+            "type": "integer"
+          },
+          "upvotes": {
+            "type": "integer"
+          },
+          "downvotes": {
+            "type": "integer"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "confidential": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "subscribed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "IssueBasic": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "iid": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "milestone": {
+            "$ref": "#/components/schemas/Milestone"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "user_notes_count": {
+            "type": "integer"
+          },
+          "upvotes": {
+            "type": "integer"
+          },
+          "downvotes": {
+            "type": "integer"
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "confidential": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          }
+        }
+      },
+      "MRNote": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          }
+        }
+      },
+      "MergeRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "iid": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "target_branch": {
+            "type": "string"
+          },
+          "source_branch": {
+            "type": "string"
+          },
+          "upvotes": {
+            "type": "integer"
+          },
+          "downvotes": {
+            "type": "integer"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "source_project_id": {
+            "type": "integer"
+          },
+          "target_project_id": {
+            "type": "integer"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "work_in_progress": {
+            "type": "boolean"
+          },
+          "milestone": {
+            "$ref": "#/components/schemas/Milestone"
+          },
+          "merge_when_pipeline_succeeds": {
+            "type": "boolean"
+          },
+          "merge_status": {
+            "type": "string"
+          },
+          "sha": {
+            "type": "string"
+          },
+          "merge_commit_sha": {
+            "type": "string"
+          },
+          "user_notes_count": {
+            "type": "integer"
+          },
+          "should_remove_source_branch": {
+            "type": "boolean"
+          },
+          "force_remove_source_branch": {
+            "type": "boolean"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "subscribed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MergeRequestBasic": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "iid": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "target_branch": {
+            "type": "string"
+          },
+          "source_branch": {
+            "type": "string"
+          },
+          "upvotes": {
+            "type": "integer"
+          },
+          "downvotes": {
+            "type": "integer"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "source_project_id": {
+            "type": "integer"
+          },
+          "target_project_id": {
+            "type": "integer"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "work_in_progress": {
+            "type": "boolean"
+          },
+          "milestone": {
+            "$ref": "#/components/schemas/Milestone"
+          },
+          "merge_when_pipeline_succeeds": {
+            "type": "boolean"
+          },
+          "merge_status": {
+            "type": "string"
+          },
+          "sha": {
+            "type": "string"
+          },
+          "merge_commit_sha": {
+            "type": "string"
+          },
+          "user_notes_count": {
+            "type": "integer"
+          },
+          "should_remove_source_branch": {
+            "type": "boolean"
+          },
+          "force_remove_source_branch": {
+            "type": "boolean"
+          },
+          "web_url": {
+            "type": "string"
+          }
+        }
+      },
+      "MergeRequestChanges": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "iid": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "target_branch": {
+            "type": "string"
+          },
+          "source_branch": {
+            "type": "string"
+          },
+          "upvotes": {
+            "type": "integer"
+          },
+          "downvotes": {
+            "type": "integer"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "assignee": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "source_project_id": {
+            "type": "integer"
+          },
+          "target_project_id": {
+            "type": "integer"
+          },
+          "labels": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "work_in_progress": {
+            "type": "boolean"
+          },
+          "milestone": {
+            "$ref": "#/components/schemas/Milestone"
+          },
+          "merge_when_pipeline_succeeds": {
+            "type": "boolean"
+          },
+          "merge_status": {
+            "type": "string"
+          },
+          "sha": {
+            "type": "string"
+          },
+          "merge_commit_sha": {
+            "type": "string"
+          },
+          "user_notes_count": {
+            "type": "integer"
+          },
+          "should_remove_source_branch": {
+            "type": "boolean"
+          },
+          "force_remove_source_branch": {
+            "type": "boolean"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "subscribed": {
+            "type": "boolean"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepoDiff"
+            }
+          }
+        }
+      },
+      "Milestone": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "iid": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "due_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "Note": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "attachment": {
+            "type": "string"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "system": {
+            "type": "boolean"
+          },
+          "noteable_id": {
+            "type": "integer"
+          },
+          "noteable_type": {
+            "type": "string"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "default_branch": {
+            "type": "string"
+          },
+          "tag_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "ssh_url_to_repo": {
+            "type": "string"
+          },
+          "http_url_to_repo": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_with_namespace": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "path_with_namespace": {
+            "type": "string"
+          },
+          "container_registry_enabled": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_activity_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "shared_runners_enabled": {
+            "type": "boolean"
+          },
+          "lfs_enabled": {
+            "type": "boolean"
+          },
+          "creator_id": {
+            "type": "integer"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "forked_from_project": {
+            "$ref": "#/components/schemas/BasicProjectDetails"
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "star_count": {
+            "type": "integer"
+          },
+          "forks_count": {
+            "type": "integer"
+          },
+          "open_issues_count": {
+            "type": "integer"
+          },
+          "runners_token": {
+            "type": "string"
+          },
+          "public_jobs": {
+            "type": "boolean"
+          },
+          "shared_with_groups": {
+            "type": "string"
+          },
+          "only_allow_merge_if_pipeline_succeeds": {
+            "type": "boolean"
+          },
+          "request_access_enabled": {
+            "type": "boolean"
+          },
+          "only_allow_merge_if_all_discussions_are_resolved": {
+            "type": "boolean"
+          },
+          "statistics": {
+            "type": "object"
+          }
+        }
+      },
+      "ProjectGroupLink": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "project_id": {
+            "type": "integer"
+          },
+          "group_id": {
+            "type": "integer"
+          },
+          "group_access": {
+            "type": "object"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "ProjectWithAccess": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          },
+          "default_branch": {
+            "type": "string"
+          },
+          "tag_list": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "visibility": {
+            "type": "string"
+          },
+          "ssh_url_to_repo": {
+            "type": "string"
+          },
+          "http_url_to_repo": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/UserBasic"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_with_namespace": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "path_with_namespace": {
+            "type": "string"
+          },
+          "container_registry_enabled": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_activity_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "shared_runners_enabled": {
+            "type": "boolean"
+          },
+          "lfs_enabled": {
+            "type": "boolean"
+          },
+          "creator_id": {
+            "type": "integer"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "forked_from_project": {
+            "$ref": "#/components/schemas/BasicProjectDetails"
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "star_count": {
+            "type": "integer"
+          },
+          "forks_count": {
+            "type": "integer"
+          },
+          "open_issues_count": {
+            "type": "integer"
+          },
+          "runners_token": {
+            "type": "string"
+          },
+          "public_jobs": {
+            "type": "boolean"
+          },
+          "shared_with_groups": {
+            "type": "string"
+          },
+          "only_allow_merge_if_pipeline_succeeds": {
+            "type": "boolean"
+          },
+          "request_access_enabled": {
+            "type": "boolean"
+          },
+          "only_allow_merge_if_all_discussions_are_resolved": {
+            "type": "boolean"
+          },
+          "statistics": {
+            "type": "object"
+          },
+          "permissions": {
+            "type": "object"
+          }
+        }
+      },
+      "RepoCommit": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "short_id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "parent_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "message": {
+            "type": "string"
+          },
+          "author_name": {
+            "type": "string"
+          },
+          "author_email": {
+            "type": "string"
+          },
+          "authored_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "committer_name": {
+            "type": "string"
+          },
+          "committer_email": {
+            "type": "string"
+          },
+          "committed_date": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        }
+      },
+      "RepoDiff": {
+        "type": "object",
+        "properties": {
+          "old_path": {
+            "type": "string"
+          },
+          "new_path": {
+            "type": "string"
+          },
+          "a_mode": {
+            "type": "integer"
+          },
+          "b_mode": {
+            "type": "integer"
+          },
+          "diff": {
+            "type": "string"
+          },
+          "new_file": {
+            "type": "string"
+          },
+          "renamed_file": {
+            "type": "string"
+          },
+          "deleted_file": {
+            "type": "string"
+          }
+        }
+      },
+      "UserBasic": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string"
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "web_url": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

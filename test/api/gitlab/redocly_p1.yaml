@@ -1,0 +1,11 @@
+plugins:
+  - ../prune-plugin.cjs
+  - ./fix-paths.cjs
+decorators:
+  filter-in:
+    applyTo: Operation
+    property: tags
+    value: [Issues, Metadata, Merge requests, MergeRequests, Search, Groups, Projects]
+  remove-unused-components: off
+  prune/prune-components: on
+  gitlab/fix-grape-paths: on

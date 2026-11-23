@@ -41,6 +41,11 @@ config.options = {
         api_version = "2026-03-10",
       } --[[@as rissue.Github.supports.AdditionalInfo]],
     },
+    {
+      name = "gitlab",
+      domain = "gitlab.com",
+      patterns = { "gitlab%.com" },
+    },
   },
   timeout = 60000,
   log = {},
@@ -50,7 +55,10 @@ config.options = {
 
 --- Table of available providers
 ---@type table<rissue.ProviderName, rissue.Provider>
-config.providers = { github = require("rissue.providers.github") }
+config.providers = {
+  github = require("rissue.providers.github"),
+  gitlab = require("rissue.providers.gitlab"),
+}
 
 local matchers = assert_op.matchers
 

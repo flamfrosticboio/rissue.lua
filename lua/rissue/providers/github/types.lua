@@ -20,7 +20,7 @@
 ---| "raw" # Enables `body` in the response
 ---| "text" # Enables `body_text` in the response
 ---| "html" # Enables `body_html` in the response
----| "full" # Combination of `raw`, `text`, and `html`. Read more on [rissue.Github.Opts](docs.types.md#rissuegithubopts)
+---| "full" # Combination of `raw`, `text`, and `html`. Read more on [rissue.Github.Settings](/docs/types.md#rissuegithubsettings)
 
 ---@class rissue.Github.supports.AdditionalInfo
 ---@field ghes string? The Github Enterprise Version (3.x)

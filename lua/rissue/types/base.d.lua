@@ -19,11 +19,11 @@
 ---@class (exact) rissue.CommonItem
 ---@field title      string
 ---@field body       string?
----@field web_url    rissue.url       A web version to the url
----@field url        rissue.url
----@field id         integer          The id of the issue
----@field author     rissue.User
+---@field id         integer The id of the issue
+---@field author     rissue.User May become an anonymous user based on provider
 ---@field created_at rissue.timestamp
+---@field web_url    rissue.url? A web version to the url
+---@field url        rissue.url? Api url
 ---@field labels     rissue.Label[]
 ---Raw response from server (if supported and enabled).
 ---See your current git provider's settings on this option.
@@ -37,4 +37,4 @@
 ---@class (exact) rissue.User
 ---@field username     string
 ---@field display_name string?
----@field web_url      rissue.url
+---@field web_url      rissue.url?

@@ -72,4 +72,4 @@ if log.level_enabled(log.levels.trace) then
 end
 ```
 
-See more on [docs/types.md#rissue.Logger](#docs/types.md#rissuelogger)
+See more on [docs/types.md#rissue.Logger](/docs/types.md#rissuelogger)

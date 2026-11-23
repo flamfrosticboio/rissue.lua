@@ -160,16 +160,14 @@ Specific requirements for a provider
 - <details>
   <summary><code>get_issues</code>: <code>rissue.provider.GetIssues&lt;any, any&gt;</code> – Gets issues using the provided <code>info</code>.</summary>
 
-  Read more from
-  [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+  Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 
   </details>
 
 - <details>
   <summary><code>get_merge_requests</code>: <code>rissue.provider.GetMergeRequests&lt;any, any&gt;</code> – Gets merge requests using the provided <code>info</code>.</summary>
 
-  Read more from
-  [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+  Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 
   </details>
 
@@ -179,8 +177,7 @@ Specific requirements for a provider
 - <details>
   <summary><code>supports</code>: <code>rissue.provider.Supports&lt;any, any&gt;</code> – Checks if the remote information given is supported by the provider.</summary>
 
-  Read more from
-  [docs/types.md#rissue.provider.d](docs/types.md#rissueproviderd)
+  Read more from [rissue.provider.d](/docs/types.md#rissueproviderd)
 
   </details>
 
