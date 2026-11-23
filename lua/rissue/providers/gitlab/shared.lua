@@ -55,30 +55,28 @@ local function flatten_errors(value, path, out)
   -- anything else (nil, JSON null userdata) is ignored
 end
 
----@param body string
+--- Attempts to read the decoded server response and translates it into an error.
+---@param decoded table Decoded server error message
 ---@return string? msg
-local function try_print_server_error(body)
-  local decoded, decode_err = json.decode(body)
-  if type(decoded) ~= "table" then
-    log.debug("Failed to read failing body message:", decode_err)
-    log.trace("Failing decode error body:", body)
-    return nil
-  end
-
+function shared.try_represent_server_error(decoded)
   ---@type string?
   local msg = nil
 
-  if type(decoded.message) == "string" then
-    msg = decoded.message
-  elseif type(decoded.message) == "table" then
+  ---@type string?
+  local decoded_message = decoded.message
+  if type(decoded_message) == "string" then
+    msg = decoded_message
+  elseif type(decoded_message) == "table" then
     local lines = {}
-    flatten_errors(decoded.message, nil, lines)
+    flatten_errors(decoded_message, nil, lines)
     if #lines > 0 then
       msg = table.concat(lines, "\n")
     end
   end
 
+  ---@type string?
   local headline = type(decoded.error) == "string" and decoded.error or nil
+  ---@type string?
   local description = type(decoded.error_description) == "string"
       and decoded.error_description
     or nil
@@ -95,6 +93,19 @@ local function try_print_server_error(body)
   end
 
   return msg
+end
+
+---@param body string
+---@return string? msg
+local function try_print_server_error(body)
+  local decoded, decode_err = json.decode(body)
+  if type(decoded) ~= "table" then
+    log.debug("Failed to read failing body message:", decode_err)
+    log.trace("Failing decode error body:", body)
+    return nil
+  end
+
+  return shared.try_represent_server_error(decoded)
 end
 
 ---@param err rissue.curl.Error

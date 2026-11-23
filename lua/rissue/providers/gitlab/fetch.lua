@@ -87,6 +87,7 @@ local function get_next_page(headers)
   return headers:match('<([^>]+)>;%s*rel="next"')
 end
 
+---@param response string
 ---@return table[]? results if decoding was a success
 ---@return string? error
 local function decode(response)
@@ -102,9 +103,12 @@ local function decode(response)
     return nil, msg
   end
 
-  if decoded.message or decoded.error then -- GitLab error object
-    local msg = "API error: " .. (decoded.message or decoded.error)
-    return nil, msg
+  --- For cases where it returns 200, but returns a failing message,
+  --- we check its decoded body is a kind of gitlab error
+  local server_err = shared.try_represent_server_error(decoded)
+  --- A success means this server_err has the basic error fields
+  if server_err ~= nil then
+    return nil, server_err
   end
 
   return decoded
