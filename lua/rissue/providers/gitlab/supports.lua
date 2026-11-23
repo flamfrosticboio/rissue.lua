@@ -65,16 +65,19 @@ local function check_result(endpoint, res, err)
     return false
   end
 
-  if not decoded.version then
+  ---@type string?
+  local version = decoded.version
+
+  if type(version) ~= "string" then
     log.debug("Not a valid gitlab response.")
     log.trace("Response that failed the assertion:\n" .. res.content)
     return false
   end
 
-  local version = decoded.version
+  ---@type boolean|nil
   local is_enterprise = decoded.enterprise -- boolean or nil (nil on servers older than 15.6)
 
-  if is_enterprise == nil and type(version) == "string" then
+  if is_enterprise == nil then
     is_enterprise = version:find("-ee", 1, true) ~= nil
   end
 
