@@ -36,7 +36,7 @@ luarocks test .rockspec/rissue-dev-1.rockspec -- --defer-print
 [tasks.test-vim]
 description = "Run tests with nlua (vim runtime)"
 run = '''
-luarocks test .rockspec/rissue-dev-1.rockspec -- --defer-print --run=nlua
+luarocks test .rockspec/rissue-nlua-dev-1.rockspec -- --defer-print
 '''
 
 [tasks.testi]
