@@ -23,17 +23,21 @@ shared.log = log.new({
   context = "Gitlab",
 })
 
+---@param value any
+---@param path string?
+---@param out string[]
 local function flatten_errors(value, path, out)
   local t = type(value)
 
   if t == "table" then
+    ---@cast value table<string, any>
     if #value > 0 then
       -- array of messages (or nested items)
       for _, item in ipairs(value) do
         flatten_errors(item, path, out)
       end
     else
-      local keys = {}
+      local keys = {} ---@type string[]
       for k in pairs(value) do
         keys[#keys + 1] = k
       end

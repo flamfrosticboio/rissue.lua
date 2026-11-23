@@ -28,6 +28,7 @@ local log = shared.log
 --- Formats {repo} into usable "info.owner .. "/" .. info.repo" supported by gitlab
 ---@param info rissue.ProviderInfo
 ---@param endpoint rissue.url
+---@return string
 local function endpoint_to_full_url(info, endpoint)
   return string.format(
     "%s://%s/api/v4/%s", -- use api v4
@@ -114,6 +115,7 @@ local function decode(response)
   return decoded
 end
 
+---@param results table[]
 ---@param cb fun(item: table)
 ---@param status { count: integer }
 ---@param max integer
@@ -131,6 +133,7 @@ local function push_results(results, status, max, cb)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param millis integer Delay in milliseconds
 local function delay(async, millis)
   local delay_ok, delay_err = process.sleep(async, millis)
@@ -140,7 +143,7 @@ local function delay(async, millis)
 end
 
 ---@class __rissue.Gitlab.FetchOpts
----@field queries rissue.Query
+---@field queries rissue.Query[]
 ---@field cb fun(result: any)
 ---@field config rissue.Gitlab.Config
 ---@field info rissue.ProviderInfo

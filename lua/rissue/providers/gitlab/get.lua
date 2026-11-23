@@ -20,6 +20,7 @@ local fetch = require("rissue.providers.gitlab.fetch")
 local time = require("rissue.utils.time")
 
 ---@param info rissue.ProviderInfo
+---@return string
 local function into_base_api_url(info)
   return info.protocol .. "://" .. info.domain .. "/api/v4"
 end
