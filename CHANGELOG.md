@@ -196,6 +196,9 @@
 - New Gitlab module. You can now query gitlab.com and self-hosted gitlab
   instances for issues and merge requests
 
+- [utils/json]:
+  - Add new field "loaded" that shows the currently loaded json backend.
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
@@ -231,6 +234,9 @@
 
 - [utils/curl]:
   - Set `server_msg` to `nil` when stdout is empty instead of `""`.
+
+- [utils/json]:
+  - Improved error reporting.
 
 **Bug Fixes:**
 

@@ -5,7 +5,12 @@
         "pathStrict": true
     },
     "workspace": {
-        "library": ["${3rd}/luv/library", "./lua"],
+        "library": [
+            "${3rd}/luv/library",
+            "./lua",
+            ".types/lua-cjson",
+            ".types/dkjson"
+        ],
         "ignoreDir": ["test"]
     },
     "diagnostics": {

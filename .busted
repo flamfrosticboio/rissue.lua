@@ -59,6 +59,11 @@ return {
     ["exclude-tags"] = "",
     ["defer-print"] = true,
   },
+  nlua = {
+    tags = "vim",
+    verbose = true,
+    lua = "nlua",
+  },
   apiOne = {
     tags = "api",
     ["exclude-tags"] = "",
