@@ -26,6 +26,10 @@ build = {
 test_dependencies = {
   "busted >= 2.3.0",
   "inspect >= 3.1.3",
+  "nlua >= 0.3.2",
+  "dkjson >= 2.11",
+  "lua-cjson >= 2.1.0",
+  "rapidjson >= 0.7.2",
 }
 
 test = {
