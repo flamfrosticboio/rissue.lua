@@ -23,6 +23,8 @@ local assert = _busted.assert or assert
 
 local shared = require("api.gitlab.shared")
 
+local JSON_EMPTY_ERROR = "Failed to decode response: The document is empty. (0)"
+
 local v9_response = {
   author = {
     display_name = "string",
@@ -151,7 +153,7 @@ return function(name, rissue, info)
 
         local result, err = rissue.get_issues(info, opts)
         ---@diagnostic disable-next-line: redundant-parameter
-        assert.equal("Failed to decode response: unexpected response", err)
+        assert.equal(JSON_EMPTY_ERROR, err)
         assert(not result or #result == 0, "there are unexpected results")
       end)
 
@@ -175,7 +177,7 @@ return function(name, rissue, info)
 
         local result, err = rissue.get_issues(info, opts)
         ---@diagnostic disable-next-line: redundant-parameter
-        assert.equal("Failed to decode response: unexpected response", err)
+        assert.equal(JSON_EMPTY_ERROR, err)
         assert(not result or #result == 0, "there are unexpected results")
       end)
 
@@ -199,7 +201,7 @@ return function(name, rissue, info)
 
         local result, err = rissue.get_issues(info, opts)
         ---@diagnostic disable-next-line: redundant-parameter
-        assert.equal("Failed to decode response: unexpected response", err)
+        assert.equal(JSON_EMPTY_ERROR, err)
         assert(not result or #result == 0, "there are unexpected results")
       end)
     end)
