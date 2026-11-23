@@ -171,6 +171,9 @@
   - `strings.represent_value()`: Wraps strings in double quotes and uses
     `tostring` for other values.
 
+- [utils/json]:
+  - Add new field "loaded" that shows the currently loaded json backend.
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
@@ -203,6 +206,9 @@
 
 - [config]: change endpoint_shortcuts to a list, so multiple shortcuts can point
   to the same git provider.
+
+- [utils/json]:
+  - Improved error reporting.
 
 **Bug Fixes:**
 
