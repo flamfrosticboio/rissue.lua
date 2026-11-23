@@ -990,7 +990,7 @@ Implementations of `rissue.get_issues()` and `rissue.get_merge_requests()`
   `{}`
 - `encode`: `fun(items: any):string|nil, string?` — Second return is the error
   message
-- `loaded`: `string`
+- `loaded`: `string?`
 - `null`: `any`
 - `prefer`: `fun(loader: "cjson"|"dkjson"|"rapidjson"|"vim.json")` — Set the
   preferred json loader to use. If that loader fails, it switches to the
