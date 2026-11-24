@@ -75,6 +75,7 @@
 ---@field labels string[]
 ---@field author rissue.Gitlab.UserBasic
 ---@field iid integer
+---@field id integer
 
 ---@class rissue.Gitlab.IssueResponse: rissue.Gitlab.SharedResponse
 ---@field state "opened" | "closed"
