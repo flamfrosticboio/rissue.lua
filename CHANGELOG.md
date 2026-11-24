@@ -247,8 +247,16 @@
   - [Github]: updated specifications to conform with this new change.
   ```
 
-- [config]: change endpoint_shortcuts to a list, so multiple shortcuts can point
-  to the same git provider.
+- [config]:
+  - Change endpoint_shortcuts to a list, so multiple shortcuts can point to the
+    same git provider.
+
+  - Report built-in provider load failures from `config.setup` as `[bug]` errors
+    instead of failing on require.
+
+  - Prefix additional provider errors with `failed to load '<path>'`. Spec
+    errors now read `Not a provider spec: ...` instead of
+    `Module at '<path>' is not a provider spec: ...`.
 
 - [utils/curl]:
   - Set `server_msg` to `nil` when stdout is empty instead of `""`.
@@ -345,6 +353,19 @@
   - `config.endpoint_shortcuts` now takes a list of `rissue.EndpointShortcut`
     rather than a table.
   - `rissue.EndpointShortcut` requires the `name: rissue.ProviderName` field.
+
+  - `config.providers` is now empty until `config.setup` runs. Built-in
+    providers are loaded during setup instead of on require.
+
+    ```lua
+    --- previously
+    local config = require("rissue.config")
+    config.providers.github -- available right after require
+    --- now
+    local config = require("rissue.config")
+    config.setup()
+    config.providers.github -- available only after setup
+    ```
 
 - [docs]: Type names are updated to reflect to its use case better.
   - `rissue.pr` -> `rissue.MergeRequest`
