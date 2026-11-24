@@ -199,6 +199,24 @@
 - [utils/json]:
   - Add new field "loaded" that shows the currently loaded json backend.
 
+- New utils module: "deduplicator"
+
+  This new module returns a function that deduplicates results based on id.
+
+  Example:
+
+  ```lua
+  -- Not the exact implementation with gitlab
+  local function construct_merge_requests(item) return item end
+  local function get_id(item) return item.id end
+  local function cb(item) print(item.name) end
+  local cb = deduplicator(cb, construct_merge_requests, get_id),
+
+  cb({ id = 1, name = "Hello" }) -- prints 'Hello'
+  cb({ id = 2, name = "Hi" }) -- prints 'Hi'
+  cb({ id = 1, name = "Hello" }) -- prints nothing
+  ```
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are

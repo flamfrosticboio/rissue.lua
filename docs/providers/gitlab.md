@@ -2,7 +2,7 @@
 
 Adds support for `gitlab.com`
 
-<!-- @VERSION:gitlab -->Version: 1.0.1<!-- @VERSION:gitlab -->
+<!-- @VERSION:gitlab -->Version: 1.0.2<!-- @VERSION:gitlab -->
 
 > [!NOTE]
 >

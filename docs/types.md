@@ -642,6 +642,7 @@ Note: To use it as config options, use `rissue.Gitlab.Opts` instead
 - `author`: `rissue.Gitlab.UserBasic`
 - `created_at`: `string?`
 - `description`: `string?`
+- `id`: `integer`
 - `iid`: `integer`
 - `labels`: `string[]`
 - `project_id`: `integer?` — Not available on older git providers
@@ -654,6 +655,7 @@ Note: To use it as config options, use `rissue.Gitlab.Opts` instead
 - `author`: `rissue.Gitlab.UserBasic`
 - `created_at`: `string?`
 - `description`: `string?`
+- `id`: `integer`
 - `iid`: `integer`
 - `labels`: `string[]`
 - `project_id`: `integer?` — Not available on older git providers
@@ -702,6 +704,7 @@ rissue.setup({
 - `author`: `rissue.Gitlab.UserBasic`
 - `created_at`: `string?`
 - `description`: `string?`
+- `id`: `integer`
 - `iid`: `integer`
 - `labels`: `string[]`
 - `project_id`: `integer?` — Not available on older git providers

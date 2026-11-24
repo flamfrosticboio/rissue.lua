@@ -16,6 +16,7 @@
 
 local get = {}
 
+local deduplicator = require("rissue.utils.deduplicator")
 local fetch = require("rissue.providers.gitlab.fetch")
 local time = require("rissue.utils.time")
 
@@ -117,14 +118,20 @@ local function construct_merge_requests(res, should_pass_raw, info)
   }
 end
 
+---@param item table
+---@return integer
+local function get_id(item)
+  return item.id
+end
+
 ---@async
 ---@type rissue.provider.GetIssues<nil, rissue.Gitlab.Config>
 function get.issues(async, info, tok, opts, cb)
   return fetch(async, {
     queries = opts.endpoints.issues,
-    cb = function(res)
-      cb(construct_issue(res, opts.should_pass_raw, info))
-    end,
+    cb = deduplicator(cb, function(res)
+      return construct_issue(res, opts.should_pass_raw, info)
+    end, get_id),
     config = opts,
     info = info,
     token = tok,
@@ -136,9 +143,9 @@ end
 function get.merge_requests(async, info, tok, opts, cb)
   return fetch(async, {
     queries = opts.endpoints.merge_requests,
-    cb = function(res)
-      cb(construct_merge_requests(res, opts.should_pass_raw, info))
-    end,
+    cb = deduplicator(cb, function(res)
+      return construct_merge_requests(res, opts.should_pass_raw, info)
+    end, get_id),
     config = opts,
     info = info,
     token = tok,
