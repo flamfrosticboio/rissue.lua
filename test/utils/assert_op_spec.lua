@@ -379,6 +379,26 @@ describe("assert_op check_structure", function()
       )
     end)
 
+    it("match type is_integer ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          int = true,
+        }),
+        "Expecting test_obj.int to be an integer, got true (type boolean)"
+      )
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          int = 10.25,
+        }),
+        "Expecting test_obj.int to be an integer, got 10.25 (type number)"
+      )
+    end)
+
     it("match type is_boolean ok", function()
       assert_structure(base, table_op.force_deep_extend(test_ok, {}))
 
