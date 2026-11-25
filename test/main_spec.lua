@@ -71,6 +71,24 @@ failed to load 'test/provider/_failing_loaders/version_wrong.lua': Not a provide
         err
       )
     end)
+
+    it(
+      "Additional provider fails to load due to incompatible version",
+      function()
+        local err = rissue.setup({
+          additional_providers = {
+            this_dir .. "provider/_failing_loaders/version_incompatible.lua",
+          },
+        })
+
+        assert.equal(
+          "Failed to setup rissue properly: \n\n"
+            .. [[
+failed to load 'test/provider/_failing_loaders/version_incompatible.lua': failure is not compatible (provider requires 999999.1.0, current version: 1.0.0)]],
+          err
+        )
+      end
+    )
   end)
 
   describe("functions", function()

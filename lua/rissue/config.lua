@@ -16,6 +16,7 @@
 
 local assert_op = require("rissue.utils.assert_op")
 local table_op = require("rissue.utils.table_op")
+local versions = require("rissue.utils.versions")
 
 --- Used for storing current configurations and settings
 ---@class rissue.mod.Config
@@ -67,6 +68,10 @@ local LOCAL_PROVIDERS = {
   end,
 }
 
+--- The current extension format version that the current rissue provider supports.
+---@type rissue.Version
+config.EXTENSION_FORMAT_VERSION = { major = 1, minor = 0, patch = 0 }
+
 local matchers = assert_op.matchers
 
 ---@param obj any
@@ -107,13 +112,30 @@ local function try_load_provider(chunk)
     return mod
   end)
 
-  if ok then
-    ---@cast err_or_provider rissue.Provider
-    return err_or_provider
-  else
+  if not ok then
     ---@cast err_or_provider string
     return nil, err_or_provider or "unknown error"
   end
+
+  ---@cast err_or_provider rissue.Provider
+
+  --- provider's version is the format version where the patch is ignored
+  if
+    not versions.is_compatible(
+      err_or_provider.version,
+      config.EXTENSION_FORMAT_VERSION
+    )
+  then
+    return nil,
+      string.format(
+        "%s is not compatible (provider requires %s, current version: %s)",
+        err_or_provider.name,
+        versions.represent(err_or_provider.version),
+        versions.represent(config.EXTENSION_FORMAT_VERSION)
+      )
+  end
+
+  return err_or_provider
 end
 
 ---@param push_error fun(err: string)
