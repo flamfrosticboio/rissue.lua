@@ -38,11 +38,28 @@ function version_module.is_compatible(required, provided)
   return provided.minor >= required.minor
 end
 
+---@param n any
+---@return string
+local function represent_part(n)
+  if type(n) == "number" and n % 1 == 0 then
+    return string.format("%d", n)
+  end
+  return "?"
+end
+
 --- Represent a version
 ---@param version rissue.Version
 ---@return string
 function version_module.represent(version)
-  return string.format("%d.%d.%d", version.major, version.minor, version.patch)
+  if type(version) ~= "table" then
+    return "?.?.?"
+  end
+  return string.format(
+    "%s.%s.%s",
+    represent_part(version.major),
+    represent_part(version.minor),
+    represent_part(version.patch)
+  )
 end
 
 return version_module
