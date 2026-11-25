@@ -1347,6 +1347,7 @@ List of available matchers
   `fun(schema: table<string, any>, schema_name: string):fun(_obj: any):boolean, string?, string?`
 - `is_boolean`: `fun(_obj: any):boolean, string?, string?` — A matcher spec
 - `is_function`: `fun(_obj: any):boolean, string?, string?` — A matcher spec
+- `is_integer`: `fun(_obj: any):boolean, string?, string?` — A matcher spec
 - `is_nil`: `fun(_obj: any):boolean, string?, string?` — A matcher spec
 - `is_number`: `fun(_obj: any):boolean, string?, string?` — A matcher spec
 - `is_string`: `fun(_obj: any):boolean, string?, string?` — A matcher spec

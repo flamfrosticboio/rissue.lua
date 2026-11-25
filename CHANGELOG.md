@@ -299,8 +299,10 @@
   the old versioning system will not work anymore.
 
 - [utils/assert_op]: `assert_op.check_structure()` is now migrated to
-  `assert_op.table_expects()` which has a different structure. See more on
-  [this commit](https://github.com/flamfrosticboio/rissue.lua/pull/73/changes/b875e7cd6c1fbf1ebd6c873d5b7a887edbaabf6f).
+  `assert_op.table_expects()` which has a different structure. See more on these
+  commits:
+  - [base (b875e7c)](https://github.com/flamfrosticboio/rissue.lua/pull/73/changes/b875e7cd6c1fbf1ebd6c873d5b7a887edbaabf6f).
+  - [is_integer (b50445b)](https://github.com/flamfrosticboio/rissue.lua/commit/b50445b809fb677f62be6ec2fa92c573dd33ad12)
 
   New Usage Example:
 

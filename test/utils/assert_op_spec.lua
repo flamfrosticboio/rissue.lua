@@ -15,6 +15,7 @@
 -- along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 local assert_op = require("rissue.utils.assert_op")
+local table_op = require("rissue.utils.table_op")
 
 --- Simple testable objects that can only be achieved in runtime
 
@@ -50,16 +51,15 @@ local function assert_structure(base, entry, expected_fail_msg)
   local expected = expected_fail_msg == nil
   assert(
     ok == expected,
-    ("Wrong result (expecting %s, got %s). %s"):format(
-      tostring(expected),
-      tostring(ok),
+    ("Expecting to %s: %s"):format(
+      expected and "succeed" or "fail",
       err_msg or "[no err msg]"
     )
   )
   if expected == false then
     assert(
       err_msg == expected_fail_msg,
-      ("Not correct fail message.\nExpected:\n\t%s\nGot:\n\t%s"):format(
+      ("Expecting fail message:\n\t%s\nGot:\n\t%s"):format(
         expected_fail_msg,
         err_msg
       )
@@ -336,6 +336,7 @@ describe("assert_op check_structure", function()
     local base = {
       str = assert_op.matchers.is_string,
       num = assert_op.matchers.is_number,
+      int = assert_op.matchers.is_integer,
       bool = assert_op.matchers.is_boolean,
       thread = assert_op.matchers.is_thread,
       tbl = assert_op.matchers.is_table,
@@ -343,160 +344,116 @@ describe("assert_op check_structure", function()
       userdata = assert_op.matchers.is_userdata,
     }
 
+    local test_ok = {
+      str = "water",
+      num = 20,
+      bool = true,
+      int = 10,
+      thread = test_thread,
+      tbl = test_table,
+      func = test_func,
+      userdata = test_userdata,
+    }
+
     it("match type is_string ok", function()
-      assert_structure(base, {
-        str = "water",
-        num = 20,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      })
-
-      assert_structure(base, {
-        str = 2,
-        num = 20,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      }, "Expecting test_obj.str to be a string, got 2 (type number)")
-    end)
-
-    it("match type is_number ok", function()
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      })
-
-      assert_structure(base, {
-        str = "water",
-        num = true,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      }, "Expecting test_obj.num to be a number, got true (type boolean)")
-    end)
-
-    it("match type is_boolean ok", function()
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      })
-
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = nil,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      }, "Expecting test_obj.bool to be a boolean, got nil (type nil)")
-    end)
-
-    it("match type is_thread ok", function()
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      })
-
-      assert_structure(base, {
-        str = "10",
-        num = 10,
-        bool = true,
-        thread = 2,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      }, "Expecting test_obj.thread to be a thread, got 2 (type number)")
-    end)
-
-    it("match type is_table ok", function()
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      })
-
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = "wow",
-        func = test_func,
-        userdata = test_userdata,
-      }, 'Expecting test_obj.tbl to be a table, got "wow" (type string)')
-    end)
-
-    it("match type is_function ok", function()
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      })
-
-      assert_structure(base, {
-        str = "20",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = "wow",
-        userdata = test_userdata,
-      }, 'Expecting test_obj.func to be a function, got "wow" (type string)')
-    end)
-
-    it("match type is_function ok", function()
-      assert_structure(base, {
-        str = "water",
-        num = 10,
-        bool = true,
-        thread = test_thread,
-        tbl = test_table,
-        func = test_func,
-        userdata = test_userdata,
-      })
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
 
       assert_structure(
         base,
-        {
-          str = "water",
-          num = 10,
-          bool = true,
-          thread = test_thread,
-          tbl = test_table,
-          func = test_func,
+        table_op.force_deep_extend(test_ok, {
+          str = 2,
+        }),
+        "Expecting test_obj.str to be a string, got 2 (type number)"
+      )
+    end)
+
+    it("match type is_number ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          num = true,
+        }),
+        "Expecting test_obj.num to be a number, got true (type boolean)"
+      )
+    end)
+
+    it("match type is_integer ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          int = true,
+        }),
+        "Expecting test_obj.int to be an integer, got true (type boolean)"
+      )
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          int = 10.25,
+        }),
+        "Expecting test_obj.int to be an integer, got 10.25 (type number)"
+      )
+    end)
+
+    it("match type is_boolean ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      local obj = table_op.force_deep_extend(test_ok, { bool = "hi" })
+      assert_structure(
+        base,
+        obj,
+        'Expecting test_obj.bool to be a boolean, got "hi" (type string)'
+      )
+    end)
+
+    it("match type is_thread ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          thread = 2,
+        }),
+        "Expecting test_obj.thread to be a thread, got 2 (type number)"
+      )
+    end)
+
+    it("match type is_table ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          tbl = "wow",
+        }),
+        'Expecting test_obj.tbl to be a table, got "wow" (type string)'
+      )
+    end)
+
+    it("match type is_function ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
+          func = "wow",
+        }),
+        'Expecting test_obj.func to be a function, got "wow" (type string)'
+      )
+    end)
+
+    it("match type is_userdata ok", function()
+      assert_structure(base, table_op.force_deep_extend(test_ok, {}))
+
+      assert_structure(
+        base,
+        table_op.force_deep_extend(test_ok, {
           userdata = false,
-        },
+        }),
         "Expecting test_obj.userdata to be a userdata, got false (type boolean)"
       )
     end)

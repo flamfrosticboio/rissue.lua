@@ -55,6 +55,7 @@ end
 ---@field is_string rissue.utils.Matcher
 ---@field is_boolean rissue.utils.Matcher
 ---@field is_number rissue.utils.Matcher
+---@field is_integer rissue.utils.Matcher
 ---@field is_thread rissue.utils.Matcher
 ---@field is_userdata rissue.utils.Matcher
 ---@field is_nil rissue.utils.Matcher
@@ -169,6 +170,23 @@ M.matchers =
       return matcher
     end,
 
+    ---@type rissue.utils.Matcher
+    is_integer = function(_obj)
+      local obj_type = type(_obj)
+      if obj_type == "number" and _obj % 1 == 0 then
+        return true
+      end
+      return false,
+        table.concat({
+          "Expecting %s to be an integer, got ",
+          represent(_obj),
+          " (type ",
+          obj_type,
+          ")",
+        }),
+        "integer"
+    end,
+
     follows = function(schema, schema_name)
       ---@type rissue.utils.Matcher
       local matcher = function(tbl)
@@ -211,6 +229,9 @@ M.matchers =
       return matcher
     end,
   }
+
+--- Add the matcher.is_integer to the registered matchers
+registered_matchers[#registered_matchers + 1] = M.matchers.is_integer
 
 local types = {
   "boolean",
