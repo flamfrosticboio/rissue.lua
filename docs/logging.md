@@ -24,46 +24,52 @@ Its possible to setup logger in multiple ways:
   })
   ```
 
-## Types
+- Manually (not recommended)
 
-<!-- &rissue.log.level@docs -->
+  Example:
 
-### `rissue.log.level`
+  ```lua
+  log.set_log_level(log.levels.warn)
+  log.set_log_level("warn")
+  log.set_logger(function(msg, level, info)
+    print(level, info.context, ":", msg)
+  end)
+  ```
 
-Type: `alias` -- `0|1|2|3|4...(+1)`
+## Usage
 
-Logging levels where:
+To use this logger, you have multiple ways depending on use case:
 
-- off: 5
-- error: 4
-- warn: 3
-- info: 2
-- debug: 1
-- trace: 0
+### Calling predefined functions directly
 
-<!-- &rissue.log.level@docs -->
+`log.warn()`, `log.info()`, `log.error()`, `log.trace()`, `log.debug()` all take
+multiple arguments where each argument is converted into string. They are each
+combined with a space in between.
 
-<!-- &rissue.log.Opts@docs -->
+Example:
 
-### `rissue.log.Opts`
+```lua
+local name = "yourname"
+log.info("My name is", name)
+--- outputs "My name is yourname"
+```
 
-Type: `class`
+### Calling `log.log()`
 
-Options for logger
+`log.log(msg: string, level: rissue.log.level)` is a function that takes two
+arguments only and does not respect the current log level (combine it with
+`log.level_enabled()`).
 
-- builtin_logger_color_enabled: `boolean?`
-  -- Enables or disables printing with `colors` on the built-in logger.
-- log_level: `(0|1|2|3|4...(+1))?`
-  -- The current log level. Use `log.levels.<name>` to set up or pass an integer
-  corresponding to the log level.
-- logger: `fun(msg: string, level: integer)?`
-  -- Replaces the current built-in logger.
+This is used when your logging statements needs expensive computation but not
+necessary use it when that log level is not enabled.
 
-<!-- &rissue.log.Opts@docs -->
-<!-- &rissue.log.logger@docs -->
+Example:
 
-### `rissue.log.logger`
+```lua
+if log.level_enabled(log.levels.trace) then
+    local debug_statement = expensive_computation(data)
+    log.log(debug_statement, log.levels.trace)
+end
+```
 
-Type: `alias` -- `fun(msg: string, level: integer)`
-
-<!-- &rissue.log.logger@docs -->
+See more on [docs/types.md#rissue.Logger](/docs/types.md#rissuelogger)

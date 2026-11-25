@@ -16,6 +16,7 @@
 
 ---@diagnostic disable: undefined-global
 
+---@class rissue.mod.TableOperations
 local M = {}
 
 ---@param t any
@@ -24,6 +25,7 @@ function M.is_list(t)
   if type(t) ~= "table" then
     return false
   end
+  ---@cast t table<any, any>
   local i = 0
   for k in pairs(t) do
     i = i + 1
@@ -35,8 +37,8 @@ function M.is_list(t)
 end
 
 --- Merges two tables based on keys. Cases with lists are not supported and may get overwritten
----@param dest table
----@param source table
+---@param dest table<any, any>
+---@param source table<any, any>
 function M.shallow_key_merge_overwrite(dest, source)
   for key, value in pairs(source) do
     dest[key] = value
@@ -48,12 +50,14 @@ end
 --- Similar rules to `vim.tbl_extend()` where:
 --- - If the right table is a pure list (with `table_op.is_list()`), then overwrite it.
 --- - Merge recursively on each table.
----@param ... table
----@return table
+---@param ... table<any, any>
+---@return table<any, any>
 function M.force_deep_extend(...)
   local tables = { ... }
   local result = {}
 
+  ---@param dst table<any, any>
+  ---@param src table<any, any>
   local function merge(dst, src)
     for k, v in pairs(src) do
       if
@@ -65,7 +69,8 @@ function M.force_deep_extend(...)
       else
         if type(v) == "table" then
           if M.is_list(v) then
-            local copy = {}
+            ---@cast v any[]
+            local copy = {} ---@type table<any, any>
             for i, item in ipairs(v) do
               copy[i] = (type(item) == "table") and M.force_deep_extend(item)
                 or item
@@ -91,7 +96,7 @@ function M.force_deep_extend(...)
 end
 
 --- Returns the number of items of the table
----@param tbl table
+---@param tbl table<any, any>
 ---@return integer
 function M.count(tbl)
   local n = 0
@@ -102,13 +107,13 @@ function M.count(tbl)
 end
 
 ---@generic T, M
----@param tbl T[]
+---@param list T[]
 ---@param func fun(v: T): M
 ---@return M[]
-function M.map_list(tbl, func)
-  local result = {}
-  for i = 1, #tbl do
-    result[i] = func(tbl[i])
+function M.map_list(list, func)
+  local result = {} ---@type any[]
+  for i = 1, #list do
+    result[i] = func(list[i])
   end
   return result
 end
@@ -155,15 +160,51 @@ function M.list_extend(dest, source)
   end
 end
 
+---@deprecated use table_op.tbl_values()
 ---@generic T
 ---@param set table<unknown, T>
 ---@return T[]
 function M.set_into_list(set)
-  local result = {}
-  for _, v in pairs(set) do
+  return M.tbl_values(set)
+end
+
+---@generic T
+---@param list table<any, T>
+---@return T[]
+function M.tbl_values(list)
+  local result = {} ---@type any[]
+  for _, v in pairs(list) do
     result[#result + 1] = v
   end
   return result
+end
+
+--- Basic appender function from existing table.
+---
+--- Note: Does not track additional inserted items not updated by appender.
+---@generic T
+---@param tbl T[]
+---@return fun(item: T): integer
+function M.appender(tbl)
+  local n = #tbl
+  return function(item)
+    n = n + 1
+    tbl[n] = item
+    return n
+  end
+end
+
+---@generic K: any
+---@param tbl table<K, any>
+---@return K[]
+function M.tbl_keys(tbl)
+  local res = {} ---@type any
+  local push = M.appender(res)
+  ---@diagnostic disable-next-line: no-unknown
+  for k in pairs(tbl) do
+    push(k)
+  end
+  return res
 end
 
 return M

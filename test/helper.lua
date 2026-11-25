@@ -16,9 +16,13 @@
 
 require("luv")
 
+local inspect_ok, inspect = pcall(require, "inspect")
+if not inspect_ok then
+  inspect = tostring
+end
+
 ---@param arg any
 local function write(arg)
-  local inspect = require("inspect")
   if type(arg) == "string" then
     io.write(arg)
   else
@@ -51,8 +55,15 @@ package.path = "./test/?.lua;./test/?/init.lua;./lua/?.lua;./lua/?/init.lua;"
 
 --- setup logging
 local logger = require("rissue.utils.log")
-local use_trace_env = os.getenv("TRACE")
-local use_trace = use_trace_env and use_trace_env:lower() == "true"
+local use_trace_env = os.getenv("TRACE") or os.getenv("VERBOSE")
+use_trace_env = use_trace_env and use_trace_env:lower()
+local use_trace = use_trace_env
+  and (
+    use_trace_env == "true"
+    or use_trace_env == "on"
+    or use_trace_env == "1"
+    or use_trace_env == "yes"
+  )
 logger.setup({
-  log_level = use_trace and logger.levels.trace or logger.levels.debug,
+  log_level = use_trace and logger.levels.trace or logger.levels.warn,
 })

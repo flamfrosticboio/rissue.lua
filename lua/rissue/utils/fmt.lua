@@ -20,14 +20,23 @@
 --- -- Returns: "flamfrosticboio/git_provider.nvim"
 --- fmt("{owner}/{repo}", { owner = "flamfrostboio", repo = "git_provider.nvim" })
 --- ````
+---@alias rissue.utils.fmt fun(template: string, vars: table<string, string|fun(): string>)
+
+--- Formats string like python and javascripts template string
+--- Example:
+--- ```lua
+--- -- Returns: "flamfrosticboio/git_provider.nvim"
+--- fmt("{owner}/{repo}", { owner = "flamfrostboio", repo = "git_provider.nvim" })
+--- ````
 ---@param template string
 ---@param vars     table<string, string | fun(): string>
+---@return string
 local function fmt(template, vars)
   return (
     template:gsub("{(%w+)}", function(key)
       local val = vars[key]
       if type(val) == "function" then
-        val = val()
+        return val() or ("{" .. key .. "}")
       end
       return val or ("{" .. key .. "}")
     end)

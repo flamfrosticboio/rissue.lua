@@ -16,8 +16,6 @@
 
 local config = require("rissue.config")
 local env = require("rissue.env")
-local log = require("rissue.utils.log")
-local process = require("rissue.utils.process")
 
 --- Implementations of `rissue.get_provider_info()`
 ---@class rissue.mod.Provider
@@ -38,11 +36,12 @@ function provider.remote_info(remote_url)
     or remote_url:match("^git@[^:]+:(.+)$")
     or remote_url:match("^ssh://git@[^/]+/(.+)$")
 
+  ---@type string?, string?
   local owner, repo
   if path then
-    path = path:gsub("%.git$", "")
-    repo = path:match("([^/]+)$")
-    owner = path:match("^(.+)/[^/]+$")
+    path = path:gsub("%.git$", "") ---@type string
+    repo = path:match("([^/]+)$") ---@type string?
+    owner = path:match("^(.+)/[^/]+$") ---@type string?
 
     if repo and owner then
       ---@type rissue.RemoteInfo
@@ -60,23 +59,33 @@ end
 --- Gets the provider info based on the remote url.
 --- May trigger api requests to the url if no pattern was found from
 --- `config.options.endpoint_shortcuts`
----@param remote_info rissue.RemoteInfo
---- Additional request options passed to providers.
---- Scoped to provider names (e.g. github, gitlab) to prevent conflicts
----@param opts table<rissue.ProviderName, table?>?
+---
+--- The `opts` argument are request options passed to providers. They are
+--- scoped to provider names (e.g. github, gitlab) to prevent conflicts
+---
+--- Example:
+---
+--- ```lua
+--- --- github and gitlab have similar options but does completely different
+--- { github = { ... }, gitlab = { ... } }
+--- ```
+---@async
+---@param async rissue.Async Async handler
+---@param remote_info rissue.RemoteInfo Remote information
+---@param opts table<rissue.ProviderName, table?>? Request options to specific providers.
 ---@return rissue.ProviderInfo? info
 ---@return string? error
-function provider.provider_info(remote_info, opts)
+function provider.provider_info(async, remote_info, opts)
   local remote_url = remote_info.full_url
 
   -- known public hosting providers - no API call needed
-  for provider_name, spec in pairs(config.options.endpoint_shortcuts) do
+  for _, spec in ipairs(config.options.endpoint_shortcuts) do
     for _, pattern in ipairs(spec.patterns) do
       if remote_url:match(pattern) then
         ---@type rissue.ProviderInfo
         local info = {
           domain = spec.domain,
-          name = provider_name,
+          name = spec.name,
           owner = remote_info.owner,
           repo = remote_info.repo,
           protocol = remote_info.curl_protocol,
@@ -88,32 +97,16 @@ function provider.provider_info(remote_info, opts)
   end
 
   for provider_name, provider_module in pairs(config.providers) do
-    -- async calling blocking pattern
-    local supported ---@type boolean
-    local additional_info ---@type table?
-    local finished = false
-
     local token = env.get_token(provider_name)
-
-    local thread = coroutine.create(function()
-      supported, additional_info = provider_module.supports(
-        remote_info,
-        token,
-        config.merge_provider_settings(provider_module, opts)
+    local supported, additional_info = provider_module.supports(
+      async,
+      remote_info,
+      token,
+      config.merge_provider_settings(
+        provider_module,
+        opts and opts[provider_name]
       )
-      finished = true
-    end)
-    local co_ok, co_error = coroutine.resume(thread)
-    if not co_ok then
-      log.warn(("Failed to process for %s: %s"):format(provider_name, co_error))
-    end
-
-    local success, err = process.wait(function()
-      return finished
-    end, config.options.timeout)
-    if not success then
-      log.warn(("Failed to process for %s: %s"):format(provider_name, err))
-    end
+    )
 
     if supported then
       ---@type rissue.ProviderInfo

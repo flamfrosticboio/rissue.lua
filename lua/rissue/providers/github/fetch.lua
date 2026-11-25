@@ -17,9 +17,12 @@
 local curl = require("rissue.utils.curl")
 local fmt = require("rissue.utils.fmt")
 local json = require("rissue.utils.json")
-local log = require("rissue.utils.log")
 local process = require("rissue.utils.process")
+local shared = require("rissue.providers.github.shared")
+local strings = require("rissue.utils.strings")
 local table_op = require("rissue.utils.table_op")
+
+local log = shared.log
 
 local config = require("rissue.providers.github.config")
 
@@ -85,20 +88,19 @@ end
 
 --- Warning: raises errors
 ---@async
----@param opts rissue.utils.curl.Opts
----@return rissue.utils.curl.Result? result
+---@param async rissue.Async
+---@param opts rissue.curl.Opts
+---@param url string
+---@param param table<string, any>
+---@return rissue.curl.Result? result
 ---@return string? error
-local function try_fetch_query(url, param, opts)
+local function try_fetch_query(async, url, param, opts)
   opts.data_type = "urlencode"
   opts.data = param
 
-  local req, err = curl.request(url, opts)
-  if req then
-    req.content = req.content:match("^%s*(.-)%s*$")
-    req.err = req.err:match("^%s*(.-)%s*$")
-  end
-
-  return req, err
+  local req, err = curl.request(async, url, opts)
+  --- no error default as this is just a map
+  return req, err and shared.into_error_message(err)
 end
 
 ---@class __rissue.Github.prepare_page.Opts
@@ -125,76 +127,66 @@ end
 
 ---@class __rissue.Github.fetch_page.Opts
 ---@field query rissue.Query
----@field curl_opts rissue.utils.curl.Opts
+---@field curl_opts rissue.curl.Opts
 
 ---@class __rissue.Github.fetch_page.Result
 ---@field contents __rissue.Github.unmap.Result
 ---@field next_url string?
 
 ---@async
+---@param async rissue.Async
 ---@param opts __rissue.Github.fetch_page.Opts
 ---@return __rissue.Github.fetch_page.Result? result
 ---@return string? error
-local function try_fetch_page(opts)
-  local response, fetch_err =
-    try_fetch_query(opts.query.endpoint, opts.query.param, opts.curl_opts)
+local function try_fetch_page(async, opts)
+  local response, fetch_err = try_fetch_query(
+    async,
+    opts.query.endpoint,
+    opts.query.param,
+    opts.curl_opts
+  )
 
-  if response and response.exitcode == 0 then
-    local ok, res = pcall(function()
-      local decoded, decode_err = json.decode(response.content)
-      if decode_err then
-        error(decode_err, 0)
-      end
-
-      local unmapped, unmap_err = unmap(decoded)
-      if not unmapped then
-        error(unmap_err or "unknown error", 0)
-      elseif unmap_err then
-        log.warn(unmap_err)
-      end
-
-      return unmapped
-    end)
-
-    if not ok then
-      return nil, res --[[@as string]] or "unknown error"
-    end
-
-    if not response.headers then
-      return nil, "Could not get headers from response (bug)"
-    end
-
-    return {
-      contents = res,
-      next_url = response.headers.link and get_next_from_link_header(
-        response.headers.link
-      ) or nil,
-    } --[[@as __rissue.Github.fetch_page.Result]]
-  else
-    local err = (response and response.err or "")
-      .. (fetch_err and (" | " .. fetch_err) or "")
-    err = err ~= "" and err or "unknown error"
-
-    if log.level_enabled(log.levels.error) then
-      local message = "Failed to fetch on '"
-        .. opts.query.endpoint
-        .. "': "
-        .. err
-      if response and response.content ~= "" then
-        message = message .. "\nServer responded: " .. response.content
-      end
-
-      log.log(message, log.levels.error)
-    end
-
-    return nil, err
+  if not response then
+    return nil, fetch_err or "unknown error"
   end
+
+  local ok, res = pcall(function()
+    local decoded, decode_err = json.decode(response.content)
+    if decode_err then
+      error(decode_err, 0)
+    end
+
+    local unmapped, unmap_err = unmap(decoded)
+    if not unmapped then
+      error(unmap_err or "unknown error", 0)
+    elseif unmap_err then
+      log.warn(unmap_err)
+    end
+
+    return unmapped
+  end)
+
+  if not ok then
+    return nil, res --[[@as string]] or "unknown error"
+  end
+
+  if not response.headers then
+    return nil, "Could not get headers from response (bug)"
+  end
+
+  return {
+    contents = res,
+    next_url = response.headers.link and get_next_from_link_header(
+      response.headers.link
+    ) or nil,
+  } --[[@as __rissue.Github.fetch_page.Result]]
 end
 
 ---@async
+---@param async rissue.Async
 ---@param delay integer Delay in milliseconds
-local function delay_with_warning(delay)
-  local delay_ok, delay_err = process.try_delay(delay)
+local function delay_with_warning(async, delay)
+  local delay_ok, delay_err = process.sleep(async, delay)
   if not delay_ok then
     log.warn("Failed to delay: " .. (delay_err or "unknown error"))
   end
@@ -203,30 +195,31 @@ end
 ---@class __rissue.Github.fetch.Opts<T, K>
 ---@field token string?
 ---@field parser fun(raw: any, settings: rissue.Github.Settings): T
----@field key fun(item: T): K
+---@field key fun(item: T): string
 ---@field settings rissue.Github.Settings
 
 ---@async
 ---@generic T, K
+---@param async rissue.Async
 ---@param info rissue.ProviderInfo<rissue.Github.supports.AdditionalInfo>
 ---@param queries rissue.Query[]
----@param opts __rissue.Github.fetch.Opts
----@return T[]? results
+---@param opts __rissue.Github.fetch.Opts<T, K>
+---@param cb fun(item: T)
 ---@return string? error
-function M.try_fetch(info, queries, opts)
+function M.try_fetch(async, info, queries, opts, cb)
   if opts.settings.items_per_page > 100 then
-    return nil, "Setting 'items_per_page' cannot be above 100"
+    return "Setting 'items_per_page' cannot be above 100"
   end
 
-  local buffer = {}
+  local buffer = {} ---@type table<string, true>
   local base = construct_base_endpoint(info)
-  local headers = {}
+  local headers = {} ---@type string[]
   if info.additional_info and info.additional_info.api_version then
     headers[#headers + 1] = config.api_ver_template
       .. info.additional_info.api_version
   end
 
-  ---@type rissue.utils.curl.Opts
+  ---@type rissue.curl.Opts
   local curl_opts_reusable = {
     headers = headers,
     accept = ("application/vnd.github.%s+json"):format(
@@ -236,6 +229,7 @@ function M.try_fetch(info, queries, opts)
     auth = opts.token,
     fail_fast = true,
     include_result_headers = true,
+    retry_when = "connrefused",
   }
 
   local fmt_opts = {
@@ -247,10 +241,15 @@ function M.try_fetch(info, queries, opts)
     return table_op.count(buffer) >= opts.settings.max_items
   end
 
+  ---@param items any[]
   local function parse_items(items)
     for _, item in ipairs(items) do
-      local parsed = opts.parser(item, opts.settings)
-      buffer[opts.key(parsed)] = parsed
+      local parsed = opts.parser(item, opts.settings) ---@type any
+      local key = opts.key(parsed) ---@type string
+      if buffer[key] ~= true then
+        buffer[key] = true
+        cb(parsed)
+      end
     end
   end
 
@@ -264,33 +263,41 @@ function M.try_fetch(info, queries, opts)
     })
 
     while not is_full() do
-      local result, err = try_fetch_page({
+      local result, err = try_fetch_page(async, {
         query = query,
         curl_opts = curl_opts_reusable,
       })
 
       if not result then
-        log.error("Failed to fetch: " .. (err or "unknown error"))
+        local msg = ("Failed to fetch on endpoint '%s': %s"):format(
+          query.endpoint,
+          err or "unknown error"
+        )
+        if #msg > 500 then
+          log.debug(msg)
+          msg = strings.truncate(msg, 500) .. "... (truncated, see debug log)"
+        end
+        log.error(msg)
         break
       end
 
       xpcall(function()
         parse_items(result.contents.items)
-      end, log.log_func(
-        log.levels.error,
-        { prefix = "Failed to parse: " }
-      ))
+      end, function(xpcall_err)
+        local l = log.levels.error
+        if log.level_enabled(l) then
+          log.log("Failed to parse: " .. xpcall_err, l)
+        end
+      end)
 
       if not result.next_url or is_full() then
         break
       end
 
       query = { endpoint = result.next_url, param = {} }
-      delay_with_warning(opts.settings.fetch_delay)
+      delay_with_warning(async, opts.settings.fetch_delay)
     end
   end
-
-  return table_op.set_into_list(buffer)
 end
 
 return M

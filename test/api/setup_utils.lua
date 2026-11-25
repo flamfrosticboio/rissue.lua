@@ -16,6 +16,8 @@
 
 --- A bunch of functions that is used frequently in `setup_utils.lua`
 
+local async_mod = require("rissue.utils.async")
+local log = require("rissue.utils.log")
 local subprocess = require("rissue.utils.process")
 local util = require("util")
 local uv = require("luv") ---@type uv
@@ -25,25 +27,30 @@ local M = {}
 ---@diagnostic disable-next-line: deprecated
 local unpack = table.unpack or unpack
 
+---@param name string
+---@param opts? { color: string? }
+---@param pipeline __rissue.Pipeline
+---@return __rissue.Pipeline
+function M.new_pipeline(name, pipeline, opts)
+  setmetatable(pipeline, {
+    name = name,
+    color = opts and opts.color,
+  })
+  return pipeline
+end
+
 ---@async
-local function await(fn, ...)
-  local co = coroutine.running()
+---@param async rissue.Async
+---@param fn fun(...: any)
+local function await(async, fn, ...)
   local n = select("#", ...)
   local args = { ... }
   args[n + 1] = function(...)
-    local status = coroutine.status(co)
-    if status == "suspended" then
-      local ok, err = coroutine.resume(co, ...)
-      if not ok then
-        error(debug.traceback(co, err), 0)
-      end
-    else
-      print("Warning: Coroutine is not suspended, but " .. status)
-    end
+    async:resume(...)
   end
 
   fn(unpack(args, 1, n + 1))
-  return coroutine.yield()
+  return async:yield()
 end
 
 ---@class __rissue.pipeline._base<T>
@@ -59,7 +66,8 @@ end
 ---@field should_continue boolean | fun(): boolean
 
 ---@class __rissue.pipeline.RegisterCleanup: __rissue.pipeline._base<"reg_cleanup">
----@field func async fun(): string? Where the return value is err_msg
+--- Where the return value is err_msg
+---@field pipeline __rissue.Pipeline
 
 ---@class __rissue.pipeline.Rename: __rissue.pipeline._base<"rename">
 ---@field source string
@@ -83,6 +91,18 @@ end
 ---@field path string
 ---@field skip_when_fail? boolean
 
+---@class __rissue.pipeline.CopyFile: __rissue.pipeline._base<"copy_file">
+---@field source string
+---@field dest string
+
+---@alias __rissue.pipeline.SwitchMode.mode "io" | "cpu"
+
+---@class __rissue.pipeline.SwitchMode: __rissue.pipeline._base<"switch_mode">
+---@field mode __rissue.pipeline.SwitchMode.mode
+
+---@class __rissue.pipeline.AsyncStep: __rissue.pipeline._base<"async_step">
+---@field cb fun(done: fun(err_msg?: string), ctx: __rissue.pipeline.context)
+
 ---@alias __rissue.PipelineCommands
 ---| __rissue.pipeline.Run
 ---| __rissue.pipeline.Rename
@@ -92,19 +112,39 @@ end
 ---| __rissue.pipeline.WriteFile
 ---| __rissue.pipeline.RemoveFile
 ---| __rissue.pipeline.RemoveDirectory
+---| __rissue.pipeline.CopyFile
+---| __rissue.pipeline.SwitchMode
+---| __rissue.pipeline.AsyncStep
 
 ---@alias __rissue.Pipeline __rissue.PipelineCommands[]
 
+---@class __rissue.FIFOLimiter
+---@field n integer
+---@field used integer
+---@field waiters fun()[]
+
+---@class __rissue.Limiters
+---@field io __rissue.FIFOLimiter
+---@field cpu __rissue.FIFOLimiter
+
+---@class __rissue.pipeline.context
+---@field print_context __rissue.PrintStatus.Opts?
+
 ---@async
+---@param async rissue.Async
 ---@param command __rissue.pipeline.Run
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function run_command(command)
+local function run_command(async, command, context)
   local process = require("rissue.utils.process")
 
-  util.print_status("Attempting to run command: " .. command.bin)
+  util.print_status(
+    "Attempting to run command: " .. command.bin,
+    context and context.print_context
+  )
 
-  local result, err = process.run_co({
+  local result, err = process.run_async(async, {
     cmd = command.bin,
     args = command.args,
     env = command.env,
@@ -133,23 +173,32 @@ local function run_command(command)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.Rename
+---@param context __rissue.pipeline.context?
 ---@return boolean success
 ---@return string? err_msg
-local function rename(args)
-  util.print_status("Renaming '" .. args.source .. "' to '" .. args.dest .. "'")
-  local err = await(uv.fs_rename, args.source, args.dest)
+local function rename(async, args, context)
+  local err = await(async, uv.fs_rename, args.source, args.dest)
   if err then
     return false, err
   end
+
+  util.print_status(
+    "Renamed '" .. args.source .. "' to '" .. args.dest .. "'",
+    context and context.print_context
+  )
+
   return true
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.CreateDirectory
+---@param context __rissue.pipeline.context?
 ---@return boolean success
 ---@return string? err_msg
-local function mkdir(args)
+local function mkdir(async, args, context)
   local mode = args.mode or 493
   local path = args.path:gsub("\\", "/")
 
@@ -162,13 +211,13 @@ local function mkdir(args)
   for part in rest:gmatch("[^/]+") do
     cur = cur .. part
 
-    local err = await(uv.fs_mkdir, cur, mode)
+    local err = await(async, uv.fs_mkdir, cur, mode)
     if err then
       if not err:match("^EEXIST") then
         return false, err
       end
 
-      local serr, stat = await(uv.fs_stat, cur)
+      local serr, stat = await(async, uv.fs_stat, cur)
       if serr or not stat or stat.type ~= "directory" then
         return false, "not a directory: " .. cur
       end
@@ -177,69 +226,72 @@ local function mkdir(args)
     cur = cur .. "/"
   end
 
-  util.print_status("Directory created at " .. args.path)
+  util.print_status(
+    "Directory created at " .. args.path,
+    context and context.print_context
+  )
 
   return true
 end
 
----@param func async fun(): boolean, string?
+---@param func async fun(a: rissue.Async): boolean, string?
 ---@return boolean success
 ---@return string? error
 local function into_sync(func)
   local done = false
-  local co = coroutine.create(
+  local backend, wait = async_mod.default_backend()
+  local result_ok, res_err
+  async_mod.run(
+    backend,
     ---@async
-    function()
-      local success, err = func()
+    function(a)
+      result_ok, res_err = func(a)
       done = true
-      if not success then
-        error(err)
-      end
     end
   )
 
-  if coroutine.status(co) == "suspended" then
-    local ok, err = coroutine.resume(co)
-    if not ok then
-      return false, err
-    end
-  end
-
-  local ok, err = subprocess.wait(function()
+  local ok, wait_err = wait(function()
     return done
   end, -1)
 
   if not ok then
-    return false, err
+    return false, wait_err
+  end
+
+  if not result_ok then
+    return false, res_err
   end
 
   return true
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.WriteFile
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function write_file(args)
+local function write_file(async, args, context)
   local mode = args.mode or 493
 
   if args.ensure_directory then
     local dir = args.filepath:match("^(.*)[/\\]")
     if dir and dir ~= "" then
-      local success, err = mkdir({ path = dir, mode = mode, type = "mkdir" })
+      local success, err =
+        mkdir(async, { path = dir, mode = mode, type = "mkdir" })
       if not success then
         return false, err
       end
     end
   end
 
-  local err, fd = await(uv.fs_open, args.filepath, "w", mode)
+  local err, fd = await(async, uv.fs_open, args.filepath, "w", mode)
   if err or not fd then
     return false, err
   end
 
-  local werr = await(uv.fs_write, fd, args.contents, 0)
-  local cerr = await(uv.fs_close, fd)
+  local werr = await(async, uv.fs_write, fd, args.contents, 0)
+  local cerr = await(async, uv.fs_close, fd)
 
   if werr then
     return false, werr
@@ -248,7 +300,10 @@ local function write_file(args)
     return false, cerr
   end
 
-  util.print_status("Wrote contents to " .. args.filepath)
+  util.print_status(
+    "Wrote contents to " .. args.filepath,
+    context and context.print_context
+  )
   return true
 end
 
@@ -259,21 +314,23 @@ end
 function M.mkdir(path, mode)
   return into_sync(
     ---@async
-    function()
-      return mkdir({ type = "mkdir", path = path, mode = mode })
+    function(a)
+      return mkdir(a, { type = "mkdir", path = path, mode = mode })
     end
   )
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.RemoveDirectory
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function rmdir(args)
-  local err, handle = await(uv.fs_scandir, args.path)
+local function rmdir(async, args, context)
+  local err, handle = await(async, uv.fs_scandir, args.path)
   if err or not handle then
     if args.skip_when_fail then
-      print("Warning: failed to scan directory: " .. err)
+      log.warn("Warning: failed to scan directory: " .. err)
       return true
     end
     return false, err
@@ -288,10 +345,10 @@ local function rmdir(args)
     local child = args.path .. "/" .. name
 
     if not typ then
-      local lerr, stat = await(uv.fs_lstat, child)
+      local lerr, stat = await(async, uv.fs_lstat, child)
       if lerr or not stat then
         if args.skip_when_fail then
-          print("Warning: failed to get stat: " .. lerr)
+          log.warn("Warning: failed to get stat: " .. lerr)
           return true
         end
         return false, lerr
@@ -300,23 +357,23 @@ local function rmdir(args)
     end
 
     if typ == "directory" then
-      local ok, cerr = rmdir({
+      local ok, cerr = rmdir(async, {
         type = "remove_dir",
         path = child,
         skip_when_fail = args.skip_when_fail,
       })
       if not ok then
         if args.skip_when_fail then
-          print("Warning: failed to delete directory: " .. cerr)
+          log.warn("Warning: failed to delete directory: " .. cerr)
           return true
         end
         return false, cerr
       end
     else
-      local uerr = await(uv.fs_unlink, child)
+      local uerr = await(async, uv.fs_unlink, child)
       if uerr then
         if args.skip_when_fail then
-          print("Warning: failed to delete file: " .. uerr)
+          log.warn("Warning: failed to delete file: " .. uerr)
           return true
         end
         return false, uerr
@@ -324,12 +381,15 @@ local function rmdir(args)
     end
   end
 
-  local rerr = await(uv.fs_rmdir, args.path)
+  local rerr = await(async, uv.fs_rmdir, args.path)
   if rerr then
     return false, rerr
   end
 
-  util.print_status("Removed directory: " .. args.path)
+  util.print_status(
+    "Removed directory: " .. args.path,
+    context and context.print_context
+  )
   return true
 end
 
@@ -340,8 +400,8 @@ end
 function M.rmdir(path, opts)
   return into_sync(
     ---@async
-    function()
-      return rmdir({
+    function(a)
+      return rmdir(a, {
         type = "remove_dir",
         path = path,
         skip_when_fail = opts and opts.skip_when_fail,
@@ -351,18 +411,23 @@ function M.rmdir(path, opts)
 end
 
 ---@async
+---@param async rissue.Async
 ---@param args __rissue.pipeline.RemoveFile
+---@param context? __rissue.pipeline.context
 ---@return boolean success
 ---@return string? err_msg
-local function rmfile(args)
-  local err = await(uv.fs_unlink, args.path)
+local function rmfile(async, args, context)
+  local err = await(async, uv.fs_unlink, args.path)
   if err then
     if args.skip_when_fail then
       return true
     end
     return false, err
   end
-  util.print_status("Removed file: " .. args.path)
+  util.print_status(
+    "Removed file: " .. args.path,
+    context and context.print_context
+  )
   return true
 end
 
@@ -373,8 +438,8 @@ end
 function M.rmfile(path, opts)
   return into_sync(
     ---@async
-    function()
-      return rmfile({
+    function(a)
+      return rmfile(a, {
         type = "remove_file",
         path = path,
         skip_when_fail = opts and opts.skip_when_fail,
@@ -391,8 +456,8 @@ end
 function M.write_file(path, contents, opts)
   return into_sync(
     ---@async
-    function()
-      return write_file({
+    function(a)
+      return write_file(a, {
         type = "write_file",
         contents = contents,
         filepath = path,
@@ -404,16 +469,99 @@ function M.write_file(path, contents, opts)
 end
 
 ---@async
+---@param async rissue.Async
+---@param args __rissue.pipeline.CopyFile
+---@param context? __rissue.pipeline.context
+---@return boolean success
+---@return string? err_msg
+local function copyfile(async, args, context)
+  local err = await(async, uv.fs_copyfile, args.source, args.dest)
+  if err then
+    return false, err
+  end
+  util.print_status(
+    ('Copying file from "%s" to "%s"'):format(args.source, args.dest),
+    context and context.print_context
+  )
+  return true
+end
+
+---@param source string
+---@param dest string
+---@return boolean success
+---@return string? err_msg
+function M.copyfile(source, dest)
+  return into_sync(
+    ---@async
+    function(a)
+      return copyfile(a, {
+        type = "copy_file",
+        dest = dest,
+        source = source,
+      })
+    end
+  )
+end
+
+local function new_limiter(n)
+  return { n = math.max(n, 1), used = 0, waiters = {} }
+end
+
+---@param lim __rissue.FIFOLimiter
+local function release(lim)
+  local next_cb = table.remove(lim.waiters, 1)
+  if next_cb then
+    next_cb() -- hand the slot over directly; used stays the same
+  else
+    lim.used = lim.used - 1
+  end
+end
+
+---@async
+---@param async rissue.Async
+local function acquire_async(async, lim)
+  if lim.used < lim.n then
+    lim.used = lim.used + 1
+    return
+  end
+  -- no free slot: queue a resume callback and suspend
+  async:wrap(function(resume) -- placeholder name for your suspend primitive
+    lim.waiters[#lim.waiters + 1] = resume
+  end)
+
+  -- when resumed, release() has already handed us the slot
+end
+
+---@async
+---@param async rissue.Async
 ---@param pipeline __rissue.Pipeline
+---@param limiters __rissue.Limiters
 ---@return string? err_msg Error message if available
-function M.run_pipeline(pipeline)
+function M.run_pipeline(async, pipeline, limiters)
   local cleanup = {} ---@type __rissue.pipeline.RegisterCleanup[]
   local err = nil ---@type string?
+  local current_limiter = limiters.io ---@type __rissue.FIFOLimiter
+  acquire_async(async, current_limiter)
 
-  for _, item in ipairs(pipeline) do
+  local metadata = getmetatable(pipeline)
+  local name = metadata and metadata.name or "??"
+  local color = metadata and metadata.color
+
+  ---@type __rissue.pipeline.context
+  local context = {
+    print_context = {
+      name = name, -- note: modified on every step in pipeline below
+      color = color,
+    },
+  }
+
+  for __step, item in ipairs(pipeline) do
+    local step_name = name .. ":" .. tostring(__step)
+    context.print_context.name = step_name
+
     if item.type == "run" then
       ---@cast item __rissue.pipeline.Run
-      local success, run_err = run_command(item)
+      local success, run_err = run_command(async, item, context)
       if not success then
         err = run_err
         break
@@ -424,37 +572,44 @@ function M.run_pipeline(pipeline)
       util.print_status("Added cleanup item")
     elseif item.type == "rename" then
       ---@cast item __rissue.pipeline.Rename
-      local success, move_err = rename(item)
+      local success, move_err = rename(async, item, context)
       if not success then
         err = move_err
         break
       end
     elseif item.type == "mkdir" then
       ---@cast item __rissue.pipeline.CreateDirectory
-      local success, mkdir_err = mkdir(item)
+      local success, mkdir_err = mkdir(async, item, context)
       if not success then
         err = mkdir_err
         break
       end
     elseif item.type == "write_file" then
       ---@cast item __rissue.pipeline.WriteFile
-      local success, write_err = write_file(item)
+      local success, write_err = write_file(async, item, context)
       if not success then
         err = write_err
         break
       end
     elseif item.type == "remove_file" then
       ---@cast item __rissue.pipeline.RemoveFile
-      local success, rmfile_err = rmfile(item)
+      local success, rmfile_err = rmfile(async, item, context)
       if not success then
         err = rmfile_err
         break
       end
     elseif item.type == "remove_dir" then
       ---@cast item __rissue.pipeline.RemoveDirectory
-      local success, rmdir_err = rmdir(item)
+      local success, rmdir_err = rmdir(async, item, context)
       if not success then
         err = rmdir_err
+        break
+      end
+    elseif item.type == "copy_file" then
+      ---@cast item __rissue.pipeline.CopyFile
+      local success, copyfile_err = copyfile(async, item)
+      if not success then
+        err = copyfile_err
         break
       end
     elseif item.type == "op" then
@@ -464,71 +619,139 @@ function M.run_pipeline(pipeline)
       end
 
       if not should_continue then
-        util.print_status("Stopping pipeline...")
+        util.print_status("Stopping pipeline...", context.print_context)
         break
       end
+    elseif item.type == "async_step" then
+      local async_step_err = async:wrap(function(cb)
+        item.cb(cb, context)
+      end)
+      if async_step_err then
+        err = tostring(async_step_err)
+        break
+      end
+    elseif item.type == "switch_mode" then
+      local limiter = limiters[item.mode]
+      if not limiter then
+        err = "Invalid mode: " .. tostring(item.mode)
+        break
+      end
+
+      if limiter ~= current_limiter then
+        release(current_limiter) -- release first, to avoid deadlock
+        acquire_async(async, limiter)
+        current_limiter = limiter
+      end
     else
-      error("Unknown type: " .. tostring(item.type), 0)
+      err = "Unknown type: " .. tostring(item.type)
+      break
     end
   end
 
-  if #cleanup > 0 then
-    util.print_status("Running cleanup")
-    for _, cleanup_op in ipairs(cleanup) do
-      local errmsg = cleanup_op.func()
+  release(current_limiter)
+
+  local cleanup_len = #cleanup
+  if cleanup_len > 0 then
+    context.print_context.name = name .. "/cleanup"
+    util.print_status(
+      ("Running cleanup (%d item/s)"):format(cleanup_len),
+      context.print_context
+    )
+
+    for cleanup_id, cleanup_op in ipairs(cleanup) do
+      local context_name = name .. "/cleanup@" .. tostring(cleanup_id)
+      local errmsg = M.run_pipeline(
+        async,
+        M.new_pipeline(
+          context_name,
+          cleanup_op.pipeline,
+          { color = context.print_context.color }
+        ),
+        limiters
+      )
       if errmsg then
-        print("Failed when running cleanup: " .. errmsg)
-        if not err then
-          err = ""
-        end
-        err = err .. "\n\t" .. errmsg
+        log.error("Failed when running cleanup: " .. errmsg)
+        err = (err and (err .. "\n") or "")
+          .. "["
+          .. tostring(cleanup_id)
+          .. "]"
+          .. errmsg
       end
     end
-    util.print_status("Cleanup complete!")
+
+    context.print_context.name = name .. "/cleanup"
+    util.print_status("Cleanup complete!", context.print_context)
   end
 
   if err then
-    print("!!! " .. err)
+    log.error("Pipeline failed: " .. err)
   end
 
   return err
 end
 
+local function pipeline_backend_schedule(fn)
+  fn()
+end
+
+---@param fn async fun(a: rissue.Async)
+---@param on_finish fun(err_msg: string?)
+local function async_run(fn, on_finish)
+  ---@type rissue.async.Backend
+  local backend = {
+    schedule = pipeline_backend_schedule,
+    on_error = function(msg, tb)
+      msg = tostring(msg)
+      log.trace(msg .. "\n" .. tostring(tb))
+      on_finish(msg)
+    end,
+  }
+
+  async_mod.run(
+    backend,
+    ---@async
+    function(a)
+      fn(a)
+      on_finish()
+    end
+  )
+end
+
+---@class __rissue.RunPipelines.Opts
+---@field io_limit integer
+---@field cpu_limit integer
+
 ---@param pipelines __rissue.Pipeline[]
----@param limit integer
+---@param opts __rissue.RunPipelines.Opts
 ---@return string[]? errors
-function M.run_pipelines(pipelines, limit)
+function M.run_pipelines(pipelines, opts)
+  --- there can be only on instance of run_pipelines since its blocking. so reusing the
+  --- same backend just works
+
   if #pipelines <= 0 then
     return
   end
 
-  limit = math.max(limit, 1)
+  local io_limit = math.max(opts.io_limit, 1)
+  local cpu_limit = math.max(opts.cpu_limit, 1)
+  local inflight_limit = io_limit + cpu_limit
+
+  local limiters = {
+    io = new_limiter(io_limit),
+    cpu = new_limiter(cpu_limit),
+  }
 
   local errors = {} ---@type string[]
-  local running = {} ---@type {co: thread, result: {done: boolean, err: string?}}[]
-
-  --- Removes finished tasks and collects their errors
-  local function reap()
-    for i = #running, 1, -1 do
-      local task = running[i]
-      if task.result.done or coroutine.status(task.co) == "dead" then
-        if task.result.err then
-          table.insert(errors, task.result.err)
-        end
-        table.remove(running, i)
-      end
-    end
-  end
+  local running = 0
 
   local next_pipeline = util.iterator(pipelines)
 
   while true do
     -- Wait for a free slot before starting the next pipeline
-    if #running >= limit then
+    if running >= inflight_limit then
       subprocess.wait(function()
-        reap()
-        return #running < limit
-      end, -1)
+        return running < inflight_limit
+      end, -1, 1000)
     end
 
     local pipeline = next_pipeline()
@@ -536,30 +759,37 @@ function M.run_pipelines(pipelines, limit)
       break
     end
 
-    local result = { done = false } ---@type {done: boolean, err: string?}
-    local co = coroutine.create(
+    running = running + 1
+    async_run(
       ---@async
-      function()
-        result.err = M.run_pipeline(pipeline)
-        result.done = true
+      function(a)
+        local pipeline_err = M.run_pipeline(a, pipeline, limiters)
+        if pipeline_err then
+          error(pipeline_err)
+        end
+      end,
+      function(err)
+        if err then
+          local metadata = getmetatable(pipeline)
+          local name = metadata and metadata.name or "??"
+          local color = metadata and metadata.color or ""
+
+          errors[#errors + 1] = ("%s[%s]: %s%s"):format(
+            color,
+            name,
+            err,
+            util.ANSI_RESET
+          )
+        end
+        running = running - 1
       end
     )
-
-    local ok, err = coroutine.resume(co)
-    if not ok then
-      result.err = tostring(err)
-      result.done = true
-    end
-
-    table.insert(running, { co = co, result = result })
-    reap()
   end
 
   -- Wait for everything still running
   subprocess.wait(function()
-    reap()
-    return #running == 0
-  end, -1)
+    return running <= 0
+  end, -1, 1000)
 
   if #errors > 0 then
     return errors

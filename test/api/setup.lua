@@ -16,21 +16,20 @@
 
 local M = {}
 
+local async = require("rissue.utils.async")
+local curl = require("rissue.utils.curl")
+local log = require("rissue.utils.log")
 local setup_utils = require("api.setup_utils")
 local utils = require("util")
+
 local uv = require("luv") ---@type uv
 
-local CPU_COUNT = tonumber(os.getenv("CORES"))
-if not CPU_COUNT then
+local CPU_CORES = tonumber(os.getenv("CPU_CORES"))
+if not CPU_CORES then
   local cpus = uv.cpu_info()
-  CPU_COUNT = cpus and #cpus or 1
+  CPU_CORES = cpus and #cpus or 1
 end
-
-local log = require("rissue.utils.log")
-log.log_level = log.levels.debug
-
----@class __rissue._CmdResult: rissue.utils.CmdResult
----@field cmd string[]
+local IO_CORES = tonumber(os.getenv("IO_CORES")) or (CPU_CORES * 2)
 
 ---@param folder string folder path
 ---@param duration number duration in seconds
@@ -53,11 +52,11 @@ function M.handle_caching(folder, duration)
       if not ok then
         error(("Failed to delete folder %s: %s"):format(folder_path, errmsg), 0)
       end
-      print("Removed old setup folder: " .. folder_path)
+      log.info("Removed old setup folder: " .. folder_path)
     end
   end
 
-  print("Warning: No cache file found. Running full setup...")
+  log.warn("No cache file found. Running full setup...")
   local ok, err_msg = setup_utils.mkdir(utils.config.api)
   if not ok then
     error("Failed to make directory: " .. err_msg, 0)
@@ -81,16 +80,21 @@ function M.run_setup(cwd, pipelines)
     error(err, 0)
   end
 
-  local err_msg = setup_utils.run_pipelines(pipelines, CPU_COUNT)
+  local err_msg = setup_utils.run_pipelines(
+    pipelines,
+    { cpu_limit = CPU_CORES, io_limit = IO_CORES }
+  )
   if err_msg then
-    print(
-      "\n\nError: An error occurred while running pipelines:\n\t"
-        .. table.concat(err_msg, "\n\t")
+    log.error(
+      "\n\nError: An error occurred while running pipelines:\n"
+        .. table.concat(err_msg, "\n\n")
     )
   end
 
-  print("Done")
+  log.trace("Done")
 end
+
+M.new_pipeline = setup_utils.new_pipeline
 
 ---@param path string
 ---@return __rissue.pipeline.CreateDirectory
@@ -119,7 +123,7 @@ function M.p_run(bin, opts)
     if filepath then
       local stat = uv.fs_stat(filepath)
       if stat and stat.type == "file" then
-        print("Skipping file: " .. filepath)
+        log.info("Skipping file: " .. filepath)
         ---@type __rissue.pipeline.Operation
         return { type = "op", should_continue = false }
       end
@@ -138,6 +142,72 @@ function M.p_run(bin, opts)
   }
 end
 
+---@class __rissue.pipeline.curl.Opts
+---@field skip_when_file_exists string?
+
+---@param url string
+---@param out_filepath string
+---
+---@param curl_opts rissue.curl.Opts
+---@param opts __rissue.pipeline.curl.Opts
+---@return __rissue.pipeline.AsyncStep | __rissue.pipeline.Operation
+function M.p_curl(url, out_filepath, curl_opts, opts)
+  if opts then
+    local filepath = opts.skip_when_file_exists
+    if filepath then
+      local stat = uv.fs_stat(filepath)
+      if stat and stat.type == "file" then
+        print("Skipping file: " .. filepath)
+        ---@type __rissue.pipeline.Operation
+        return { type = "op", should_continue = false }
+      end
+    end
+  end
+
+  curl_opts.outfile = out_filepath
+
+  ---@type __rissue.pipeline.AsyncStep
+  return {
+    type = "async_step",
+    cb = function(done, ctx)
+      ---@type rissue.async.Backend
+      local backend = {
+        on_error = function(err)
+          err = tostring(err)
+          done(err)
+        end,
+        schedule = function(cb)
+          cb()
+        end,
+      }
+
+      async.run(
+        backend,
+        ---@async
+        function(a)
+          utils.print_status(
+            "Curling '" .. url .. "' into '" .. out_filepath .. "'",
+            ctx.print_context
+          )
+
+          local result, err = curl.request(a, url, curl_opts)
+          if not result then
+            if err then
+              log.debug(err.msg)
+              log.trace(err.server_msg)
+            end
+            error(err and err.msg or "unknown err", 0)
+          end
+
+          utils.print_status("Curl completed", ctx.print_context)
+
+          done()
+        end
+      )
+    end,
+  }
+end
+
 ---@param source string
 ---@param dest string
 ---@return __rissue.pipeline.Rename
@@ -146,11 +216,11 @@ function M.p_rename(source, dest)
   return { type = "rename", source = source, dest = dest }
 end
 
----@param func async fun(): string? Where the return of the function is error message
+---@param pipeline __rissue.Pipeline
 ---@return __rissue.pipeline.RegisterCleanup
-function M.p_register_cleanup(func)
+function M.p_register_cleanup(pipeline)
   ---@type __rissue.pipeline.RegisterCleanup
-  return { type = "reg_cleanup", func = func }
+  return { type = "reg_cleanup", pipeline = pipeline }
 end
 
 ---@param path string
@@ -190,6 +260,28 @@ end
 function M.p_write_f(filepath, contents)
   ---@type __rissue.pipeline.WriteFile
   return { type = "write_file", filepath = filepath, contents = contents }
+end
+
+---@param source string
+---@param dest string
+---@return __rissue.pipeline.CopyFile
+function M.p_copyfile(source, dest)
+  ---@type __rissue.pipeline.CopyFile
+  return { type = "copy_file", source = source, dest = dest }
+end
+
+---@param mode __rissue.pipeline.SwitchMode.mode
+---@return __rissue.pipeline.SwitchMode
+function M.p_switch_mode(mode)
+  ---@type __rissue.pipeline.SwitchMode
+  return { type = "switch_mode", mode = mode }
+end
+
+---@param cb fun(done: fun())
+---@return __rissue.pipeline.AsyncStep
+function M.p_async_step(cb)
+  ---@type __rissue.pipeline.AsyncStep
+  return { type = "async_step", cb = cb }
 end
 
 return M

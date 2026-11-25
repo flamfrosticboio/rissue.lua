@@ -26,13 +26,41 @@
 --- rissue.get_issues("https://github.com/flamfrosticboio/rissue")
 --- rissue.get_merge_requests("https://github.com/flamfrosticboio/rissue")
 --- ```
+---
+--- Notes: For providers that uses curl, curl must be installed into the system
+--- with minimum version of 7.83.0
 ---@class rissue
 local rissue = {}
 
+local async_mod = require("rissue.utils.async")
 local config = require("rissue.config")
+local curl = require("rissue.utils.curl")
 local env = require("rissue.env")
 local get = require("rissue.get")
 local provider = require("rissue.provider")
+local table_op = require("rissue.utils.table_op")
+
+---@param cb async fun(a: rissue.Async)
+---@return string? err_msg
+local function run_blocking(cb)
+  local backend, wait = async_mod.default_backend()
+  local done = false
+  async_mod.run(
+    backend, ---@async
+    function(a)
+      cb(a)
+      done = true
+    end
+  )
+
+  local success, err = wait(function()
+    return done
+  end, config.options.timeout)
+
+  if not success then
+    return err
+  end
+end
 
 --- Run setup for rissue.
 ---
@@ -58,6 +86,24 @@ function rissue.setup(opts, cwd)
   --- setup logging
   local log = require("rissue.utils.log")
   log.setup(opts and opts.log or {})
+
+  --- Check curl version
+  --- Run asynchronously
+  local async_backend = async_mod.default_backend()
+  async_mod.run(async_backend, function(a)
+    local curl_err, is_compatible, version_string =
+      curl.is_version_compatible(a)
+
+    if curl_err then
+      log.warn("Failed to get curl version:", curl_err)
+    elseif not is_compatible then
+      log.warn(
+        "Incompatible curl version detected:",
+        version_string,
+        "(need >= 7.83.0, < 9)"
+      )
+    end
+  end)
 end
 
 rissue.get_remote_info = provider.remote_info
@@ -98,8 +144,16 @@ function rissue.get_provider_info(remote, opts)
     remote = remote_res
   end
 
-  ---@cast remote rissue.RemoteInfo
-  return provider.provider_info(remote, opts)
+  ---@type rissue.ProviderInfo?, string?
+  local result, err
+  local run_err = run_blocking(
+    ---@async
+    function(a)
+      result, err = provider.provider_info(a, remote, opts)
+    end
+  )
+
+  return result, run_err or err
 end
 
 ---@param remote string | rissue.RemoteInfo | rissue.ProviderInfo
@@ -157,14 +211,28 @@ end
 --- ```
 ---@param remote rissue.ProviderInfo | rissue.RemoteInfo | string # See description
 ---@param opts? table<rissue.ProviderName, table?> | table # See description
----@return rissue.issue[]? issues List of issues. `nil` when it fails.
+---@return rissue.Issue[]? issues List of issues. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.
 function rissue.get_issues(remote, opts)
-  local _remote, new_opts, err = into_provider_info(remote, opts)
-  if not _remote then
-    return nil, err or "unknown error"
+  local provider_info, new_opts, convert_err = into_provider_info(remote, opts)
+  if not provider_info then
+    return nil, convert_err or "unknown error"
   end
-  return get.issues(_remote, new_opts)
+
+  local result = {} ---@type rissue.Issue[]
+  local pusher = table_op.appender(result)
+
+  local run_err = run_blocking(
+    ---@async
+    function(a)
+      local err = get.issues(a, provider_info, new_opts, pusher)
+      if err then
+        error(err, 0)
+      end
+    end
+  )
+
+  return result, run_err
 end
 
 --- Gets merge requests from the remote url, remote info or provider info
@@ -192,14 +260,32 @@ end
 ---
 ---@param remote rissue.ProviderInfo | rissue.RemoteInfo | string # See description
 ---@param opts? table<rissue.ProviderName, table?> | table # See description
----@return rissue.pr[]? merge_requests List of merge requests. `nil` when it fails.
+---@return rissue.MergeRequest[]? merge_requests List of merge requests. `nil` when it fails.
 ---@return string? err_msg Error message if operation fails.
 function rissue.get_merge_requests(remote, opts)
-  local _remote, new_opts, err = into_provider_info(remote, opts)
-  if not _remote then
-    return nil, err or "unknown error"
+  local provider_info, new_opts, convert_err = into_provider_info(remote, opts)
+  if not provider_info then
+    return nil, convert_err or "unknown error"
   end
-  return get.merge_requests(_remote, new_opts)
+
+  local result = {} ---@type rissue.MergeRequest[]
+  local pusher = table_op.appender(result)
+
+  local run_err = run_blocking(
+    ---@async
+    function(a)
+      local err = get.merge_requests(a, provider_info, new_opts, pusher)
+      if err then
+        error(err, 0)
+      end
+    end
+  )
+
+  if run_err then
+    return nil, run_err
+  end
+
+  return result
 end
 
 return rissue

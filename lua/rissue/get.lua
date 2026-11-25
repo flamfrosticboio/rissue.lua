@@ -20,86 +20,57 @@ local get = {}
 
 local config = require("rissue.config")
 local env = require("rissue.env")
-local process = require("rissue.utils.process")
 
----@generic A, B
----@param func fun(): A, B
----@return A
----@return B
-local function with_co_blocking(func)
-  local done = false
-  local a, b
-  local co = coroutine.create(function()
-    a, b = func()
-    done = true
-  end)
-
-  --- Start the coroutine thread
-  local co_ok, co_err = coroutine.resume(co)
-  if not co_ok then
-    return nil, co_err
-  end
-
-  local wait_ok, wait_err = process.wait(function()
-    return done
-  end, config.options.timeout)
-
-  if not wait_ok then
-    return nil, wait_err or "unknown error while waiting"
-  end
-
-  return a, b
-end
-
+---@async
 ---@param info rissue.ProviderInfo
----@param opts table?
----@param command "get_issues" | "get_merge_requests"
----@return any[]? results
+---@return rissue.Provider? results
 ---@return string? errors
-local function get_issues_or_merge(info, opts, command)
+local function get_provider(info)
   ---@type rissue.Provider?
   local provider = config.providers[info.name]
   if not provider then
     return nil, "Could not find provider: " .. info.name
   end
 
-  local co, is_main = coroutine.running()
-  if not is_main and co then
-    return provider[command](
-      info,
-      env.get_token(provider.name),
-      config.merge_provider_settings(provider, opts)
-    )
+  return provider
+end
+
+--- Gets issues specified with provider info and provider options.
+---@async
+---@param async rissue.Async Async handler
+---@param info rissue.ProviderInfo Remote information
+---@param opts table? Settings that are based on provider
+---@param cb fun(item: rissue.Issue) Builder function
+---@return string? errors
+function get.issues(async, info, opts, cb)
+  local provider, err = get_provider(info)
+  if not provider then
+    return err
   end
 
-  -- Blocking implementation
-  return with_co_blocking(function()
-    return provider[command](
-      info,
-      env.get_token(provider.name),
-      config.merge_provider_settings(provider, opts)
-    )
-  end)
+  local token = env.get_token(provider.name)
+  local settings = config.merge_provider_settings(provider, opts)
+
+  return provider.get_issues(async, info, token, settings, cb)
 end
 
---- Gets issues specified with info and provider opts
----@param info rissue.ProviderInfo
+--- Gets merge requests specified with provider info and provider options.
+---@async
+---@param async rissue.Async Async handler
+---@param info rissue.ProviderInfo Remote information
 ---@param opts table? Settings that are based on provider
----@return rissue.issue[]? results
+---@param cb fun(item: rissue.MergeRequest) Builder function
 ---@return string? errors
-function get.issues(info, opts)
-  local res, err = get_issues_or_merge(info, opts, "get_issues")
-  return res, err
-end
+function get.merge_requests(async, info, opts, cb)
+  local provider, err = get_provider(info)
+  if not provider then
+    return err
+  end
 
---- Gets merge requests specified with info and provider opts
----@param info rissue.ProviderInfo
----@param opts table? Settings that are based on provider
----@return rissue.pr[]? results
----@return string? errors
-function get.merge_requests(info, opts)
-  local res, err = get_issues_or_merge(info, opts, "get_merge_requests")
-  return res, err
+  local token = env.get_token(provider.name)
+  local settings = config.merge_provider_settings(provider, opts)
+
+  return provider.get_merge_requests(async, info, token, settings, cb)
 end
 
 return get

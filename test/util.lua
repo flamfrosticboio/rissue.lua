@@ -27,9 +27,16 @@ function M.get_test_api_path(folder)
   return M.config.api .. "/" .. folder
 end
 
+---@class __rissue.PrintStatus.Opts
+---@field name string?
+---@field color string?
+
 ---@param msg string
-function M.print_status(msg)
-  print(">>> " .. msg)
+---@param opts? __rissue.PrintStatus.Opts
+function M.print_status(msg, opts)
+  local color = (opts and opts.color) or ""
+  local header = (opts and opts.name and ("[%s]"):format(opts.name)) or ">>>"
+  print(("%s%s %s%s"):format(color, header, msg, M.ANSI_RESET))
 end
 
 --- Replaces an value in the list
@@ -97,18 +104,23 @@ local ansi_colors = {
   "\27[94m",
   "\27[95m",
   "\27[96m",
-  "\27[0m",
 }
 local ansi_colors_len = #ansi_colors
 
-local RESET = "\27[0m"
+M.ANSI_RESET = "\27[0m"
 
 --- Colors the text with a cyclic colors based on id
 ---@param str string
 ---@param id integer
 function M.ccolor(str, id)
   id = (id % ansi_colors_len) + 1
-  return ansi_colors[id] .. str .. RESET
+  return ansi_colors[id] .. str .. M.ANSI_RESET
+end
+
+local l = 0
+function M.assign_color()
+  l = (l % ansi_colors_len) + 1
+  return ansi_colors[l]
 end
 
 ---@generic T

@@ -25,4 +25,14 @@ if not chunk then
 end
 chunk()
 
+--- Mask real credentials from being leaked on output when testing.
+--- Prism will accept any value for authentication so this is fine.
+local env = require("rissue.env")
+---@param provider string
+---@diagnostic disable-next-line: duplicate-set-field
+env.get_token = function(provider)
+  return "$GIT_TK_" .. provider:upper()
+end
+
 require("api.github.setup")()
+require("api.gitlab.setup")()

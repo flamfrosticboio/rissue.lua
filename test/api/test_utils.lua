@@ -19,9 +19,18 @@ local log = require("rissue.utils.log")
 local utils = require("util")
 local uv = require("luv") ---@type uv
 
-local describe = describe or require("busted").describe
-local before_each = before_each or require("busted").before_each
-local teardown = teardown or require("busted").teardown
+local describe = require("busted").describe or describe
+local lazy_setup = require("busted").lazy_setup or lazy_setup
+local lazy_teardown = require("busted").lazy_teardown or lazy_teardown
+
+--- Mask real credentials from being leaked on output when testing.
+--- Prism will accept any value for authentication so this is fine.
+local env = require("rissue.env")
+---@param provider string
+---@diagnostic disable-next-line: duplicate-set-field
+env.get_token = function(provider)
+  return "$GIT_TK_" .. provider:upper()
+end
 
 local M = {}
 
@@ -37,10 +46,13 @@ function M.new_id()
   return _id_counter
 end
 
+---@class __rissue.ProxyHandle
+---@field cleanup fun()
+
 ---@class __rissue.with_server.Opts
 ---@field name string
 ---@field specfile string
----@field is_proxy boolean
+---@field proxy __rissue.ProxyHandle?
 
 ---@class __rissue.with_proxy.Opts
 ---@field prefix string
@@ -53,12 +65,13 @@ end
 ---@param callback fun(err_msg: string|nil)
 ---@param port_offset integer
 ---@param id integer
----@return fun() start
----@return fun() close
+---@return fun()? start
+---@return fun()? close
+---@return string? err_msg
 local function run_mock_server(filepath, port_offset, id, callback)
   local watch_loop, watch_loop_err = uv.new_timer()
   if not watch_loop then
-    error(watch_loop_err)
+    return nil, nil, watch_loop_err
   end
 
   -- bump the port to separate servers and avoid race conditions
@@ -68,7 +81,7 @@ local function run_mock_server(filepath, port_offset, id, callback)
   local err ---@type string?
 
   p, err = cmd.spawn({
-    cmd = "./node_modules/.bin/prism",
+    cmd = "./test/api/node_modules/.bin/prism",
     args = {
       "mock",
       filepath,
@@ -76,12 +89,14 @@ local function run_mock_server(filepath, port_offset, id, callback)
       M.host,
       "--port",
       tostring(port),
-      "--verboseLevel=trace",
+      log.level_enabled(log.levels.trace) and "--verboseLevel=trace"
+        or "--verboseLevel=warn",
     },
-    cwd = "test/api",
   })
 
-  assert(p ~= nil, err)
+  if p == nil then
+    return nil, nil, err
+  end
 
   p:register_event("on_exit", function()
     watch_loop:stop()
@@ -91,23 +106,18 @@ local function run_mock_server(filepath, port_offset, id, callback)
         exit_err = p:get_stdout()
       end
       callback(exit_err)
-      error(exit_err)
     end
   end)
 
-  if log.level_enabled(log.levels.trace) then
-    p:register_event("on_stdout", function()
-      print(
-        utils.ccolor("| " .. p:get_last_stdout(true):gsub("\n", "\n| "), id)
-      )
-    end)
+  ---@type rissue.utils.Process.last_output.Opts
+  local opts = { newline_on_multiline_output = true, strip_newlines = true }
+  p:register_event("on_stdout", function()
+    print(utils.ccolor("| " .. p:get_last_stdout(opts):gsub("\n", "\n| "), id))
+  end)
 
-    p:register_event("on_stderr", function()
-      print(
-        utils.ccolor("@ " .. p:get_last_stderr(true):gsub("\n", "\n@ "), id)
-      )
-    end)
-  end
+  p:register_event("on_stderr", function()
+    print(utils.ccolor("@ " .. p:get_last_stderr(opts):gsub("\n", "\n@ "), id))
+  end)
 
   local function close_func()
     local is_closed = false
@@ -135,34 +145,34 @@ local function run_mock_server(filepath, port_offset, id, callback)
   local function start()
     p:run()
 
-    watch_loop:start(1000, 1000, function()
-      local watch_err = coroutine.wrap(
-        ---@async
-        function()
-          print("Checking...")
-          local result, co_err = cmd.run_co({
-            cmd = "timeout",
-            args = {
-              "1",
-              "bash",
-              "-c",
-              "</dev/tcp/" .. M.host .. "/" .. port,
-            },
-          })
-          if not result then
-            error(co_err)
-          end
-          if result.return_code == 0 then
-            watch_loop:stop()
-            local callback_thread = coroutine.create(function()
-              callback()
-            end)
-            local callback_ok, co_watch_err = coroutine.resume(callback_thread)
-            assert(callback_ok, co_watch_err)
-          end
+    watch_loop:start(250, 250, function()
+      log.trace("Waiting for mock server to be up...")
+      local watch_process, spawn_err = cmd.spawn({
+        cmd = "timeout",
+        args = {
+          "1",
+          "bash", -- sh supports this feature
+          "-c",
+          "</dev/tcp/" .. M.host .. "/" .. port,
+        },
+      })
+      if not watch_process then
+        --- it is very safe to return here
+        log.debug("Watch loop spawn error:", spawn_err)
+        return
+      end
+
+      watch_process:register_event("on_exit", function()
+        if watch_process:get_code() == 0 then
+          watch_loop:stop()
+          callback()
         end
-      )()
-      assert(not watch_err, watch_err)
+      end)
+
+      local run_err = watch_process:run()
+      if run_err then
+        return
+      end
     end)
   end
 
@@ -170,7 +180,8 @@ local function run_mock_server(filepath, port_offset, id, callback)
 end
 
 ---@param opts __rissue.with_proxy.Opts
----@return rissue.utils.Process
+---@return rissue.utils.Process?
+---@return string? error
 local function run_proxy(opts)
   local p, err = cmd.spawn({
     cmd = "node",
@@ -186,8 +197,9 @@ local function run_proxy(opts)
     },
   })
 
+  --- when spawning is error
   if not p then
-    error(err)
+    return nil, err
   end
 
   local is_running = false
@@ -199,40 +211,35 @@ local function run_proxy(opts)
 
   p:register_event("on_exit", function()
     if p:get_code() ~= 0 then
-      error(p:get_last_stderr(true), 0)
+      error(p:get_stderr(), 0)
     end
   end)
 
-  p:run()
+  local run_err = p:run()
+  if run_err then
+    return nil, run_err
+  end
 
   local ok, wait_err = cmd.wait(function()
     return is_running
   end, timeout)
 
   if not ok then
-    error(wait_err)
+    return nil, wait_err
   end
 
   return p
 end
 
 ---@param opts __rissue.with_proxy.Opts
----@param func fun()
+---@param func fun(handle: __rissue.ProxyHandle)
 function M.with_proxy(opts, func)
   ---@type rissue.utils.Process?
   local process
   describe(opts.name, function()
-    before_each(function()
+    local function cleanup()
       if process then
-        return
-      end
-
-      uv.run("nowait")
-      process = run_proxy(opts)
-    end)
-
-    teardown(function()
-      if process then
+        log.info("Closing proxy...")
         local is_closed = false
         process:close(function()
           is_closed = true
@@ -241,21 +248,40 @@ function M.with_proxy(opts, func)
           return is_closed
         end, close_timeout)
         if not has_not_timeouted then
-          print(
-            "Warning: Failed to safely close proxy. Attempting to close forcefully."
+          log.warn(
+            "Failed to safely close proxy. Attempting to close forcefully."
           )
           process:close(nil, "sigkill")
           local has_not_timeouted_forced = cmd.wait(function()
             return is_closed
           end, close_timeout)
           if not has_not_timeouted_forced then
-            print("Warning: Failed to close proxy forcefully. Skipping...")
+            log.warn("Failed to close proxy forcefully. Skipping...")
           end
         end
+        process = nil
+        log.info("Proxy is closed")
       end
+    end
+
+    lazy_setup(function()
+      uv.run("nowait")
+      local err
+      log.info("Running proxy...")
+      process, err = run_proxy(opts)
+
+      if err then
+        log.error("Failed to setup proxy:", err)
+        cleanup()
+        error(err, 0)
+      end
+
+      log.info("Proxy is running")
     end)
 
-    func()
+    lazy_teardown(cleanup)
+
+    func({ cleanup = cleanup })
   end)
 end
 
@@ -264,50 +290,74 @@ end
 function M.with_server(opts, func)
   local id = M.new_id()
   describe(opts.name, function()
-    ---@type fun(), fun()
+    ---@type fun()?, fun()?
     local run, server_close
-    local server_run = false
+    ---@type boolean, string?
+    local server_run, server_error = false, nil
 
-    local port_offset = opts.is_proxy and 1 or 0
+    local port_offset = opts.proxy and 1 or 0
 
-    before_each(function()
-      if server_run then
-        return
-      end
-
-      uv.run("nowait")
-      print(("[%s]: Opening server"):format(opts.name))
-      run, server_close = run_mock_server(
-        "../../" .. opts.specfile,
-        port_offset,
-        id,
-        function()
-          print(("[%s]: Server is up"):format(opts.name))
-          server_run = true
-        end
-      )
-      if not (run and server_close) then
-        print(("[%s]: Failed to setup server"):format(opts.name))
-      end
-
-      run()
-
-      local successful = cmd.wait(function()
-        return server_run
-      end, timeout)
-      if not successful then
-        server_close()
-        error("Timeout reached")
-      end
-    end)
-
-    teardown(function()
+    local function cleanup()
       if server_close then
         print(("[%s]: Closing server"):format(opts.name))
         server_close()
         print(("[%s]: Server closed"):format(opts.name))
       end
+    end
+
+    local function cleanup_error()
+      cleanup()
+
+      if opts.proxy then
+        opts.proxy.cleanup()
+      end
+    end
+
+    lazy_setup(function()
+      uv.run("nowait")
+
+      print(("[%s]: Opening server at port:%d"):format(opts.name, M.port))
+      local err
+      run, server_close, err = run_mock_server(
+        opts.specfile,
+        port_offset,
+        id,
+        function(err_msg)
+          if err_msg then
+            server_error = err_msg
+          else
+            print(("[%s]: Server is up"):format(opts.name))
+          end
+
+          server_run = true
+        end
+      )
+      if not (run and server_close) then
+        cleanup_error()
+        print(("[%s]: Failed to setup server: %s"):format(opts.name, err))
+        error(err, 0)
+      end
+
+      run()
+
+      local successful, wait_err = cmd.wait(function()
+        return server_run
+      end, timeout)
+
+      if not successful or server_error ~= nil then
+        cleanup_error()
+        error(
+          string.format(
+            "[%s] Error while waiting for server availability: %s",
+            opts.name,
+            wait_err or server_error or "unknown error"
+          ),
+          0
+        )
+      end
     end)
+
+    lazy_teardown(cleanup)
 
     func(id, M.port)
   end)

@@ -47,7 +47,6 @@ return {
       .. ","
       .. (is_windows and "unix" or "windows")
       .. (exclude_cmd ~= "" and ("," .. exclude_cmd) or ""),
-    lua = "lua5.1",
     helper = "test/helper.lua",
   },
   default = {
@@ -59,6 +58,11 @@ return {
     verbose = true,
     ["exclude-tags"] = "",
     ["defer-print"] = true,
+  },
+  nlua = {
+    tags = "vim",
+    verbose = true,
+    lua = "nlua",
   },
   apiOne = {
     tags = "api",

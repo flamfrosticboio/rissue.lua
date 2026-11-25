@@ -1,12 +1,9 @@
-rules:
-  nullable-type-sibling: off
+plugins:
+  - ../prune-plugin.cjs
 decorators:
-  remove-unused-components: on
   filter-in:
     applyTo: Operation
     property: tags
-    value:
-      - issues
-      - pulls
-      - meta
-      - search
+    value: [issues, pulls, meta, search]
+  remove-unused-components: off
+  prune/prune-components: on

@@ -1,5 +1,5 @@
-std = "lua51+.selene/busted+.selene/luajit"
-exclude = [".types/**", "lua/**"]
+std = "lua51+.selene/busted+.selene/luajit+.selene/utf8"
+exclude = [".types/**", "lua/**", "test/others/**", "lua/rissue/types/*.d.lua"]
 
 [rules]
 incorrect_standard_library_use = "allow"

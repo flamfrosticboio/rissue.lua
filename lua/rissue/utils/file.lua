@@ -16,10 +16,10 @@
 
 local uv = require("luv") ---@type uv
 
+---@class rissue.mod.File
 local M = {}
 
---- Opens and reads all contents in the file
---- Warning: Raises errors when reading the file fails
+--- Opens and reads all contents in the file synchronously.
 ---@param file string
 ---@return string? result
 ---@return string? error
@@ -50,7 +50,7 @@ function M.read_file(file)
   return result, nil
 end
 
---- Warning: Raises errors when delete fails
+--- Deletes the file synchronously.
 ---@param file string Filepath to delete
 ---@return boolean success
 ---@return string?  error

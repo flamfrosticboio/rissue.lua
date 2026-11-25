@@ -18,8 +18,14 @@
 local M = {}
 
 local log = require("rissue.utils.log")
+local strings = require("rissue.utils.strings")
 local table_op = require("rissue.utils.table_op")
 local uv = require("luv") ---@type uv
+
+---@diagnostic disable-next-line: deprecated
+local unpack = unpack or table.unpack
+
+local FLUSH_GRACE_MS = 100
 
 ---@alias rissue.utils.process.Event
 ---| "on_exit" When the entire process is finished
@@ -27,28 +33,29 @@ local uv = require("luv") ---@type uv
 ---| "on_stderr" When the process writes to stderr
 ---| "on_output" When the process writes to stdout or stderr
 
----@class rissue.utils.process._FinishedTracker
+---@class __rissue.utils.process.FinishedTracker
 ---@field handle boolean
 ---@field stdout boolean
 ---@field stderr boolean
 
----@class rissue.utils.process._EventsTable
+---@class __rissue.utils.process.EventsTable
 ---@field on_exit fun()[]
 ---@field on_stdout fun()[]
 ---@field on_stderr fun()[]
 ---@field on_output fun()[]
 
+--- A process handler
 ---@class rissue.utils.Process
----@field package _events rissue.utils.process._EventsTable List of events
+---@field package _events __rissue.utils.process.EventsTable List of events
 ---@field package _handle uv.uv_process_t?
 ---@field package _stdout_pipe uv.uv_pipe_t?
 ---@field package _stderr_pipe uv.uv_pipe_t?
 ---@field package _exit_code integer -1 means not finished
 ---@field package _stdout_raw string[]
 ---@field package _stderr_raw string[]
----@field package _finished rissue.utils.process._FinishedTracker
+---@field package _finished __rissue.utils.process.FinishedTracker
 ---@field package _complete boolean
----@field package _opts rissue.utils.CommandOpts
+---@field package _opts rissue.utils.process.Opts
 ---@field package __index table? Stub to avoid listing in IDE
 ---@field package _running boolean
 local Process = {}
@@ -56,24 +63,20 @@ Process.__index = Process
 
 local wait_co_err = nil ---@type string?
 
----@param co thread
-local function safe_co_resume(co)
-  local ok, err = coroutine.resume(co)
-  if not ok then
-    local _, stop_err = M.try_stop_current_wait(err)
-    if stop_err then
-      log.error(
-        "Failed to send stop signal to current wait thread: "
-          .. (stop_err or "unknown error")
-      )
-    end
-  end
-end
-
 ---@param events fun()[]
 local function run_all_events(events)
   for _, event in ipairs(events) do
     event()
+  end
+end
+
+---@param timer uv.uv_timer_t?
+local function try_stop_timer(timer)
+  if timer then
+    if not timer:is_closing() then
+      timer:stop()
+      timer:close()
+    end
   end
 end
 
@@ -91,8 +94,8 @@ end
 function Process:try_exit()
   if not self._complete and table_op.all(self._finished) then
     self._complete = true
-    run_all_events(self._events.on_exit)
     self._running = false
+    run_all_events(self._events.on_exit)
   end
 end
 
@@ -100,7 +103,7 @@ end
 ---@param event_name rissue.utils.process.Event
 ---@param callback fun()
 function Process:register_event(event_name, callback)
-  local event_table = self._events[event_name]
+  local event_table = self._events[event_name] ---@type ((fun())[])?
   if event_table then
     table.insert(event_table, callback)
   else
@@ -127,7 +130,9 @@ local function close_handle(h, callback, ...)
   end
 end
 
---- Closes the process by killing it. Requires waiting for the process to finish
+--- Closes the process by sending a signal. Requires waiting for the process to finish
+---
+--- Optionally, you can send other signals that is supported by the os.
 ---@param callback fun()?
 ---@param signal string | integer | nil
 function Process:close(callback, signal)
@@ -183,6 +188,13 @@ local function read_pipe(pipe, buffer, on_close, on_read)
   end)
 end
 
+local function force_close_pipe(pipe, on_close)
+  if pipe and not pipe:is_closing() then
+    pipe:read_stop()
+    close_handle(pipe, on_close)
+  end
+end
+
 --- Runs the process
 ---@return string? err_msg
 function Process:run()
@@ -221,16 +233,29 @@ function Process:run()
   }
 
   local handle, err = uv.spawn(self._opts.cmd, options, function(code)
-    -- for now we don't handle signal code
     self._exit_code = code
     log.trace("Program exited with code " .. tostring(code))
+
     close_handle(self._handle, function()
       self._finished.handle = true
       self:try_exit()
     end)
 
-    close_handle(pipe_stdout, on_stdout_pipe_close)
-    close_handle(pipe_stderr, on_stderr_pipe_close)
+    -- Pipes normally close themselves at EOF (see read_pipe). If a grandchild
+    -- inherited the write end, EOF never comes, so force-close after a grace period.
+    local timer = uv.new_timer()
+    if not timer then
+      -- can't make a timer: fall back to closing immediately
+      force_close_pipe(pipe_stdout, on_stdout_pipe_close)
+      force_close_pipe(pipe_stderr, on_stderr_pipe_close)
+      return
+    end
+
+    timer:start(FLUSH_GRACE_MS, 0, function()
+      try_stop_timer(timer)
+      force_close_pipe(pipe_stdout, on_stdout_pipe_close)
+      force_close_pipe(pipe_stderr, on_stderr_pipe_close)
+    end)
   end)
 
   if not handle then
@@ -274,10 +299,13 @@ function Process:run()
   end
 end
 
+--- Gets the exit code of the process. If the exit code is -1, it means it has not yet
+--- finished.
 function Process:get_code()
   return self._exit_code
 end
 
+--- Gets the stdout output of the process.
 ---@return string
 function Process:get_stdout()
   if
@@ -293,6 +321,7 @@ function Process:get_stdout()
   return table.concat(self._stdout_raw)
 end
 
+--- Gets the stderr output of the process.
 ---@return string
 function Process:get_stderr()
   if
@@ -308,50 +337,79 @@ function Process:get_stderr()
   return table.concat(self._stderr_raw)
 end
 
---- Gets the latest stdout output
+---@class rissue.utils.Process.last_output.Opts
+--- Strips all \r\n` on each end.
+--- Default: false
+---@field strip_newlines boolean?
+--- Adds a newline when the body contains a newline after being stripped (if enabled).
+--- Used for logging
+--- Default: false
+---@field newline_on_multiline_output boolean? No by default
+
+---@param self rissue.utils.Process
+---@param method_name string
+local function warn_if_not_running(self, method_name)
+  if
+    log.level_enabled(log.levels.warn)
+    and self._exit_code == -1 -- not yet finished
+    and self._running == false -- process is not running
+  then
+    log.log(
+      ("Calling 'process:%s()' when process has not started."):format(
+        method_name
+      ),
+      log.levels.warn
+    )
+  end
+end
+
+---@param line string
+---@param opts rissue.utils.Process.last_output.Opts
+---@return string
+local function prepare_line(line, opts)
+  if opts.strip_newlines then
+    line = strings.trim_newlines(line)
+  end
+
+  if opts.newline_on_multiline_output and line:find("\n") then
+    line = "\n" .. line
+  end
+
+  return line
+end
+
+--- Gets the latest stdout output line.
 --- Used with relation to `on_stdout` or `on_output` event (e.g. print output)
---- @param strip_newline boolean? No by default
-function Process:get_last_stdout(strip_newline)
-  if
-    log.level_enabled(log.levels.warn)
-    and self._exit_code == -1
-    and self._running == false
-  then
-    log.log(
-      "Calling 'process:get_last_stdout()' when process has not started.",
-      log.levels.warn
-    )
-  end
+---@param opts? rissue.utils.Process.last_output.Opts
+---@return string
+function Process:get_last_stdout(opts)
+  warn_if_not_running(self, "get_last_stdout")
+
   local line = self._stdout_raw[#self._stdout_raw]
-  if strip_newline then
-    line = line:match("^%s*(.-)%s*$")
+  if not opts then
+    return line
   end
-  return line
+
+  return prepare_line(line, opts)
 end
 
---- Gets the latest stderr output
+--- Gets the latest stderr output line.
 --- Used with relation to `on_stderr` or `on_output` event (e.g. print output)
---- @param strip_newline boolean? No by default
-function Process:get_last_stderr(strip_newline)
-  if
-    log.level_enabled(log.levels.warn)
-    and self._exit_code == -1
-    and self._running == false
-  then
-    log.log(
-      "Calling 'process:get_last_stderr()' when process has not started.",
-      log.levels.warn
-    )
-  end
+---@param opts? rissue.utils.Process.last_output.Opts
+---@return string
+function Process:get_last_stderr(opts)
+  warn_if_not_running(self, "get_last_stderr")
+
   local line = self._stderr_raw[#self._stderr_raw]
-  if strip_newline then
-    line = line:match("^%s*(.-)%s*$")
+  if not opts then
+    return line
   end
-  return line
+
+  return prepare_line(line, opts)
 end
 
----Spawns a process (without running)
----@param opts rissue.utils.CommandOpts
+---Creates a process handler
+---@param opts rissue.utils.process.Opts
 ---@return rissue.utils.Process? spawned_process
 ---@return string? error
 function M.spawn(opts)
@@ -360,7 +418,7 @@ function M.spawn(opts)
   end
 
   if opts.env then
-    local new_env = {}
+    local new_env = {} ---@type string[]
     for k, v in pairs(opts.env) do
       if type(k) == "number" then
         new_env[#new_env + 1] = v
@@ -398,8 +456,8 @@ function M.spawn(opts)
   return setmetatable(process, Process), nil
 end
 
---- A lightweight wrapper that calls `error()` on error
----@param opts rissue.utils.CommandOpts
+--- A lightweight wrapper that throws an exception when it generates an error
+---@param opts rissue.utils.process.Opts
 ---@return rissue.utils.Process
 function M.spawn_err(opts)
   local p, err = M.spawn(opts)
@@ -409,36 +467,35 @@ function M.spawn_err(opts)
   return p
 end
 
+--- Runs the process and asynchronously waits until it finishes.
 ---@async
---- Wrapper to M.spawn with `uv.spawn()` that blocks for exit inside coroutines.
---- Use `process.spawn()` if manually implementing instead.
----
---- Warning: May raise errors
---- @param command_opts rissue.utils.CommandOpts
---- @param opts rissue.utils.run.Opts?
---- @return rissue.utils.CmdResult? result
---- @return string? error
-function M.run_co(command_opts, opts)
-  local co, is_main = coroutine.running()
-  if is_main or not co then
-    error("must be inside a coroutine")
-  end
-
+---@param async rissue.Async
+---@param command_opts rissue.utils.process.Opts
+---@param opts rissue.utils.run_process.Opts?
+---@return rissue.utils.process.Result? result
+---@return string? error
+function M.run_async(async, command_opts, opts)
   local p, err = M.spawn(command_opts)
   if not p then
     return nil, err
   end
 
   p:register_event("on_exit", function()
-    safe_co_resume(co)
+    async:resume()
   end)
 
-  if (opts and opts.print_output) or log.level_enabled(log.levels.trace) then
+  if
+    (opts and opts.print_output == true) or log.level_enabled(log.levels.trace)
+  then
+    ---@type rissue.utils.Process.last_output.Opts
+    local print_opts =
+      { strip_newlines = true, newline_on_multiline_output = true }
     p:register_event("on_stdout", function()
-      log.log("| " .. p:get_last_stdout(true), log.levels.trace)
+      log.log("| " .. p:get_last_stdout(print_opts), log.levels.trace)
     end)
+
     p:register_event("on_stderr", function()
-      log.log("@ " .. p:get_last_stderr(true), log.levels.trace)
+      log.log("@ " .. p:get_last_stderr(print_opts), log.levels.trace)
     end)
   end
 
@@ -446,108 +503,35 @@ function M.run_co(command_opts, opts)
   if err then
     return nil, err
   end
-  coroutine.yield()
+
+  async:yield()
   return {
     return_code = p:get_code(),
     stdout = p:get_stdout(),
     stderr = p:get_stderr(),
-  } --[[@as rissue.utils.CmdResult]]
+  } --[[@as rissue.utils.process.Result]]
 end
 
---- Blocks the main thread until the process exists.
---- Recommended on one shot commands such as `mkdir` and `touch`.
---- Warning: May raise errors! Recommended to wrap in `pcall()`
----
---- Use `process.run_co()` to run blocking on coroutine instead.
---- Use `os.execute()` for simplicity instead.
---- @param command_opts rissue.utils.CommandOpts
---- @param timeout integer Pass -1 to disable timeout
---- @param opts rissue.utils.run.Opts?
---- @return rissue.utils.CmdResult? result
---- @return string? error
-function M.run(command_opts, timeout, opts)
-  local finished = false
-  local p, err = M.spawn(command_opts)
-  if not p then
-    return nil, err
-  end
-  p:register_event("on_exit", function()
-    finished = true
-  end)
-  if opts and opts.print_output then
-    p:register_event("on_stdout", function()
-      log.log("| " .. p:get_last_stdout(true), log.levels.trace)
-    end)
-    p:register_event("on_stderr", function()
-      log.log("@ " .. p:get_last_stderr(true), log.levels.trace)
-    end)
-  end
-  err = p:run()
-  if err then
-    return nil, err
-  end
-  local wait_ok = M.wait(function()
-    return finished
-  end, timeout)
-
-  if not wait_ok then
-    return nil, "timeout reached"
-  end
-
-  return {
-    return_code = p:get_code(),
-    stderr = p:get_stderr(),
-    stdout = p:get_stdout(),
-  } --[[@as rissue.utils.CmdResult]]
-end
-
----@param timer uv.uv_timer_t?
-local function try_stop_timer(timer)
-  if timer then
-    if not timer:is_closing() then
-      timer:stop()
-      timer:close()
-    end
-  end
-end
-
---- Delays the coroutine/main thread execution by number of milliseconds
----
---- If not in coroutine mode, it uses `process.wait()` instead
+--- Delays the current async thread by number of milliseconds
 ---@async
----@param milliseconds integer
+---@param async rissue.Async
+---@param milliseconds integer time in milliseconds
 ---@return boolean success
 ---@return string? error
-function M.try_delay(milliseconds)
+function M.sleep(async, milliseconds)
   local timer, timer_err = uv.new_timer()
   if not timer then
     return false, timer_err
   end
 
-  local co, is_main = coroutine.running()
-
-  if not is_main and co then
-    local start_ok, start_err = timer:start(milliseconds, 0, function()
-      safe_co_resume(co)
-    end)
-    if not start_ok then
-      close_handle(timer)
-      return false, start_err
-    end
-    coroutine.yield()
-  else
-    local done = false
-    local start_ok, start_err = timer:start(milliseconds, 0, function()
-      done = true
-    end)
-    if not start_ok then
-      close_handle(timer)
-      return false, start_err
-    end
-    M.wait(function()
-      return done
-    end, -1)
+  local start_ok, start_err = timer:start(milliseconds, 0, function()
+    async:resume()
+  end)
+  if not start_ok then
+    close_handle(timer)
+    return false, start_err
   end
+  async:yield()
 
   return true
 end
@@ -555,7 +539,7 @@ end
 local waiting = false
 local force_stop_waiting = false
 
---- Stops the current `process.wait`
+--- Stops the active `process.wait()`
 ---@param reason string Reason for stopping current waiting loop
 ---@return boolean success
 ---@return string? error
@@ -575,6 +559,38 @@ function M.try_stop_current_wait(reason)
   return false
 end
 
+--- Performs the luv event loop until the specified condition to be true.
+---
+--- Example:
+---
+--- ```lua
+--- local done = false
+--- async.run(function()
+---   -- do async task
+---   done = true
+--- end)
+---
+--- --- check condition for every 5 seconds. Timeout is 1 minute
+--- process.wait(function() return done end, 60000, 5000)
+--- ```
+---
+--- To stop the current `process.wait()` due to an error (without using `error()`),
+--- use `process.try_stop_current_wait()`
+---
+--- It is also possible to not specify the interval if the async task completion state
+--- is tied to luv (e.g. reading a file, finishing a process).
+---
+--- Example:
+---
+--- ```lua
+--- local done = false
+--- async.run(function(a)
+---   --- do uv readfile
+---   done = true
+--- end)
+---
+--- process.wait(function() return done end, -1)
+--- ```
 ---@param condition fun(): boolean
 ---@param timeout integer  Pass -1 to disable timeout
 ---@param interval integer?
@@ -648,13 +664,12 @@ local function shell_escape(arg)
   return arg
 end
 
---- A utility function that constructs a command line string that can be used to print
---- into console for debugging purposes
+--- A utility function that represents command line arguments.
 ---@param cmd string
 ---@param args string[]
 ---@return string
 function M.construct_command_line_string(cmd, args)
-  local str_tbl = {}
+  local str_tbl = {} ---@type string[]
   str_tbl[#str_tbl + 1] = shell_escape(cmd)
   for i, arg in ipairs(args) do
     str_tbl[i + 1] = shell_escape(arg)
