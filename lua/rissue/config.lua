@@ -75,7 +75,11 @@ local matchers = assert_op.matchers
 local function is_provider_spec(obj)
   local ok, err = assert_op.table_expects(obj, {
     name = matchers.is_string,
-    version = matchers.follows({}, "rissue.Version"),
+    version = matchers.follows({
+      major = matchers.is_integer,
+      minor = matchers.is_integer,
+      patch = matchers.is_integer,
+    }, "rissue.Version"),
     get_issues = matchers.is_function,
     get_merge_requests = matchers.is_function,
     supports = matchers.is_function,

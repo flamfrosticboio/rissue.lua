@@ -66,7 +66,8 @@ failed to load 'test/provider/_failing_loaders/name_wrong.lua': Not a provider s
 failed to load 'test/provider/_failing_loaders/supports_wrong.lua': Not a provider spec: Expecting m.supports to be a function, got 2 (type number)
 failed to load 'test/provider/_failing_loaders/settings_wrong.lua': Not a provider spec: Expecting m.settings to be a table, got 2 (type number)
 failed to load 'test/provider/_failing_loaders/get_issues_wrong.lua': Not a provider spec: Expecting m.get_issues to be a function, got 2 (type number)
-failed to load 'test/provider/_failing_loaders/get_merge_requests_wrong.lua': Not a provider spec: Expecting m.get_merge_requests to be a function, got 2 (type number)]],
+failed to load 'test/provider/_failing_loaders/get_merge_requests_wrong.lua': Not a provider spec: Expecting m.get_merge_requests to be a function, got 2 (type number)
+failed to load 'test/provider/_failing_loaders/version_wrong.lua': Not a provider spec: Expecting m.version.major to be an integer, got "hello" (type string)]],
         err
       )
     end)
