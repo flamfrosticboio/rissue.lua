@@ -217,6 +217,14 @@
   cb({ id = 1, name = "Hello" }) -- prints nothing
   ```
 
+- [config]:
+  - Reject providers whose `version` is incompatible with
+    `EXTENSION_FORMAT_VERSION` (1.0.0). The error names the provider, the
+    required version and the current version.
+
+- [utils/versions]:
+  - Return `?` from `represent()` when the number cannot be decoded.
+
 **Changes:**
 
 - [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
