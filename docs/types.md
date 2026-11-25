@@ -921,6 +921,8 @@ The structure for pull/merge request
 
 Used for storing current configurations and settings
 
+- `EXTENSION_FORMAT_VERSION`: `rissue.Version` — The current extension format
+  version that the current rissue provider supports.
 - `merge_provider_settings`:
   `function(provider: rissue.Provider, request: table?): table?, string?` — A
   utility function for merging settings from:

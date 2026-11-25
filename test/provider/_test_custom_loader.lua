@@ -51,7 +51,7 @@ end
 ---@type rissue.Provider
 return {
   name = "custom",
-  version = { major = 0, minor = 1, patch = 0 },
+  version = { major = 1, minor = 0, patch = 0 },
   ---@async
   supports = function(async, info, token, opts)
     viewer.supports = { info, token, opts }
