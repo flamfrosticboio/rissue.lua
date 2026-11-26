@@ -1,0 +1,50 @@
+changesDir: .changes
+unreleasedDir: unreleased
+headerPath: header.tpl.md
+changelogPath: CHANGELOG.md
+versionExt: md
+versionFormat: '## {{.Version}} - {{.Time.Format "2006-01-02"}}'
+kindFormat: '### {{.Kind}}'
+changeFormat: '* {{.Body}}{{if .Custom.Issue}} ([#{{.Custom.Issue}}](https://github.com/flamfrosticboio/rissue.lua/issues/{{.Custom.Issue}})){{end}} ({{.Custom.Author}})'
+kinds:
+    - label: Features
+      auto: minor
+      additionalChoices: &issue
+        - key: Issue
+          label: Issue number (optional)
+          type: string
+          optional: true
+    - label: Bug Fixes
+      auto: patch
+      additionalChoices: *issue
+    - label: Performance
+      auto: patch
+      additionalChoices: *issue
+    - label: Breaking Changes
+      auto: major
+      additionalChoices: *issue
+    - label: Refactors
+      auto: patch
+      additionalChoices: *issue
+    - label: Docs
+newlines:
+    afterChangelogHeader: 1
+    beforeChangelogVersion: 1
+    endOfVersion: 1
+    afterVersion: 0
+    beforeKind: 1
+    afterKind: 1
+    beforeChange: 0
+    afterChange: 0
+    beforeFooterTemplate: 1
+    afterFooterTemplate: 0
+envPrefix: CHANGIE_
+custom:
+  - key: Author
+    type: string
+footerFormat: |
+  **Tag:** [{{.Version}}](https://github.com/flamfrosticboio/rissue.lua/releases/tag/{{.Version}})
+  {{- if .PreviousVersion}}
+
+  **Diff:** [{{.PreviousVersion}}...{{.Version}}](https://github.com/flamfrosticboio/rissue.lua/compare/{{.PreviousVersion}}...{{.Version}})
+  {{- end}}

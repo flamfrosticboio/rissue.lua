@@ -1,5 +1,6 @@
 [tools]
 "aqua:Kampfkarren/selene" = "latest"
+changie = "latest"
 lua = "5.1"
 lua-language-server = "latest"
 node = "lts"
@@ -83,3 +84,10 @@ run = "selene --config .selene.tests.toml test/"
 [tasks.check]
 description = "Check changes with prek"
 run = "prek run --all-files"
+
+[tasks.change]
+description = "Create a changelog entry with the author filled in"
+run = '''
+name=$(git config user.name) || { echo "Set git user.name first"; exit 1; }
+changie new --custom Author="$name" "$@"
+'''
