@@ -21,7 +21,7 @@ local supports = require("rissue.providers.gitlab.supports")
 ---@type rissue.Provider
 return {
   name = "gitlab",
-  version = { major = 1, minor = 0, patch = 2 },
+  version = { major = 1, minor = 0, patch = 0 },
   settings = config.defaults,
   get_issues = get.issues,
   get_merge_requests = get.merge_requests,

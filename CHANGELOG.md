@@ -2,368 +2,104 @@
 
 ## v0.3.0
 
-**Features:**
+**⚠️ BREAKING CHANGES:**
 
-- Use new async model that is used for rissue.
+- [utils]:
+  - [log]:
+    - Remove `log_func`. Write a manual implementation instead.
 
-  - Refactored all async related code in rissue to use the new async model.
+  - [process]:
+    - Remove `process.run()` and `process.run_co()`. Use `process.run_async()`
+      instead.
 
-- Check curl version in the background during `setup` and log a warning when
-  curl cannot be run or is incompatible.
+  - [assert_op]:
+    - Replace `assert_op.check_structure()` with `assert_op.table_expects()`,
+      which takes a different structure built on matchers.
 
-- [utils/process]:
-  - Add auto enabling on logging on process's stdout and stderr when `trace` is
-    enabled in log level.
+      ```lua
+      local obj_to_compare = {} -- the table object to compare
+      local structure = {
+        name = "hello", -- a literal
+        full_name = assert_op.matchers.is_string(), -- any string
+        --- see `assert_op.matchers` for everything you can match.
+      }
+      assert_op.table_expects(obj_to_compare, structure, name)
+      ```
 
-  - Add new option `newline_on_multiline_output` on `Process.get_last_stdout()`
-    and `Process.get_last_stderr()`. This change also updates how to pass
-    options to these functions.
+      See
+      [base (b875e7c)](https://github.com/flamfrosticboio/rissue.lua/pull/73/changes/b875e7cd6c1fbf1ebd6c873d5b7a887edbaabf6f)
+      and
+      [is_integer (b50445b)](https://github.com/flamfrosticboio/rissue.lua/commit/b50445b809fb677f62be6ec2fa92c573dd33ad12).
 
-    ```lua
-    --- previously
-    process:get_last_stdout(true) -- strip lines when passed true
-    --- now
-    process:get_last_stdout({
-      strip_new_lines = true,
-      newline_on_multiline_output = true
-    })
-    ```
+  - [curl]:
+    - Rename `rissue.utils.curl.Opts`, `Result`, `Method`, `Formats`, `DataType`
+      and `AuthMethod` to `rissue.curl.*`.
 
-- [utils/log]
-  - Refactored the logging library where it introduces `rissue.mod.logger` and
-    `rissue.Logger`.
+    - Remove `exitcode` and `err` fields from `rissue.curl.Result`. `content`
+      now holds trimmed stdout.
 
-    With `require('rissue.utils.log').new()`, you can create a scoped
-    `rissue.Logger` where it can take:
-    - context: `rissue.log.log_info` (passed to the logger)
-    - logger: `rissue.logger_func`
-    - log_level: `rissue.log.level`
+    - `raw`, `request` and `post` now return `rissue.curl.Error` instead of a
+      string on failure. A nonzero curl exit code now returns an error instead
+      of a result.
 
-    With log information, you can print additional texts to logging to make
-    debugging easier.
-
-    Example:
-
-    ```lua
-    local log = require('rissue.utils.log')
-    local scoped_log = log.new({
-      context = "MyScopedLogger",
-      logger = function(msg, level, info)
-        print(string.format("[%s][lvl:%s] %s", info.context, level, msg))
+      ```lua
+      --- previously
+      local res, err = curl.request(async, url, opts)
+      if not res then
+        log.error(err) -- err is a string
+      elseif res.exitcode ~= 0 then
+        log.error(res.err)
       end
-    })
-
-    -- prints: "[MyScopedLogger][lvl:2] Hello World!"
-    scoped_log.info("Hello World!")
-    ```
-
-  - Regular printing functions such as `log.info()`, `log.warn()` and etc. can
-    now take multiple parameters.
-
-  - New functions:
-    - `log.get_log_level()` to get current log level.
-
-- [provider]: Upgrade specifications where getting issues and merge requests
-  calls the callback builder function provided. This allows for showing partial
-  results while the items are still fetching.
-
-  ```lua
-  --- module `rissue.get`
-  --- from:
-  get.issues(a, info, opts)
-  get.merge_requests(a, info, opts)
-  --- to:
-  get.issues(a, info, opts, function(issue) ... end)
-  get.merge_requests(a, info, opts, function(pr) ... end)
-  ```
-
-  Example use case (folke/snacks picker):
-
-  ```lua
-  --- inside snacks picker's finder
-  --- wrapped with async.run() and info and opts are provided
-  get.issues(a, info, opts, function(issue)
-    --- callback from snacks picker's callback
-    cb({ text = issue.body, item = issue })
-  end)
-  ```
-
-  - [Github]: updated specifications to conform with this new change.
-
-- [utils/table_op]:
-  - New function: `table_op.appender()`.
-
-    Example Usage:
-
-    ```lua
-    local tbl = {}
-    local pusher = table_op.appender(tbl)
-
-    pusher(1)
-    pusher(2)
-    pusher(3)
-    --- table contains { 1, 2, 3 }
-    ```
-
-  - Add `table_op.tbl_keys()` to list the keys of a table.
-
-- [utils/curl]:
-  - Add `is_version_compatible` to check that installed curl is at least 7.83.0
-    and below 9.0.0.
-
-  - Add `rissue.curl.Error` with `exitcode`, `msg` (from stderr) and
-    `server_msg` (from stdout). `server_msg` is `nil` when stdout is empty.
-
-  - Use `exitcode = -1` for internal errors not coming from curl, including
-    `--dump-header` file errors.
-  - Fall back to "curl failed (exit code N)" in `msg` when stderr is empty.
-  - Collapse consecutive duplicate stderr lines in `msg`.
-
-  ```txt
-  --- previously
-  a
-  a
-  a
-  b
-  --- now
-  a (3x)
-  b
-  ```
-
-  - Trim surrounding whitespace from stdout and stderr.
-  - Validate `opts.data_type` in `construct` and list valid values in the error
-    message.
-  - Validate `opts.data` in `construct`: it must be a string or table, and table
-    keys must be strings.
-  - Accept `nil` `opts` in `request`.
-
-- [utils/curl]:
-  - Add new options: `outfile` and `retry_when`
-
-    The `outfile` option is a `-o <file>` in the hood, but when using this
-    option, it makes the return's contents to empty string because the file is
-    not outputted to stdout.
-
-    Notes: it also passes `--create-dirs` and `--remove-on-error` flags when
-    used.
-
-    The `retry_when` option is built-in to curl where it attempts to retry when
-    if fails to fetch. The retries are controlled by `retries` and `retry_delay`
-    option.
-
-    Possible values of `retry_when` are: `false` | `"all"` | `"connrefused"`
-
-    When it is `false`, it will not retry on any error.
-
-    When it is `all`, it will retry on every error, including `opts.fail_fast`
-
-    When it is `connrefused`, it will retry only when the connection refused to
-    connect.
-
-  - Add `rissue.curl.Error` with `exitcode`, `msg` (from stderr) and
-    `server_msg` (from stdout).
-
-  - Use `exitcode = -1` for internal errors not coming from curl, including
-    `--dump-header` file errors.
-
-  - Collapse consecutive duplicate stderr lines in `msg`.
-
-    ```txt
-    --- previously
-    a
-    a
-    a
-    b
-    --- now
-    a (3x)
-    b
-    ```
-
-  - Trim surrounding `whitespaces` from stdout and stderr with `strings.trim`.
-
-- [utils/assert_op]: Refactor `check_structure` (now called `table_expects`) to
-  use matchers for support for literals and more complicated checking.
-
-- New utils module: `strings`
-
-  This new module contains the following functions:
-  - `strings.trim()`: Trims `whitespaces` fast.
-  - `strings.trim_newlines()`: Trims `newlines` fast.
-  - `strings.truncate()`: Truncates a string safely on utf-8
-  - `strings.represent_value()`: Wraps strings in double quotes and uses
-    `tostring` for other values.
-
-- New Gitlab module. You can now query gitlab.com and self-hosted gitlab
-  instances for issues and merge requests
-
-- [utils/json]:
-  - Add new field "loaded" that shows the currently loaded json backend.
-
-- New utils module: "deduplicator"
-
-  This new module returns a function that deduplicates results based on id.
-
-  Example:
-
-  ```lua
-  -- Not the exact implementation with gitlab
-  local function construct_merge_requests(item) return item end
-  local function get_id(item) return item.id end
-  local function cb(item) print(item.name) end
-  local cb = deduplicator(cb, construct_merge_requests, get_id),
-
-  cb({ id = 1, name = "Hello" }) -- prints 'Hello'
-  cb({ id = 2, name = "Hi" }) -- prints 'Hi'
-  cb({ id = 1, name = "Hello" }) -- prints nothing
-  ```
-
-- [config]:
-  - Reject providers whose `version` is incompatible with
-    `EXTENSION_FORMAT_VERSION` (1.0.0). The error names the provider, the
-    required version and the current version.
-
-- [utils/versions]:
-  - Return `?` from `represent()` when the number cannot be decoded.
-
-**Changes:**
-
-- [utils/log] Accessing `log_level` (now called `_level`) and `_logger` are
-  tagged protected.
-
-- [Github]:
-  - Updated logging to be more clear and simpler.
-
-  - Improved pattern detection when checking github support on provided url.
-
-- [specifications/providers]: Simplify versioning system.
-
-  Instead of using `version: string` and `version_code: integer`, it will use
-  `version: {major: integer, minor: integer, patch: integer}` instead.
-
-  ```lua
-  --- from
-  {
-    ...
-    version = "1.0",
-    version_code = 1000,
-  }
-  --- to
-  {
-    version = { major = 1, minor = 0, patch = 0 }
-  }
-
-  - [Github]: updated specifications to conform with this new change.
-  ```
-
-- [config]:
-  - Change endpoint_shortcuts to a list, so multiple shortcuts can point to the
-    same git provider.
-
-  - Report built-in provider load failures from `config.setup` as `[bug]` errors
-    instead of failing on require.
-
-  - Prefix additional provider errors with `failed to load '<path>'`. Spec
-    errors now read `Not a provider spec: ...` instead of
-    `Module at '<path>' is not a provider spec: ...`.
-
-- [utils/curl]:
-  - Set `server_msg` to `nil` when stdout is empty instead of `""`.
-
-- [utils/json]:
-  - Improved error reporting.
-
-**Bug Fixes:**
-
-- [utils/process, utils/async]: Fix unpack is unavailable on other lua versions.
-
-- [utils/curl]:
-  - Fix constant variable mutation errors when using lua5.5
-
-  - Fix tmpfile not deleted on curl error when using
-    `opts.include_result_headers`.
-
-  - Reject string `data` for `form_string` instead of stale `form_literal`.
-
-- [utils/process]: Fixed running status is still true when process has exited
-  during the `on_exit` event.
-
-- [config]: fix additional providers getting wrong checks
-  [#72](https://github.com/flamfrosticboio/rissue.lua/issues/72)
-
-- [provider]: scope opts properly by provider name
-  [#76](https://github.com/flamfrosticboio/rissue.lua/issues/76)
-
-- [utils/process]:
-  - Read stdout and stderr pipes until EOF, then force-close them after a 100ms
-    grace period, so the last output is no longer lost when the process exits.
-
-**Breaking Changes:**
-
-- [utils/log]: Removed `log_func`. Write a manual implementation instead.
-
-- [utils/process]: Removed `process.run()` and `process.run_co()`. Use
-  `process.run_async()` instead.
-
-- [provider]: `Provider.get_issues()` and `Provider.get_merge_requests()` will
-  now take a fourth parameter `cb: fun(item: T)` where `T` is `rissue.issue` or
-  `rissue.pr`. The return type is updated from
-  `rissue.issue[]? results, string? err_msg` to `string? err_msg`
-
-- [specifications/providers]: The versioning system for providers uses
-  `version: {major: integer, minor: integer, patch: integer}` instead of
-  `version: string` and `version_code: integer`. Any existing providers using
-  the old versioning system will not work anymore.
-
-- [utils/assert_op]: `assert_op.check_structure()` is now migrated to
-  `assert_op.table_expects()` which has a different structure. See more on these
-  commits:
-  - [base (b875e7c)](https://github.com/flamfrosticboio/rissue.lua/pull/73/changes/b875e7cd6c1fbf1ebd6c873d5b7a887edbaabf6f).
-  - [is_integer (b50445b)](https://github.com/flamfrosticboio/rissue.lua/commit/b50445b809fb677f62be6ec2fa92c573dd33ad12)
-
-  New Usage Example:
-
-  ```lua
-  local obj_to_compare = {} -- the table object to compare
-  local structure = {
-    name = "hello", -- a literal
-    full_name = assert_op.matchers.is_string() -- or any type which is a string
-    --- see more on assert_op.matchers to see how much you can do.
-  }
-  assert_op.check_structure(obj_to_compare, structure, name)
-  ```
-
-- [utils/curl]:
-  - Rename `rissue.utils.curl.Result` to `rissue.curl.Result`.
-
-  - Remove `exitcode` and `err` fields from `rissue.curl.Result`. Errors are now
-    reported through the new `rissue.curl.Error`.
-
-  - `raw`, `request` and `post` now return `rissue.curl.Error` instead of a
-    string on error. A nonzero curl exit code now returns an error instead of a
-    result.
+      --- now
+      local res, err = curl.request(async, url, opts)
+      if not res then
+        log.error(err.msg) -- err is `rissue.curl.Error`
+      end
+      ```
+
+    - `construct` now returns `nil, err_msg` on invalid options instead of
+      raising with `error()`. `request` wraps that message in a
+      `rissue.curl.Error` with `exitcode = -1`.
+
+      ```lua
+      --- previously
+      local ok, args = pcall(curl.construct, url, opts)
+      --- now
+      local args, err = curl.construct(url, opts)
+      ```
+
+- [provider]:
+  - `Provider.get_issues()` and `Provider.get_merge_requests()` now take a
+    fourth parameter `cb: fun(item: T)`, where `T` is `rissue.issue` or
+    `rissue.pr`. The return type changes from
+    `rissue.issue[]? results, string? err_msg` to `string? err_msg`.
+
+- [specifications/providers]:
+  - Replace `version: string` and `version_code: integer` with
+    `version: {major: integer, minor: integer, patch: integer}`. Providers using
+    the old versioning no longer work.
 
     ```lua
     --- previously
-    local res, err = curl.request(async, url, opts)
-    if not res then
-      log.error(err) -- err is a string
-    elseif res.exitcode ~= 0 then
-      log.error(res.err)
-    end
+    {
+      version = "1.0",
+      version_code = 1000,
+    }
     --- now
-    local res, err = curl.request(async, url, opts)
-    if not res then
-      log.error(err.msg) -- err is `rissue.curl.Error`
-    end
+    {
+      version = { major = 1, minor = 0, patch = 0 },
+    }
     ```
 
 - [config]:
   - `config.endpoint_shortcuts` now takes a list of `rissue.EndpointShortcut`
-    rather than a table.
-  - `rissue.EndpointShortcut` requires the `name: rissue.ProviderName` field.
+    instead of a table.
 
-  - `config.providers` is now empty until `config.setup` runs. Built-in
-    providers are loaded during setup instead of on require.
+  - `rissue.EndpointShortcut` now requires the `name: rissue.ProviderName`
+    field.
+
+  - `config.providers` is empty until `config.setup()` runs. Built-in providers
+    are loaded during setup instead of on require.
 
     ```lua
     --- previously
@@ -375,53 +111,265 @@
     config.providers.github -- available only after setup
     ```
 
-- [docs]: Type names are updated to reflect to its use case better.
-  - `rissue.pr` -> `rissue.MergeRequest`
-  - `rissue.issue` -> `rissue.Issue`
-  - `rissue.item.base` -> `rissue.CommonItem`
-  - `rissue.pr.State` -> `rissue.mr.State`
-  - `rissue.label` -> `rissue.Label`
-  - `rissue.user` -> `rissue.User`
-  - `rissue.logger` -> `rissue.Logger`
-  - `rissue.log.level.named` -> `rissue.log.named_level`
-  - `rissue.utils.CmdResult` -> `rissue.utils.process.Result`
-  - `rissue.utils.CommandOpts` -> `rissue.utils.process.Opts`
-  - `rissue.utils.run.Opts` -> `rissue.utils.run_process.Opts`
+- [docs]:
+  - Rename types to better reflect their use:
+    - `rissue.pr` -> `rissue.MergeRequest`
+    - `rissue.issue` -> `rissue.Issue`
+    - `rissue.item.base` -> `rissue.CommonItem`
+    - `rissue.pr.State` -> `rissue.mr.State`
+    - `rissue.label` -> `rissue.Label`
+    - `rissue.user` -> `rissue.User`
+    - `rissue.logger` -> `rissue.Logger`
+    - `rissue.log.level.named` -> `rissue.log.named_level`
+    - `rissue.utils.CmdResult` -> `rissue.utils.process.Result`
+    - `rissue.utils.CommandOpts` -> `rissue.utils.process.Opts`
+    - `rissue.utils.run.Opts` -> `rissue.utils.run_process.Opts`
 
-- [utils/curl]:
-  - Rename `rissue.utils.curl.Opts`, `Result`, `Method`, `Formats`, `DataType`
-    and `AuthMethod` to `rissue.curl.*`.
-  - Remove `exitcode` and `err` fields from `rissue.curl.Result`. `content` now
-    holds trimmed stdout.
-  - `raw`, `request` and `post` now return `rissue.curl.Error` instead of a
-    string on error. A nonzero curl exit code now returns an error instead of a
-    result.
+**✨ New Features:**
+
+- [core]:
+  - Use the new async model. All async code in rissue is refactored to use it.
+
+  - Check the curl version in the background during `setup` and log a warning
+    when curl cannot be run or is incompatible.
+
+- [gitlab]:
+  - Add a Gitlab module to query issues and merge requests from gitlab.com and
+    self-hosted Gitlab instances.
+
+- [github]:
+  - Update specifications for the new callback-based `get` API and the new
+    versioning system.
+
+  - Improve pattern detection when checking Github support for a given url.
+
+- [provider]:
+  - Call the provided callback builder function from `get.issues` and
+    `get.merge_requests`, so partial results can be shown while items are still
+    being fetched.
 
     ```lua
+    --- module `rissue.get`
     --- previously
-    local res, err = curl.request(async, url, opts)
-    if not res then
-      log.error(err) -- err is a string
-    elseif res.exitcode ~= 0 then
-      log.error(res.err)
-    end
+    get.issues(a, info, opts)
+    get.merge_requests(a, info, opts)
     --- now
-    local res, err = curl.request(async, url, opts)
-    if not res then
-      log.error(err.msg) -- err is `rissue.curl.Error`
-    end
+    get.issues(a, info, opts, function(issue) ... end)
+    get.merge_requests(a, info, opts, function(pr) ... end)
     ```
 
-- `construct` now returns `nil, err_msg` on invalid options instead of raising
-  with `error()`. `request` wraps that message in a `rissue.curl.Error` with
-  `exitcode = -1`.
+    Example (folke/snacks picker):
 
-  ```lua
-  --- previously
-  local ok, args = pcall(curl.construct, url, opts)
-  --- now
-  local args, err = curl.construct(url, opts)
-  ```
+    ```lua
+    --- inside snacks picker's finder, wrapped with async.run()
+    get.issues(a, info, opts, function(issue)
+      cb({ text = issue.body, item = issue })
+    end)
+    ```
+
+- [config]:
+  - Reject providers whose `version` is incompatible with
+    `EXTENSION_FORMAT_VERSION` (1.0.0). The error names the provider, the
+    required version and the current version.
+
+  - Report built-in provider load failures from `config.setup` as `[bug]` errors
+    instead of failing on require.
+
+  - Prefix additional provider errors with `failed to load '<path>'`. Spec
+    errors now read `Not a provider spec: ...` instead of
+    `Module at '<path>' is not a provider spec: ...`.
+
+- [utils]:
+  - [process]:
+    - Enable logging of stdout and stderr automatically when the log level is
+      `trace`.
+
+    - Add the `newline_on_multiline_output` option to
+      `Process.get_last_stdout()` and `Process.get_last_stderr()`. Options are
+      now passed as a table.
+
+      ```lua
+      --- previously
+      process:get_last_stdout(true) -- strip lines when passed true
+      --- now
+      process:get_last_stdout({
+        strip_new_lines = true,
+        newline_on_multiline_output = true,
+      })
+      ```
+
+  - [log]:
+    - Refactor the logging library, introducing `rissue.mod.logger` and
+      `rissue.Logger`.
+
+    - Add `require('rissue.utils.log').new()` to create a scoped
+      `rissue.Logger`. It accepts:
+      - `context`: `rissue.log.log_info`, passed to the logger.
+      - `logger`: `rissue.logger_func`.
+      - `log_level`: `rissue.log.level`.
+
+      ```lua
+      local log = require('rissue.utils.log')
+      local scoped_log = log.new({
+        context = "MyScopedLogger",
+        logger = function(msg, level, info)
+          print(string.format("[%s][lvl:%s] %s", info.context, level, msg))
+        end
+      })
+
+      -- prints: "[MyScopedLogger][lvl:2] Hello World!"
+      scoped_log.info("Hello World!")
+      ```
+
+    - Allow `log.info()`, `log.warn()` and the other print functions to take
+      multiple parameters.
+
+    - Add `log.get_log_level()` to get the current log level.
+
+  - [table_op]:
+    - Add `table_op.appender()`.
+
+      ```lua
+      local tbl = {}
+      local pusher = table_op.appender(tbl)
+
+      pusher(1)
+      pusher(2)
+      pusher(3)
+      --- tbl is now { 1, 2, 3 }
+      ```
+
+    - Add `table_op.tbl_keys()` to list the keys of a table.
+
+  - [curl]:
+    - Add `is_version_compatible` to check that the installed curl is at least
+      7.83.0 and below 9.0.0.
+
+    - Add `rissue.curl.Error` with `exitcode`, `msg` (from stderr) and
+      `server_msg` (from stdout). `server_msg` is `nil` when stdout is empty.
+
+    - Use `exitcode = -1` for internal errors not coming from curl, including
+      `--dump-header` file errors.
+
+    - Fall back to `curl failed (exit code N)` in `msg` when stderr is empty.
+
+    - Collapse consecutive duplicate stderr lines in `msg`.
+
+      ```txt
+      --- previously
+      a
+      a
+      a
+      b
+      --- now
+      a (3x)
+      b
+      ```
+
+    - Trim surrounding whitespace from stdout and stderr with `strings.trim`.
+
+    - Validate `opts.data_type` in `construct` and list the valid values in the
+      error message.
+
+    - Validate `opts.data` in `construct`: it must be a string or a table, and
+      table keys must be strings.
+
+    - Accept `nil` `opts` in `request`.
+
+    - Add the `outfile` option, which passes `-o <file>` to curl along with
+      `--create-dirs` and `--remove-on-error`. The returned content is an empty
+      string, since nothing is written to stdout.
+
+    - Add the `retry_when` option, which uses curl's built-in retry and is
+      controlled by `retries` and `retry_delay`. Possible values:
+      - `false`: never retry.
+      - `"all"`: retry on every error, including `opts.fail_fast`.
+      - `"connrefused"`: retry only when the connection is refused.
+
+  - [json]:
+    - Add the `loaded` field, which shows the currently loaded json backend.
+
+    - Improve error reporting.
+
+  - [versions]:
+    - Return `?` from `represent()` when the number cannot be decoded.
+
+  - [assert_op]:
+    - Support literals and more complex checks in `table_expects` through
+      matchers.
+
+  - [strings] (new module):
+    - Add `strings.trim()` to trim whitespace quickly.
+
+    - Add `strings.trim_newlines()` to trim newlines quickly.
+
+    - Add `strings.truncate()` to truncate a string safely on utf-8.
+
+    - Add `strings.represent_value()` to wrap strings in double quotes and use
+      `tostring` for other values.
+
+  - deduplicator (new module):
+    - Return a function that deduplicates results by id.
+
+      ```lua
+      -- Not the exact implementation with gitlab
+      local function construct_merge_requests(item) return item end
+      local function get_id(item) return item.id end
+      local function cb(item) print(item.name) end
+      local cb = deduplicator(cb, construct_merge_requests, get_id)
+
+      cb({ id = 1, name = "Hello" }) -- prints 'Hello'
+      cb({ id = 2, name = "Hi" })    -- prints 'Hi'
+      cb({ id = 1, name = "Hello" }) -- prints nothing
+      ```
+
+**🐛 Bug Fixes:**
+
+- [utils]:
+  - [process]:
+    - Fix `unpack` being unavailable on other Lua versions.
+
+    - Fix the running status staying `true` when the process exits during the
+      `on_exit` event.
+
+    - Read stdout and stderr pipes until EOF, then force-close them after a
+      100ms grace period, so the last output is no longer lost on exit.
+
+  - [async]:
+    - Fix `unpack` being unavailable on other Lua versions.
+
+  - [curl]:
+    - Fix constant variable mutation errors on Lua 5.5.
+
+    - Fix the tmpfile not being deleted on curl error when using
+      `opts.include_result_headers`.
+
+    - Reject string `data` for `form_string` instead of the stale
+      `form_literal`.
+
+- [config]:
+  - Fix additional providers getting wrong checks
+    ([#72](https://github.com/flamfrosticboio/rissue.lua/issues/72)).
+
+- [provider]:
+  - Scope opts properly by provider name
+    ([#76](https://github.com/flamfrosticboio/rissue.lua/issues/76)).
+
+**♻️ Changes:**
+
+- [utils]:
+  - [log]:
+    - Rename `log_level` to `_level` and tag it and `_logger` as protected.
+
+  - [table_op]:
+    - Rename `table_op.set_into_list()` (now deprecated) to
+      `table_op.tbl_values()`
+
+- [github]:
+  - Make logging clearer and simpler.
+
+Full changelog:
+[https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2](https://github.com/flamfrosticboio/rissue.lua/compare/v0.1...v0.2.0)
 
 ## v0.2.1
 

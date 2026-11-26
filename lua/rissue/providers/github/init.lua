@@ -114,7 +114,7 @@ end
 ---@type rissue.Provider
 return {
   name = "github",
-  version = { major = 1, minor = 0, patch = 4 },
+  version = { major = 1, minor = 0, patch = 0 },
   supports = supports.main,
   get_merge_requests = get_merge_requests,
   get_issues = get_issues,
