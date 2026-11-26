@@ -2,7 +2,7 @@
 
 Adds support for github.
 
-<!-- @VERSION:github -->Version: 1.0.4<!-- @VERSION:github -->
+<!-- @VERSION:github -->Version: 1.0.0<!-- @VERSION:github -->
 
 ## Supported
 
