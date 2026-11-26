@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches: [release]
+
+jobs:
+  check-changelog:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require fragments to be batched
+        run: |
+          left=$(git ls-files '.changes/unreleased/*.yaml')
+          if [ -n "$left" ]; then
+            echo "::error::Unreleased fragments remain. Run 'changie batch' and 'changie merge'."
+            echo "$left"
+            exit 1
+          fi
+
+      - name: Get latest version
+        id: latest
+        uses: miniscruff/changie-action@v2
+        with:
+          version: latest
+          args: latest
+
+      - name: Require latest version in CHANGELOG.md
+        env:
+          VERSION: ${{ steps.latest.outputs.output }}
+        run: |
+          if ! grep -qF "## $VERSION - " CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::$VERSION is missing from CHANGELOG.md. Run 'changie merge'."
+            exit 1
+          fi
+
+  check-provider-versions:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find previous release tag
+        id: prev
+        run: |
+          tag=$(git describe --tags --abbrev=0 --match 'v*' "${GITHUB_SHA}^" 2>/dev/null || true)
+          if [ -n "$tag" ]; then
+            sha=$(git rev-list -n1 "$tag")
+          else
+            sha=$(git rev-list --max-parents=0 "$GITHUB_SHA" | tail -n1)
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Comparing ${tag:-first commit} ($sha) to $GITHUB_SHA"
+
+      - name: Check provider versions
+        env:
+          BASE_SHA: ${{ steps.prev.outputs.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: node .github/scripts/check-provider-versions.cjs
