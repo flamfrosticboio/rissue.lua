@@ -1,4 +1,4 @@
-name: PR checks
+name: PR
 on:
   pull_request:
     types: [opened, synchronize, reopened, labeled, unlabeled]
